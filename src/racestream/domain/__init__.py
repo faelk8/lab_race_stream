@@ -1,0 +1,1 @@
+"""Core race simulation domain."""
