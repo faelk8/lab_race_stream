@@ -15,8 +15,8 @@ class TelemetryPayload(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     event_id: str = Field(min_length=1)
-    event_type: Literal["race.telemetry.v1"]
-    schema_version: Literal[1]
+    event_type: Literal["race.telemetry.v2"]
+    schema_version: Literal[2]
     event_time: datetime
     produced_at: datetime
     race_id: str = Field(min_length=1)
@@ -37,6 +37,13 @@ class TelemetryPayload(BaseModel):
     tire_compound: Literal["soft", "medium", "hard"]
     tire_age_laps: int = Field(ge=0)
     pit_status: Literal["on_track", "pit_lane", "in_pit"]
+    driving_phase: Literal["straight", "braking", "corner"]
+    current_lap_time_ms: int = Field(ge=0)
+    last_lap_time_ms: int | None = Field(default=None, ge=0)
+    best_lap_time_ms: int | None = Field(default=None, ge=0)
+    elapsed_race_seconds: float = Field(ge=0.0, le=120.0)
+    target_laps: int = Field(ge=1)
+    race_status: Literal["running", "finished"]
 
 
 def telemetry_to_payload(event: TelemetryEvent) -> dict[str, object]:

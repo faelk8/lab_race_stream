@@ -1,0 +1,134 @@
+"""FastAPI REST and WebSocket interface for the race dashboard."""
+
+import asyncio
+import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from dataclasses import asdict
+from typing import Literal
+
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+
+from racestream.application.ports import RaceRepository
+from racestream.domain.models import CarConfiguration, TireCompound
+from racestream.infrastructure.postgres_repository import PostgresRaceRepository
+from racestream.interfaces.kafka_hub import KafkaTelemetryHub
+from racestream.interfaces.logging_config import configure_logging
+
+
+class CarConfigurationRequest(BaseModel):
+    """Validated editable setup for one car."""
+
+    driver_id: str = Field(min_length=1, max_length=64)
+    car_weight_kg: float = Field(ge=700.0, le=1_000.0)
+    driver_weight_kg: float = Field(ge=45.0, le=150.0)
+    top_speed_kmh: float = Field(ge=250.0, le=380.0)
+    tire_compound: Literal["soft", "medium", "hard"]
+
+
+def create_app(
+    repository: RaceRepository | None = None,
+    telemetry_hub: KafkaTelemetryHub | None = None,
+) -> FastAPI:
+    """Compose REST and WebSocket routes with injected infrastructure ports.
+
+    :param repository: Optional race repository for tests or alternate adapters.
+    :param telemetry_hub: Optional Kafka telemetry fanout adapter.
+    :return: Configured FastAPI application.
+    """
+    configure_logging()
+    race_repository = repository or PostgresRaceRepository(
+        os.environ.get(
+            "DATABASE_URL",
+            "postgresql://racestream:racestream@localhost:5432/racestream",
+        )
+    )
+    hub = telemetry_hub or KafkaTelemetryHub()
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+        race_repository.seed_default_cars()
+        hub.start(asyncio.get_running_loop())
+        yield
+        hub.stop()
+
+    app = FastAPI(title="RaceStream Interlagos Dashboard API", lifespan=lifespan)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+        allow_methods=["GET", "PUT"],
+        allow_headers=["*"],
+    )
+
+    @app.get("/health")
+    def health() -> dict[str, str]:
+        """Return a lightweight API liveness response."""
+        return {"status": "ok"}
+
+    @app.get("/api/cars")
+    def list_cars() -> list[dict[str, object]]:
+        """List persisted car configurations for the dashboard."""
+        return [
+            {
+                **asdict(configuration),
+                "tire_compound": configuration.tire_compound.value,
+            }
+            for configuration in race_repository.list_car_configurations()
+        ]
+
+    @app.put("/api/cars/{car_id}")
+    def update_car(
+        car_id: str,
+        request: CarConfigurationRequest,
+    ) -> dict[str, object]:
+        """Persist a car setup that will be applied to the next race.
+
+        :param car_id: Existing car identifier.
+        :param request: Validated performance configuration.
+        :return: Persisted car setup.
+        """
+        configuration = CarConfiguration(
+            car_id=car_id,
+            driver_id=request.driver_id,
+            car_weight_kg=request.car_weight_kg,
+            driver_weight_kg=request.driver_weight_kg,
+            top_speed_kmh=request.top_speed_kmh,
+            tire_compound=TireCompound(request.tire_compound),
+        )
+        try:
+            saved = race_repository.save_car_configuration(configuration)
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        return {**asdict(saved), "tire_compound": saved.tire_compound.value}
+
+    @app.get("/api/races/latest")
+    def latest_race() -> dict[str, object] | None:
+        """Return the latest persisted race lifecycle snapshot."""
+        race = race_repository.get_latest_race()
+        return asdict(race) if race is not None else None
+
+    @app.websocket("/ws/races/{race_id}")
+    async def race_telemetry(websocket: WebSocket, race_id: str) -> None:
+        """Stream the latest snapshots for one race to a browser client.
+
+        :param websocket: Active browser WebSocket connection.
+        :param race_id: Race identifier used to filter Kafka events.
+        """
+        await websocket.accept()
+        queue = hub.subscribe()
+        try:
+            while True:
+                event = await queue.get()
+                if event.get("race_id") == race_id:
+                    await websocket.send_json(event)
+        except WebSocketDisconnect:
+            pass
+        finally:
+            hub.unsubscribe(queue)
+
+    return app
+
+
+app = create_app()

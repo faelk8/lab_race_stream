@@ -1,4 +1,19 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-racestream}
+      POSTGRES_USER: ${POSTGRES_USER:-racestream}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-racestream}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
   kafka:
     image: confluentinc/cp-kafka:7.7.1
     hostname: kafka
@@ -64,6 +79,8 @@ services:
   simulator:
     build: .
     depends_on:
+      postgres:
+        condition: service_healthy
       topic-init:
         condition: service_completed_successfully
       schema-registry:
@@ -72,11 +89,55 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
       KAFKA_TOPIC: race.telemetry.raw
-      RACE_ID: ${RACE_ID:-race-local-001}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-racestream}:${POSTGRES_PASSWORD:-racestream}@postgres:5432/${POSTGRES_DB:-racestream}
       RACE_SEED: ${RACE_SEED:-42}
-      RACE_CAR_COUNT: ${RACE_CAR_COUNT:-20}
-      SIMULATION_INTERVAL_SECONDS: ${SIMULATION_INTERVAL_SECONDS:-1.0}
+      RACE_DURATION_SECONDS: ${RACE_DURATION_SECONDS:-120}
+      RACE_TARGET_LAPS: ${RACE_TARGET_LAPS:-60}
+      SIMULATION_INTERVAL_SECONDS: ${SIMULATION_INTERVAL_SECONDS:-0.1}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    restart: unless-stopped
+
+  api:
+    build: .
+    command: ["uvicorn", "racestream.interfaces.api:app", "--host", "0.0.0.0", "--port", "8000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      topic-init:
+        condition: service_completed_successfully
+      schema-registry:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-racestream}:${POSTGRES_PASSWORD:-racestream}@postgres:5432/${POSTGRES_DB:-racestream}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      KAFKA_TOPIC: race.telemetry.raw
+      KAFKA_DASHBOARD_GROUP: racestream-dashboard
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://localhost:8000/health')
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: ./frontend
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
     restart: unless-stopped
 
   consumer:
@@ -97,3 +158,4 @@ services:
 
 volumes:
   kafka-data:
+  postgres-data:

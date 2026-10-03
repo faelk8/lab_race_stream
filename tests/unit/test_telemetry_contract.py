@@ -12,16 +12,17 @@ from racestream.domain.simulator import RaceSimulator
 
 
 def test_domain_event_maps_to_valid_telemetry_payload() -> None:
-    """Domain telemetry maps to the complete version-one contract."""
+    """Domain telemetry maps to the complete version-two contract."""
     event = RaceSimulator(seed=11, car_count=1).tick()[0]
 
     payload = telemetry_to_payload(event)
     validated = TelemetryPayload.model_validate(payload)
 
-    assert payload["event_type"] == "race.telemetry.v1"
-    assert payload["schema_version"] == 1
+    assert payload["event_type"] == "race.telemetry.v2"
+    assert payload["schema_version"] == 2
     assert payload["car_id"] == "CAR-01"
     assert validated.track_progress >= 0.0
+    assert validated.target_laps == 60
 
 
 def test_contract_rejects_progress_outside_normalized_track() -> None:
@@ -34,7 +35,7 @@ def test_contract_rejects_progress_outside_normalized_track() -> None:
 
 def test_avro_schema_contains_required_telemetry_fields() -> None:
     """The versioned Avro schema exposes the required race and car fields."""
-    schema_path = Path("schemas/telemetry-v1.avsc")
+    schema_path = Path("schemas/telemetry-v2.avsc")
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     field_names = {field["name"] for field in schema["fields"]}
 
@@ -54,7 +55,16 @@ def test_avro_schema_contains_required_telemetry_fields() -> None:
         "race_position",
         "tire_compound",
         "pit_status",
+        "driving_phase",
+        "current_lap_time_ms",
+        "last_lap_time_ms",
+        "best_lap_time_ms",
+        "elapsed_race_seconds",
+        "target_laps",
+        "race_status",
     } <= field_names
+    assert schema["fields"][-6]["default"] == 0
+    assert schema["fields"][-5]["default"] is None
 
 
 def test_contract_forbids_unknown_fields() -> None:
