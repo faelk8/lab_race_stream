@@ -433,7 +433,7 @@ export function App() {
                     <span>RACESTREAM LAB <b>·</b> SIMULAÇÃO 60 VOLTAS</span>
                     <span><CircleHelp size={13} /> COMPOSTO E PRESSÃO DISPONÍVEIS NA TELEMETRIA</span>
                 </footer>
-                <RaceInsights raceId={race?.race_id} selectedCarId={selectedCarId} selectedTeam={selectionMode === "team" ? selectedTeam : null} cars={participants} telemetry={telemetry} analytics={analytics} />
+                <RaceInsights trackDefinition={sessionTrack} raceId={race?.race_id} selectedCarId={selectedCarId} selectedTeam={selectionMode === "team" ? selectedTeam : null} cars={participants} telemetry={telemetry} analytics={analytics} />
             </main>
         </div>
     );

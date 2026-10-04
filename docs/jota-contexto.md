@@ -39,3 +39,8 @@ registrar essa escolha como preferência explicitamente confirmada por Rafael.
 
 Melhoria incremental: validação antecipada de pista, boxes, curvas e parâmetros
 físicos, com 94 casos adicionais e 147 testes Python aprovados ao todo.
+
+O acompanhamento usa a pista congelada da sessão também no gráfico; mudanças
+posteriores na API de pista não deslocam as parciais históricas. Tabela ordenada
+pela distância física, incluindo S1 e S2 entre checkpoints. Validado no navegador
+com respostas de pista divergentes, sem iniciar outra corrida.

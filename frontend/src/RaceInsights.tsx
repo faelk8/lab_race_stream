@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { CarAnalytics, CarConfiguration, RaceTelemetry } from "./types";
+import type { CarAnalytics, CarConfiguration, RaceTelemetry, TrackDefinition } from "./types";
 import { formatGap, teamName } from "./racePresentation";
 
 function time(value: number | null | undefined): string {
@@ -13,13 +13,19 @@ interface Props {
     cars: CarConfiguration[];
     telemetry: Record<string, RaceTelemetry>;
     analytics: Record<string, CarAnalytics>;
+    trackDefinition?: TrackDefinition | null;
 }
 
-export function RaceInsights({ raceId, selectedCarId, selectedTeam, cars, telemetry, analytics }: Props) {
+export function RaceInsights({ raceId, selectedCarId, selectedTeam, cars, telemetry, analytics, trackDefinition }: Props) {
     const [laps, setLaps] = useState<{ lap: number; lap_time_ms: number; sectors_ms: number[]; pit_lap: boolean; valid: boolean }[]>([]);
     const [error, setError] = useState(false);
     const [reference, setReference] = useState<"personal" | "team" | "race">("personal");
-    const [pointPositions, setPointPositions] = useState<Record<string, number>>({});
+    const [defaultTrack, setDefaultTrack] = useState<TrackDefinition | null>(null);
+    const track = trackDefinition ?? defaultTrack;
+    const pointPositions: Record<string, number> = track ? Object.fromEntries([
+        ...track.checkpoints.map((p, i) => [`P${String(i + 1).padStart(2, "0")}`, p]),
+        ["S1", track.sector_ends[0]], ["S2", track.sector_ends[1]], ["SF", 1],
+    ]) : {};
     const summary = selectedCarId ? analytics[selectedCarId] : undefined;
     const event = selectedCarId ? telemetry[selectedCarId] : undefined;
     const participants = selectedTeam ? cars.filter(c => c.team_id === selectedTeam) : cars.filter(c => c.car_id === selectedCarId);
@@ -28,13 +34,13 @@ export function RaceInsights({ raceId, selectedCarId, selectedTeam, cars, teleme
         const api = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
         fetch(`${api}/api/tracks/interlagos`, { signal: controller.signal })
             .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-            .then(track => setPointPositions(Object.fromEntries([
-                ...track.checkpoints.map((p: number, i: number) => [`P${String(i + 1).padStart(2, "0")}`, p]),
-                ["S1", track.sector_ends[0]], ["S2", track.sector_ends[1]], ["SF", 1],
-            ])))
-            .catch(e => { if (e.name !== "AbortError") setPointPositions({}); });
+            .then(setDefaultTrack)
+            .catch(e => { if (e.name !== "AbortError") setDefaultTrack(null); });
         return () => controller.abort();
     }, []);
+    const orderedSplits = [...(summary?.splits ?? [])].sort((a, b) =>
+        (pointPositions[a.checkpoint_id] ?? 2) - (pointPositions[b.checkpoint_id] ?? 2)
+        || a.checkpoint_id.localeCompare(b.checkpoint_id));
     const chart = (summary?.splits ?? []).filter(s => s.valid && pointPositions[s.checkpoint_id] != null)
         .map(s => ({ x: pointPositions[s.checkpoint_id], current: s.segment_time_ms,
             best: reference === "personal" ? s.best_personal_ms : reference === "team" ? s.best_team_ms : s.best_race_ms }))
@@ -75,7 +81,7 @@ export function RaceInsights({ raceId, selectedCarId, selectedTeam, cars, teleme
                 <polyline fill="none" stroke="#d099ff" strokeWidth="2" points={chart.filter(p => p.best != null).map(p => `${45 + p.x * 570},${150 - p.best! / chartMaximum * 130}`).join(" ")} />
             </svg><small>Passagens medidas; linhas apenas ligam os pontos. A tabela identifica a volta de cada parcial.</small>
         </figure>}
-        <div className="insights-table-wrap"><table className="insights-table"><thead><tr><th>Ponto</th><th>Volta</th><th>Trecho</th><th>Acumulado</th><th>Referência</th><th>Diferença</th><th>Resultado</th></tr></thead><tbody>{summary?.splits.map(split => {
+        <div className="insights-table-wrap"><table className="insights-table"><thead><tr><th>Ponto</th><th>Volta</th><th>Trecho</th><th>Acumulado</th><th>Referência</th><th>Diferença</th><th>Resultado</th></tr></thead><tbody>{orderedSplits.map(split => {
             const best = reference === "personal" ? split.best_personal_ms : reference === "team" ? split.best_team_ms : split.best_race_ms;
             const delta = best == null || !split.valid ? null : split.segment_time_ms - best;
             return <tr key={split.checkpoint_id} className={`split-${split.color}`}><th>{split.checkpoint_id}</th><td>{split.lap}</td><td>{time(split.segment_time_ms)}</td><td>{time(split.lap_elapsed_ms)}</td><td>{time(best)}</td><td>{delta == null ? "—" : `${delta >= 0 ? "+" : ""}${(delta / 1000).toFixed(3)} s`}</td><td>{{purple: "Melhor da corrida", green: "Melhor pessoal", yellow: "Sem melhora", gray: "Não comparável"}[split.color] ?? "—"}</td></tr>;

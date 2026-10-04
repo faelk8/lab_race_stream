@@ -274,3 +274,19 @@ coincidência produzia trechos de duração zero no mesmo local.
 - [x] Confirmar regressões: 147 testes Python aprovados, Ruff e mypy sem erros.
 - [x] Atualizar serviços; endpoint de pista e recuperação PostgreSQL aprovados.
 - [x] Incremento pronto para commit independente.
+
+## 14. Melhoria incremental: preservar a geometria do acompanhamento
+
+O gráfico de parciais agora recebe a mesma pista congelada da sessão utilizada
+pelo mapa. Consultar a pista atual continua sendo o fallback para sessões sem
+metadados, mas essa resposta não substitui a configuração histórica disponível.
+A tabela ordena checkpoints e setores pela posição física, em vez de colocar
+S1/S2 depois de todos os checkpoints.
+
+- [x] Compartilhar a configuração congelada entre mapa e acompanhamento.
+- [x] Ordenar parciais pela distância normalizada na pista da sessão.
+- [x] Build e oito testes frontend aprovados.
+- [x] Teste de navegador com API de pista deliberadamente diferente: gráfico
+  preservou a posição original de P01; tabela apresentou P04, S1, P05 e P12, S2,
+  P13 nessa ordem; nenhum erro JavaScript.
+- [x] Verificação reutilizou a corrida encerrada; nenhuma nova corrida foi iniciada.
