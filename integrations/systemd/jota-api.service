@@ -1,0 +1,13 @@
+[Unit]
+Description=API local do agente Jota
+After=network.target
+
+[Service]
+WorkingDirectory=%h/Documentos/github/j-ai
+Environment=JOTA_WORKSPACE=%h/Documentos/github
+ExecStart=%h/.local/bin/poetry run uvicorn entrypoints.api:app --app-dir src --host 127.0.0.1 --port 8765
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

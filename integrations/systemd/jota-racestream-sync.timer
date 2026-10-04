@@ -1,0 +1,10 @@
+[Unit]
+Description=Sincronização periódica do RaceStream com o Jota
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=2min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

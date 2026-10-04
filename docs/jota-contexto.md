@@ -1,0 +1,38 @@
+# Contexto compartilhado do RaceStream com o Jota
+
+Atualizado em 04/10/2026. Repositório: `/home/rafael/Documentos/github/lab_race_stream`.
+O índice acompanha o diretório de trabalho, incluindo alterações não commitadas.
+Consulte os arquivos atuais antes de agir: este resumo não declara toda mudança
+como validada nem autoriza alterações adicionais.
+
+Rafael solicitou documentação em português do Brasil, poucas simulações,
+telemetria por carro a cada segundo, parciais cronometradas, Kafka acessível pelo
+Redpanda, acompanhamento por carro/piloto/equipe, melhor e pior volta e força G.
+Preservar balões, nomes, equipes, bandeiras, ordem do pelotão e controles manuais.
+A terceira parada de C deve repor somente o necessário para a distância restante
+mais uma volta, descontando o combustível a bordo.
+
+Implementação validada nesta instalação: motor físico a 50 Hz, snapshots a 1 Hz real, escala
+45 configurável, 15 checkpoints, três setores e chegada. Consumer Python calcula
+projeções duráveis e publica derivados por outbox PostgreSQL. Kafka/Avro tem
+tópicos distintos para telemetria, passagens, voltas, boxes, incidentes, controle,
+estado, análises e erros. Debezium não é necessário para esses eventos diretos.
+
+Estado do trabalho, evidências e pendências estão no
+`docs/execplan-refinamento-corrida.md`; decisões em
+`docs/adr/0010-cronometragem-e-projecoes-de-corrida.md`.
+O traçado, os setores e os raios são aproximações do laboratório. G representa
+aceleração horizontal simulada. Bandeiras/neutralização e armazenamento analítico
+distribuído permanecem como entregas futuras.
+
+Painel: http://localhost:5173. Kafka: http://localhost:8080.
+API: http://localhost:8000/docs. Jota: http://127.0.0.1:8765/health.
+O timer `jota-racestream-sync.timer` atualiza o índice e este contexto a cada dois
+minutos enquanto a sessão local está ativa. PostgreSQL é a fonte de verdade do
+Jota; a projeção Neo4j é um processo separado.
+
+Validação final: 53 testes Python, 8 testes frontend, build, Ruff/mypy e teste
+PostgreSQL isolado aprovados. Última idade de snapshot via API: 0,884–0,972 s em
+dez amostras. A proposta de reduzir o consumo nominal para 218,9 kg/60 voltas foi
+adotada sem resposta à escolha opcional, para preservar uma parada de A; não
+registrar essa escolha como preferência explicitamente confirmada por Rafael.

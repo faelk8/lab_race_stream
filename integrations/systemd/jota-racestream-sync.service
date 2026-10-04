@@ -1,0 +1,11 @@
+[Unit]
+Description=Atualização do índice do RaceStream no Jota
+After=jota-api.service
+Wants=jota-api.service
+
+[Service]
+Type=oneshot
+Restart=on-failure
+RestartSec=10
+WorkingDirectory=%h/Documentos/github/j-ai
+ExecStart=%h/.local/bin/poetry run python %h/Documentos/github/lab_race_stream/scripts/sincronizar_jota.py
