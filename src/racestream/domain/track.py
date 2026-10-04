@@ -1,7 +1,7 @@
 """Geometria física aproximada e regras configuráveis da pista."""
 
 from dataclasses import dataclass, field
-from math import sqrt
+from math import isfinite, sqrt
 
 
 @dataclass(frozen=True)
@@ -38,23 +38,74 @@ class Track:
 
     def __post_init__(self) -> None:
         """Rejeite configurações que tornariam a física ou as linhas inválidas."""
-        if (
-            min(
-                self.length_m,
-                self.physics_step_seconds,
-                self.acceleration_m_s2,
-                self.braking_m_s2,
-                self.refuel_kg_per_second,
-                self.pit_path_ratio,
-            )
-            <= 0
+        for name in (
+            "length_m",
+            "physics_step_seconds",
+            "acceleration_m_s2",
+            "braking_m_s2",
+            "refuel_kg_per_second",
+            "pit_path_ratio",
+            "pit_speed_kmh",
+            "lateral_limit_g",
+            "finish_timeout_seconds",
+            "tank_capacity_kg",
+            "fuel_tanks_per_reference",
+            "grid_spacing_m",
         ):
-            raise ValueError("Parâmetros físicos devem ser positivos")
+            value = getattr(self, name)
+            if not self._finite(value) or value <= 0:
+                raise ValueError(f"{name} deve ser um número finito e positivo")
+        for name, minimum in (("fuel_reference_laps", 1), ("max_overtakes", 0)):
+            value = getattr(self, name)
+            if not self._finite(value) or value < minimum or value != int(value):
+                raise ValueError(
+                    f"{name} deve ser inteiro e maior ou igual a {minimum}"
+                )
+        for name in ("map_start_offset", "pit_entry", "pit_box", "pit_exit"):
+            value = getattr(self, name)
+            if not self._finite(value) or not 0 <= value < 1:
+                raise ValueError(
+                    f"{name} deve estar no intervalo de 0 a 1, sem incluir 1"
+                )
+        service_distance = (self.pit_box - self.pit_entry) % 1
+        exit_distance = (self.pit_exit - self.pit_entry) % 1
+        if not 0 < service_distance < exit_distance:
+            raise ValueError("Boxes devem seguir a ordem entrada, serviço e saída")
         if len(self.sector_ends) != 3 or self.sector_ends[-1] != 1:
             raise ValueError("A pista precisa de três setores terminando na chegada")
         for points in (self.sector_ends, self.checkpoints):
-            if points != sorted(set(points)) or not all(0 < p <= 1 for p in points):
+            if not all(self._finite(p) and 0 < p <= 1 for p in points):
                 raise ValueError("Linhas devem ser únicas, ordenadas e normalizadas")
+            if points != sorted(set(points)):
+                raise ValueError("Linhas devem ser únicas, ordenadas e normalizadas")
+        if set(self.checkpoints) & set(self.sector_ends):
+            raise ValueError("Checkpoint não pode coincidir com setor ou chegada")
+        previous_end = 0.0
+        for corner in self.corners:
+            if len(corner) != 3 or not all(self._finite(v) for v in corner):
+                raise ValueError("Cada curva precisa de início, fim e raio finitos")
+            start, end, radius = corner
+            if not previous_end <= start < end <= 1 or radius == 0:
+                raise ValueError(
+                    "Curvas devem ser ordenadas, sem sobreposição e com raio não nulo"
+                )
+            previous_end = end
+        if set(self.tire_grip_factors) != {"soft", "medium", "hard"} or not all(
+            self._finite(value) and value > 0
+            for value in self.tire_grip_factors.values()
+        ):
+            raise ValueError(
+                "Informe aderência finita e positiva para os três compostos"
+            )
+
+    @staticmethod
+    def _finite(value: object) -> bool:
+        """Reconheça números finitos, rejeitando textos e valores booleanos."""
+        return (
+            isinstance(value, (int, float))
+            and not isinstance(value, bool)
+            and isfinite(value)
+        )
 
     def radius_at(self, progress: float) -> float | None:
         """Retorne o raio assinado da curva atual ou nenhum raio na reta."""

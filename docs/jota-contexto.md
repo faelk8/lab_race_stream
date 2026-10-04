@@ -36,3 +36,6 @@ PostgreSQL isolado aprovados. Última idade de snapshot via API: 0,884–0,972 s
 dez amostras. A proposta de reduzir o consumo nominal para 218,9 kg/60 voltas foi
 adotada sem resposta à escolha opcional, para preservar uma parada de A; não
 registrar essa escolha como preferência explicitamente confirmada por Rafael.
+
+Melhoria incremental: validação antecipada de pista, boxes, curvas e parâmetros
+físicos, com 94 casos adicionais e 147 testes Python aprovados ao todo.

@@ -258,3 +258,19 @@ Simulações não substituem dados oficiais de pista ou fisiologia do piloto.
 Flink/Spark, ClickHouse, Iceberg, CDC e retenção automática do histórico operacional
 não foram adicionados. Testes de caos exaustivos e carga contínua ficam para etapa
 posterior; os testes realizados cobrem os caminhos de recuperação descritos acima.
+
+## 13. Melhoria incremental: validação da pista
+
+Objetivo: rejeitar parâmetros que tornam a física indefinida antes da largada.
+Escopo restrito ao domínio e testes, sem migrações ou alteração das regras atuais.
+Foram acrescentadas verificações de números finitos/positivos, quantidades inteiras,
+ordem dos boxes, curvas sem sobreposição, raio não nulo e aderência dos três
+compostos. Checkpoints não podem coincidir com finais de setor ou chegada: a
+coincidência produzia trechos de duração zero no mesmo local.
+
+- [x] Validar a configuração atual sem mudar o comportamento da corrida.
+- [x] Preservar números inteiros representados como `double` no controle Avro.
+- [x] Verificar configurações inválidas com testes de domínio, sem novas corridas completas.
+- [x] Confirmar regressões: 147 testes Python aprovados, Ruff e mypy sem erros.
+- [x] Atualizar serviços; endpoint de pista e recuperação PostgreSQL aprovados.
+- [x] Incremento pronto para commit independente.
