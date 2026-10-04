@@ -1,0 +1,49 @@
+{
+  "data": "2026-10-04",
+  "testes_python": 53,
+  "testes_frontend": 8,
+  "ruff": "aprovado",
+  "mypy": "39 arquivos aprovados",
+  "build_frontend": "aprovado",
+  "postgresql": [
+    "deduplicação por offset",
+    "deduplicação por fato e linha",
+    "reabertura e recuperação",
+    "outbox",
+    "rollback e DLQ",
+    "lote transacional"
+  ],
+  "latencia_snapshot_api": {
+    "race_id": "race-047f8a7c2cfc",
+    "amostras_atraso_s": [
+      0.884,
+      0.896,
+      0.905,
+      0.911,
+      0.921,
+      0.93,
+      0.942,
+      0.953,
+      0.96,
+      0.972
+    ]
+  },
+  "perfil_replay": {
+    "eventos": 1500,
+    "antes_segundos": 9.047,
+    "depois_segundos": 2.245
+  },
+  "navegador": {
+    "carros": 20,
+    "participantes_por_equipe": 2,
+    "reconexao": "snapshot e parciais restaurados",
+    "largura_celular_px": 375,
+    "largura_pagina_px": 375,
+    "erros_javascript": 0
+  },
+  "limites": [
+    "Medições locais; não constituem SLA ou percentil de produção.",
+    "Geometria aproximada, G horizontal simulado.",
+    "Autonomia de A validada por teste de 60 voltas com um carro; reserva de C por teste específico."
+  ]
+}

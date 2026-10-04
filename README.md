@@ -46,6 +46,8 @@ Kafka race.state / analytics / events
 ## Documentos
 
 - `AGENTS.md`: regras permanentes para o Codex.
+- [Plano de refinamento da corrida](docs/execplan-refinamento-corrida.md): etapas e evidências de telemetria, cronometragem e painel.
+- [Regras propostas da corrida v2](docs/planejamento/regras-corrida-v2.md): especificação de frequência, parciais, classificação, acompanhamento e força G.
 - `docs/execplan-console.md`: plano de acesso ao Kafka pelo Redpanda Console.
 - `docs/execplan-pelotao.md`: identificação dos carros e classificação do pelotão.
 - `docs/execplan-controle-corrida.md`: início e parada pelo painel.
@@ -62,7 +64,7 @@ python3 -m venv .venv
 docker compose up --build
 ```
 
-O Compose inicia PostgreSQL, Kafka, Schema Registry, Redpanda Console, API, dashboard, simulador e consumer. O simulador aguarda o botão **Iniciar corrida** no painel. Cada corrida dura 120 segundos e representa 60 voltas de referência em Interlagos; durante a prova, o producer publica snapshots Avro a cada 100 ms.
+O Compose inicia PostgreSQL, Kafka, Schema Registry, Redpanda Console, API, dashboard, simulador e consumer. O simulador aguarda o botão **Iniciar corrida** no painel. A prova termina pela passagem na chegada após 60 voltas do líder; os demais encerram na passagem seguinte. A física usa passos de 20 ms, com reprodução acelerada em 45 vezes por padrão. Cada carro publica um snapshot Avro por segundo real, além dos eventos de passagem. A duração real depende do ritmo e dos boxes; não há encerramento artificial aos 120 segundos.
 
 ### Links de acesso
 
@@ -75,7 +77,7 @@ Abra os links abaixo no navegador da máquina onde o Docker Compose está execut
 | Documentação da API | [Abrir a documentação OpenAPI](http://localhost:8000/docs) | Consultar e testar os endpoints da API. |
 | Schema Registry | [Listar os schemas registrados](http://localhost:8081/subjects) | Consultar os contratos Avro registrados. |
 
-No Redpanda Console, abra a seção **Topics**, selecione `race.telemetry.raw` e
+No Redpanda Console, abra a seção **Topics**, selecione `race.telemetry.raw.v4` e
 acesse **Messages** para inspecionar a telemetria dos carros. Para acompanhar a
 corrida visualmente, use o link do painel acima.
 
@@ -91,7 +93,7 @@ A configuração do Console segue a
 [documentação oficial do Redpanda](https://docs.redpanda.com/streaming/current/console/config/configure-console/).
 
 
-PostgreSQL fica somente na rede interna do Compose para não conflitar com bancos já instalados no host. A API e o runner salvam configurações, corridas e resultados; o fluxo detalhado de telemetria permanece no Kafka.
+PostgreSQL fica somente na rede interna do Compose para não conflitar com bancos já instalados no host. A API e o runner salvam configurações, corridas e resultados. O consumer mantém passagens, voltas, projeções e uma outbox operacional; a telemetria bruta permanece no Kafka.
 
 Para acompanhar apenas o consumer em outro terminal:
 
@@ -99,7 +101,7 @@ Para acompanhar apenas o consumer em outro terminal:
 docker compose logs -f consumer
 ```
 
-O Schema Registry fica disponível em `http://localhost:8081`; o Kafka para clientes locais em `localhost:9092`. O tópico usa `car_id` como chave e seis partições.
+O Schema Registry fica disponível em `http://localhost:8081`; o Kafka para clientes locais em `localhost:9092`. Os tópicos usam seis partições. Fatos de um carro usam `car_id`; controle, estado e análises agregadas usam `race_id`.
 
 Para validar o código:
 
@@ -119,7 +121,7 @@ O teste Kafka requer os serviços ativos. Encerre com `Ctrl+C` no terminal do Co
 
 Os vinte carros recebem configurações distintas de peso do carro, peso do piloto, velocidade máxima e composto. O editor do dashboard salva as mudanças no PostgreSQL; elas passam a valer na corrida seguinte.
 
-Os compostos alteram o tempo estimado por volta: macio `−250 ms`, médio `0 ms` e duro `+300 ms`. A telemetria v2 inclui tempo atual, última volta, melhor volta e estado da corrida. O mapa usa `track_progress` normalizado e a fonte do SVG está registrada em `frontend/public/ATTRIBUTION.md`.
+No modelo físico v4, os compostos ajustam a aderência lateral: macio `+1%`, médio base e duro `−1%`, configuráveis na pista. Os tempos de volta são medidos nos cruzamentos de linha, sem somar descontos artificiais. O mapa usa `track_progress` normalizado e a fonte do SVG está registrada em `frontend/public/ATTRIBUTION.md`.
 
 O simulador reduz velocidade e marcha ao se aproximar das zonas de curva, mantém a aceleração controlada durante o contorno e volta a acelerar na saída até atingir a velocidade máxima configurada. Os carros têm 3 m de comprimento e mantêm essa separação na mesma faixa; duplas podem disputar ultrapassagens nas retas; a fase atual (`reta`, `frenagem` ou `curva`) aparece no dashboard.
 
@@ -132,8 +134,11 @@ Flink, Spark, ClickHouse, Iceberg, CDC e Kubernetes continuam fora desta fase.
 A especificação está em [corrida.md](.agents/corrida.md) e as decisões de interpretação
 em [ADR 0007](docs/adr/0007-corrida-rules.md). São 10 equipes (4 A, 4 B e 2 C),
 com 2 carros cada, massa seca de 500/510/515 kg e pilotos com altura de 1,60–1,90 m.
-O consumo nominal equivale a dois tanques de 110 kg em 60 voltas. Boxes duram
-3–6 segundos físicos; o simulador converte para o relógio comprimido.
+O tanque comporta 110 kg. O novo consumo nominal é de 218,9 kg por 60 voltas
+(1,99 tanque): a redução de 0,5% permite a estratégia A de uma parada antes da
+metade da prova. Com exatamente 220 kg, essa combinação não tinha autonomia.
+O serviço leva o maior valor entre os 3–6 segundos configurados e o tempo de
+abastecimento a 12 kg/s, além do trânsito dos boxes limitado a 80 km/h.
 
 A telemetria v3 acrescenta pressão dos pneus, número de paradas e faixa de
 ultrapassagem, com defaults compatíveis com eventos Avro v1/v2.
@@ -142,7 +147,7 @@ ultrapassagem, com defaults compatíveis com eventos Avro v1/v2.
 parada, abastece até 50% e troca pneus; na segunda, enche o tanque; na terceira,
 abastece somente o necessário para terminar a prova e mais uma volta de reserva.
 O cálculo desconta o combustível que ainda está no tanque. Em uma prova de
-60 voltas, a reserva corresponde a aproximadamente 3,67 kg.
+60 voltas, a reserva atual corresponde a aproximadamente 3,65 kg.
 
 A inicialização da API/runner aplica a migração idempotente em volumes existentes,
 substituindo apenas os setups antigos intactos. Configurações personalizadas e
@@ -168,12 +173,18 @@ atual, por exemplo `CAR-01 · P1`. No pelotão, cada linha mostra a bandeira do 
 o nome do piloto, a equipe e o carro, em ordem do primeiro ao último colocado.
 Os pilotos iniciais são fictícios; nome e país podem ser alterados no painel.
 
-A coluna **DIF. LÍDER*** mostra o atraso estimado pela distância para o líder,
-usando o tempo de referência de 90 segundos por volta. Ela inclui diferenças de
-voltas completas e acompanha a ordem da classificação. A última e a melhor volta
-ficam no painel individual: fazer uma volta mais rápida não significa estar à
-frente na corrida. O navegador atualiza o pelotão com quadros completos do mesmo
-instante para evitar posições duplicadas durante a chegada da telemetria.
+A coluna **DIF. LÍDER** usa uma passagem cronometrada comum a todos os carros,
+compatível com a classificação do quadro. Enquanto não existe referência,
+mostra `—`. A referência e sua idade aparecem no acompanhamento. Melhor volta
+individual não determina posição de corrida. Quadros parciais conservam a ordem
+anterior e identificam carros atrasados; análises de outro quadro não fornecem
+gaps para a classificação atual.
+
+Selecione carro, piloto ou equipe para ver última, melhor e pior volta, volta
+teórica, ritmo das cinco últimas voltas limpas, intervalos e parciais comparadas
+com a melhor pessoal, da equipe ou da corrida. O histórico permanece disponível
+ao recarregar a página. A força G horizontal deriva da velocidade e dos raios
+aproximados da pista; não representa uma medição no corpo de um piloto real.
 
 A migração de identidade é aplicada automaticamente ao iniciar API/simulador;
 os nomes e países existentes são preservados. Para validar a apresentação:
@@ -207,3 +218,64 @@ ser cancelada antes da largada. O Compose utiliza um único processo de simulaç
 A migração `004_race_control.sql` é aplicada na inicialização da API/simulador,
 preservando configurações e resultados anteriores. Os estados operacionais são
 `queued`, `running`, `stopping`, `stopped`, `finished` e `failed`.
+
+## Tópicos por tipo de informação
+
+Todos podem ser consultados em [Kafka / Redpanda Console](http://localhost:8080/topics).
+
+| Tópico | Conteúdo |
+| --- | --- |
+| `race.telemetry.raw.v4` | Snapshot de cada carro a 1 Hz, velocidade, posição, combustível e G. |
+| `race.telemetry.validated.v4` | Telemetria aceita pelo consumer. |
+| `race.timing.crossed.v1` | Passagens nos 15 checkpoints, finais de setor e chegada. |
+| `race.lap.completed.v1` | Voltas consolidadas com os três setores. |
+| `race.pitstop.v1` | Entrada, serviço, combustível adicionado e saída dos boxes. |
+| `race.incident.v1` | Abandono e motivo. |
+| `race.control.v1` | Início/fim/parada, escala, participantes e regras congelados. |
+| `race.state.v1` | Quadros de classificação usados pelo mapa e pelotão. |
+| `race.analytics.v1` | Resumos de voltas, parciais, ritmo e intervalos medidos. |
+| `race.dead-letter.v1` | Eventos rejeitados, motivo e tópico/partição/offset de origem. |
+
+Os contratos v1/v2/v3 anteriores continuam no repositório; o painel atual usa os
+derivados v4. O tópico legado `race.telemetry.raw` não recebe novas corridas.
+A retenção dos novos tópicos é de sete dias. As tabelas operacionais de sessões e
+passagens não têm expurgo automático nesta entrega; não substituem o futuro
+armazenamento analítico. Debezium não é necessário para este fluxo direto.
+
+Para velocidade de relógio normal, recrie os serviços com a mesma escala:
+
+```bash
+RACE_TIME_SCALE=1 docker compose up -d api simulator
+```
+
+A configuração está em [config/interlagos-v1.json](config/interlagos-v1.json).
+Setores, checkpoints, raios e traçado dos boxes são aproximações do laboratório,
+não coordenadas oficiais. As 15 curvas do circuito não são os três setores.
+`RACE_DURATION_SECONDS` permanece apenas para compatibilidade com o modelo antigo.
+
+## Sincronização com o Jota local
+
+O código e a documentação reconhecidos pelo indexador são atualizados no
+PostgreSQL do Jota a cada dois minutos enquanto a sessão do usuário está ativa.
+A API fica restrita a [localhost:8765](http://127.0.0.1:8765/health). A indexação
+respeita as exclusões do Jota e do Git; não copia a conversa inteira nem credenciais.
+O índice inclui arquivos ainda não commitados: consulte o plano para distinguir
+implementação em andamento de comportamento validado. A projeção no Neo4j é
+separada; este timer confirma a atualização no PostgreSQL.
+
+As unidades são específicas desta instalação Ubuntu:
+
+```bash
+install -Dm644 integrations/systemd/jota-api.service ~/.config/systemd/user/jota-api.service
+install -Dm644 integrations/systemd/jota-racestream-sync.service ~/.config/systemd/user/jota-racestream-sync.service
+install -Dm644 integrations/systemd/jota-racestream-sync.timer ~/.config/systemd/user/jota-racestream-sync.timer
+systemctl --user daemon-reload
+systemctl --user enable --now jota-api.service jota-racestream-sync.timer
+systemctl --user start jota-racestream-sync.service
+journalctl --user -u jota-racestream-sync.service -n 10
+```
+
+Atualização manual: `systemctl --user start jota-racestream-sync.service`.
+Para desativar a periodicidade: `systemctl --user disable --now jota-racestream-sync.timer`.
+Falhas ficam no journal e são repetidas; a API pode levar alguns segundos para
+ficar disponível na primeira inicialização.
