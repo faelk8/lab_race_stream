@@ -58,3 +58,40 @@ class RaceRepository(Protocol):
 
     def get_latest_race(self) -> RaceSnapshot | None:
         """Return the most recently created race, if one exists."""
+
+
+class RaceControl(Protocol):
+    """Porta de coordenação persistente dos comandos de corrida."""
+
+    def request_start(self, configuration: RaceConfiguration) -> RaceSnapshot:
+        """Solicite uma corrida ou retorne a corrida ativa existente.
+
+        :param configuration: Configuração da nova corrida.
+        :return: Estado persistido da corrida solicitada ou já ativa.
+        """
+
+    def request_stop(self, race_id: str) -> RaceSnapshot:
+        """Solicite a parada de uma corrida, preservando estados já encerrados.
+
+        :param race_id: Identificador da corrida.
+        :return: Estado persistido após a solicitação.
+        """
+
+    def claim_next_race(self) -> RaceConfiguration | None:
+        """Reserve atomicamente a próxima corrida pendente.
+
+        :return: Configuração reservada ou nenhum trabalho pendente.
+        """
+
+    def get_race_status(self, race_id: str) -> str:
+        """Consulte o estado de controle de uma corrida.
+
+        :param race_id: Identificador da corrida.
+        :return: Estado atual.
+        """
+
+    def fail_race(self, race_id: str) -> None:
+        """Registre uma falha durante a execução da corrida.
+
+        :param race_id: Identificador da corrida.
+        """

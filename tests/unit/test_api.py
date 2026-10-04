@@ -114,3 +114,70 @@ def test_car_configuration_rejects_invalid_performance_values() -> None:
         )
 
     assert response.status_code == 422
+
+
+def test_legacy_setup_update_preserves_team_and_strategy() -> None:
+    """Um cliente antigo pode editar a massa preservando os metadados novos."""
+    repository = FakeRaceRepository()
+    original = repository.configurations[2]
+    app = create_app(repository, FakeTelemetryHub())
+    with TestClient(app) as client:
+        response = client.put(
+            f"/api/cars/{original.car_id}",
+            json={
+                "driver_id": original.driver_id,
+                "car_weight_kg": 500.0,
+                "driver_weight_kg": original.driver_weight_kg,
+                "top_speed_kmh": original.top_speed_kmh,
+                "tire_compound": original.tire_compound.value,
+            },
+        )
+    assert response.status_code == 200
+    assert response.json()["team_id"] == original.team_id
+    assert response.json()["strategy"] == "C"
+    assert response.json()["driver_height_m"] == original.driver_height_m
+    assert response.json()["driver_name"] == original.driver_name
+    assert response.json()["driver_country_code"] == original.driver_country_code
+
+
+def test_driver_name_and_country_can_be_edited() -> None:
+    """A API salva nome e país do piloto junto aos metadados existentes."""
+    from dataclasses import asdict
+
+    repository = FakeRaceRepository()
+    original = repository.configurations[0]
+    payload = {
+        **asdict(original),
+        "driver_name": "Ana Souza",
+        "driver_country_code": "BR",
+    }
+    app = create_app(repository, FakeTelemetryHub())
+    with TestClient(app) as client:
+        response = client.put(f"/api/cars/{original.car_id}", json=payload)
+    assert response.status_code == 200
+    assert response.json()["driver_name"] == "Ana Souza"
+    assert repository.configurations[0].driver_country_code == "BR"
+
+
+def test_driver_country_rejects_malformed_code() -> None:
+    """O código do país precisa conter duas letras maiúsculas."""
+    from dataclasses import asdict
+
+    repository = FakeRaceRepository()
+    original = repository.configurations[0]
+    payload = {**asdict(original), "driver_country_code": "brasil"}
+    app = create_app(repository, FakeTelemetryHub())
+    with TestClient(app) as client:
+        response = client.put(f"/api/cars/{original.car_id}", json=payload)
+    assert response.status_code == 422
+
+
+def test_websocket_queue_preserves_a_complete_grid_burst() -> None:
+    """A fila comporta a rajada de eventos dos vinte carros sem descartar o quadro."""
+    hub = FakeTelemetryHub()
+    queue = hub.subscribe()
+    events: list[dict[str, object]] = [{"car_id": f"CAR-{i:02d}"} for i in range(1, 21)]
+    for event in events:
+        hub._broadcast(event)
+    assert [queue.get_nowait() for _ in range(20)] == events
+    hub.unsubscribe(queue)

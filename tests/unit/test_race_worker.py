@@ -1,0 +1,150 @@
+"""Verificação das transições de controle sem serviços externos."""
+
+
+import pytest
+from fastapi.testclient import TestClient
+from test_api import FakeRaceRepository, FakeTelemetryHub
+from test_race_service import InMemoryPublisher
+
+from racestream.application.race_worker import RaceWorker
+from racestream.domain.models import RaceConfiguration, RaceSnapshot
+from racestream.interfaces.api import create_app
+
+
+class ControlledRepository(FakeRaceRepository):
+    """Armazene comandos e resultados em memória para os testes."""
+
+    def __init__(self) -> None:
+        """Inicialize um grid reduzido e nenhum comando."""
+        super().__init__()
+        self.configurations = self.configurations[:2]
+        self.configuration = None
+        self.status = "stopped"
+        self.results = ()
+
+    def request_start(self, configuration: RaceConfiguration) -> RaceSnapshot:
+        """Solicite início ou devolva a corrida já ativa."""
+        if self.status not in ("queued", "running", "stopping"):
+            self.configuration = configuration
+            self.status = "queued"
+        return self.get_latest_race()
+
+    def get_latest_race(self) -> RaceSnapshot:
+        """Retorne os metadados da corrida de teste."""
+        config = self.configuration
+        return RaceSnapshot(
+            config.race_id,
+            config.circuit_name,
+            config.duration_seconds,
+            config.target_laps,
+            self.status,
+            "2026-10-03",
+            None,
+        )
+
+    def request_stop(self, race_id: str) -> RaceSnapshot:
+        """Cancele uma solicitação ou interrompa a execução."""
+        if self.configuration is None or race_id != self.configuration.race_id:
+            raise KeyError(race_id)
+        if self.status == "queued":
+            self.status = "stopped"
+        elif self.status == "running":
+            self.status = "stopping"
+        return self.get_latest_race()
+
+    def claim_next_race(self) -> RaceConfiguration | None:
+        """Reserve uma solicitação uma única vez."""
+        if self.status != "queued":
+            return None
+        self.status = "running"
+        return self.configuration
+
+    def get_race_status(self, race_id: str) -> str:
+        """Retorne o estado do comando atual."""
+        return self.status
+
+    def fail_race(self, race_id: str) -> None:
+        """Registre uma falha explicitamente."""
+        self.status = "failed"
+
+    def finish_race(self, race_id, results) -> None:
+        """Salve a classificação parcial ou final."""
+        self.results = results
+        self.status = "stopped" if self.status == "stopping" else "finished"
+
+
+def test_stop_preserves_progress_and_worker_waits_for_another_start() -> None:
+    """Parar não avança o relógio e não inicia outra corrida automaticamente."""
+    repository = ControlledRepository()
+    publisher = InMemoryPublisher()
+    worker = RaceWorker(repository, repository, publisher)
+    worker.step(10)
+    assert not publisher.events
+    repository.request_start(RaceConfiguration(race_id="teste"))
+    worker.step(10)
+    assert publisher.events[-1].elapsed_race_seconds == 0
+    worker.step(0.1)
+    previous = publisher.events[-2:]
+    repository.request_stop("teste")
+    worker.step(10)
+    stopped = publisher.events[-2:]
+    assert all(
+        event.race_status == "stopped" and event.speed_kmh == 0 for event in stopped
+    )
+    assert [(e.fuel_kg, e.track_progress, e.elapsed_race_seconds) for e in stopped] == [
+        (e.fuel_kg, e.track_progress, e.elapsed_race_seconds) for e in previous
+    ]
+    assert repository.status == "stopped" and len(repository.results) == 2
+    count = len(publisher.events)
+    worker.step(10)
+    assert worker.active_race_id is None and len(publisher.events) == count
+    repository.request_start(RaceConfiguration(race_id="nova"))
+    worker.step(0.1)
+    assert worker.active_race_id == "nova"
+    worker.stop_active()
+    assert repository.status == "stopped"
+
+
+def test_cancel_pending_and_natural_finish() -> None:
+    """Uma solicitação cancelada não roda; a conclusão natural volta à espera."""
+    repository = ControlledRepository()
+    publisher = InMemoryPublisher()
+    worker = RaceWorker(repository, repository, publisher)
+    repository.request_start(RaceConfiguration(race_id="cancelada"))
+    repository.request_stop("cancelada")
+    worker.step(0.1)
+    assert not publisher.events
+    repository.request_start(RaceConfiguration(race_id="curta", duration_seconds=0.2))
+    worker.step(0.1)
+    worker.step(0.2)
+    assert repository.status == "finished"
+    assert len(repository.results) == 2
+    assert worker.active_race_id is None
+    assert publisher.events[-1].race_status == "finished"
+
+
+def test_failed_initial_publication_releases_claimed_race() -> None:
+    """Uma falha depois da reserva pode ser registrada e libera o worker."""
+    repository = ControlledRepository()
+    publisher = InMemoryPublisher()
+    worker = RaceWorker(repository, repository, publisher)
+    repository.request_start(RaceConfiguration(race_id="falha"))
+    publisher.publish = lambda event: (_ for _ in ()).throw(RuntimeError("falha"))
+    with pytest.raises(RuntimeError):
+        worker.step(0.1)
+    worker.fail_active()
+    assert repository.status == "failed" and worker.active_race_id is None
+
+
+def test_api_start_is_idempotent_and_stop_reports_missing_race() -> None:
+    """Os endpoints aceitam início e parada e retornam 404 para ID inexistente."""
+    repository = ControlledRepository()
+    with TestClient(create_app(repository, FakeTelemetryHub(), repository)) as client:
+        first = client.post("/api/races/start")
+        second = client.post("/api/races/start")
+        assert first.status_code == 200
+        assert first.json()["status"] == "queued"
+        assert second.json()["race_id"] == first.json()["race_id"]
+        stopped = client.post(f"/api/races/{first.json()['race_id']}/stop")
+        assert stopped.json()["status"] == "stopped"
+        assert client.post("/api/races/inexistente/stop").status_code == 404

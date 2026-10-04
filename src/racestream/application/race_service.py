@@ -35,6 +35,16 @@ class RaceRunService:
             self._publisher.publish(event)
         return len(events)
 
+    def publish_snapshot(self) -> int:
+        """Publique o estado atual sem avançar o relógio.
+
+        :return: Quantidade de eventos publicados.
+        """
+        events = self._simulator.snapshot()
+        for event in events:
+            self._publisher.publish(event)
+        return len(events)
+
     def persist_results(self) -> tuple[RaceResult, ...]:
         """Persist final car positions and the configuration used by each car.
 

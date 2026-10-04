@@ -1,0 +1,156 @@
+{
+  "type": "record",
+  "name": "TelemetryEvent",
+  "namespace": "io.racestream.telemetry.v1",
+  "doc": "Telemetria versão 3 com pressão dos pneus, número de paradas e faixa de ultrapassagem.",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string"
+    },
+    {
+      "name": "event_type",
+      "type": "string"
+    },
+    {
+      "name": "schema_version",
+      "type": "int"
+    },
+    {
+      "name": "event_time",
+      "type": "string"
+    },
+    {
+      "name": "produced_at",
+      "type": "string"
+    },
+    {
+      "name": "race_id",
+      "type": "string"
+    },
+    {
+      "name": "car_id",
+      "type": "string"
+    },
+    {
+      "name": "driver_id",
+      "type": "string"
+    },
+    {
+      "name": "speed_kmh",
+      "type": "double"
+    },
+    {
+      "name": "gear",
+      "type": "int"
+    },
+    {
+      "name": "rpm",
+      "type": "int"
+    },
+    {
+      "name": "fuel_kg",
+      "type": "double"
+    },
+    {
+      "name": "car_weight_kg",
+      "type": "double"
+    },
+    {
+      "name": "lap",
+      "type": "int"
+    },
+    {
+      "name": "sector",
+      "type": "int"
+    },
+    {
+      "name": "lap_distance_m",
+      "type": "double"
+    },
+    {
+      "name": "track_progress",
+      "type": "double"
+    },
+    {
+      "name": "race_position",
+      "type": "int"
+    },
+    {
+      "name": "throttle",
+      "type": "double"
+    },
+    {
+      "name": "brake",
+      "type": "double"
+    },
+    {
+      "name": "tire_compound",
+      "type": "string"
+    },
+    {
+      "name": "tire_age_laps",
+      "type": "int"
+    },
+    {
+      "name": "pit_status",
+      "type": "string"
+    },
+    {
+      "name": "driving_phase",
+      "type": "string",
+      "default": "straight"
+    },
+    {
+      "name": "current_lap_time_ms",
+      "type": "int",
+      "default": 0
+    },
+    {
+      "name": "last_lap_time_ms",
+      "type": [
+        "null",
+        "int"
+      ],
+      "default": null
+    },
+    {
+      "name": "best_lap_time_ms",
+      "type": [
+        "null",
+        "int"
+      ],
+      "default": null
+    },
+    {
+      "name": "elapsed_race_seconds",
+      "type": "double",
+      "default": 0.0
+    },
+    {
+      "name": "target_laps",
+      "type": "int",
+      "default": 60
+    },
+    {
+      "name": "race_status",
+      "type": "string",
+      "default": "running"
+    },
+    {
+      "name": "tire_pressure_psi",
+      "type": "double",
+      "default": 38.0
+    },
+    {
+      "name": "pit_stops",
+      "type": "int",
+      "default": 0
+    },
+    {
+      "name": "overtaking_lane",
+      "type": "int",
+      "default": 0
+    }
+  ]
+}

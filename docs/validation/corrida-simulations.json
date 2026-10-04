@@ -1,0 +1,456 @@
+[
+  {
+    "seed": 42,
+    "ticks": 1201,
+    "overtakes": 12,
+    "cars": [
+      {
+        "car_id": "CAR-01",
+        "strategy": "A",
+        "position": 2,
+        "distance_laps": 59.999,
+        "fuel_consumed_kg": 219.995,
+        "fuel_remaining_kg": 0.005,
+        "pit_stops": 1,
+        "status": "on_track",
+        "pressure_psi": 38.6
+      },
+      {
+        "car_id": "CAR-02",
+        "strategy": "B",
+        "position": 1,
+        "distance_laps": 60.0,
+        "fuel_consumed_kg": 220.0,
+        "fuel_remaining_kg": 0.0,
+        "pit_stops": 2,
+        "status": "on_track",
+        "pressure_psi": 38.96
+      },
+      {
+        "car_id": "CAR-03",
+        "strategy": "C",
+        "position": 15,
+        "distance_laps": 48.002,
+        "fuel_consumed_kg": 176.008,
+        "fuel_remaining_kg": 0.0,
+        "pit_stops": 2,
+        "status": "out_of_fuel",
+        "pressure_psi": 38.78
+      },
+      {
+        "car_id": "CAR-04",
+        "strategy": "A",
+        "position": 4,
+        "distance_laps": 59.995,
+        "fuel_consumed_kg": 219.982,
+        "fuel_remaining_kg": 0.018,
+        "pit_stops": 1,
+        "status": "on_track",
+        "pressure_psi": 38.6
+      },
+      {
+        "car_id": "CAR-05",
+        "strategy": "B",
+        "position": 6,
+        "distance_laps": 59.93,
+        "fuel_consumed_kg": 219.745,
+        "fuel_remaining_kg": 0.255,
+        "pit_stops": 2,
+        "status": "on_track",
+        "pressure_psi": 38.959
+      },
+      {
+        "car_id": "CAR-06",
+        "strategy": "C",
+        "position": 16,
+        "distance_laps": 48.003,
+        "fuel_consumed_kg": 176.013,
+        "fuel_remaining_kg": 0.0,
+        "pit_stops": 2,
+        "status": "out_of_fuel",
+        "pressure_psi": 38.78
+      },
+      {
+        "car_id": "CAR-07",
+        "strategy": "A",
+        "position": 5,
+        "distance_laps": 59.997,
+        "fuel_consumed_kg": 219.987,
+        "fuel_remaining_kg": 0.013,
+        "pit_stops": 1,
+        "status": "on_track",
+        "pressure_psi": 38.6
+      },
+      {
+        "car_id": "CAR-08",
+        "strategy": "B",
+        "position": 7,
+        "distance_laps": 59.932,
+        "fuel_consumed_kg": 219.75,
+        "fuel_remaining_kg": 0.25,
+        "pit_stops": 2,
+        "status": "on_track",
+        "pressure_psi": 38.959
+      },
+      {
+        "car_id": "CAR-09",
+        "strategy": "C",
+        "position": 18,
+        "distance_laps": 48.001,
+        "fuel_consumed_kg": 176.005,
+        "fuel_remaining_kg": 0.0,
+        "pit_stops": 2,
+        "status": "out_of_fuel",
+        "pressure_psi": 38.78
+      },
+      {
+        "car_id": "CAR-10",
+        "strategy": "A",
+        "position": 3,
+        "distance_laps": 60.0,
+        "fuel_consumed_kg": 220.0,
+        "fuel_remaining_kg": 0.0,
+        "pit_stops": 1,
+        "status": "on_track",
+        "pressure_psi": 38.6
+      },
+      {
+        "car_id": "CAR-11",
+        "strategy": "B",
+        "position": 11,
+        "distance_laps": 59.766,
+        "fuel_consumed_kg": 219.144,
+        "fuel_remaining_kg": 0.856,
+        "pit_stops": 2,
+        "status": "on_track",
+        "pressure_psi": 38.955
+      },
+      {
+        "car_id": "CAR-12",
+        "strategy": "C",
+        "position": 19,
+        "distance_laps": 48.002,
+        "fuel_consumed_kg": 176.007,
+        "fuel_remaining_kg": 0.0,
+        "pit_stops": 2,
+        "status": "out_of_fuel",
+        "pressure_psi": 38.78
+      },
+      {
+        "car_id": "CAR-13",
+        "strategy": "A",
+        "position": 9,
+        "distance_laps": 59.903,
+        "fuel_consumed_kg": 219.643,
+        "fuel_remaining_kg": 0.357,
+        "pit_stops": 1,
+        "status": "on_track",
+        "pressure_psi": 38.598
+      },
+      {
+        "car_id": "CAR-14",
+        "strategy": "B",
+        "position": 14,
+        "distance_laps": 59.719,
+        "fuel_consumed_kg": 218.971,
+        "fuel_remaining_kg": 1.029,
+        "pit_stops": 2,
+        "status": "on_track",
+        "pressure_psi": 38.954
+      },
+      {
+        "car_id": "CAR-15",
+        "strategy": "C",
+        "position": 20,
+        "distance_laps": 48.003,
+        "fuel_consumed_kg": 176.009,
+        "fuel_remaining_kg": 0.0,
+        "pit_stops": 2,
+        "status": "out_of_fuel",
+        "pressure_psi": 38.78
+      },
+      {
+        "car_id": "CAR-16",
+        "strategy": "A",
+        "position": 10,
+        "distance_laps": 59.904,
+        "fuel_consumed_kg": 219.648,
+        "fuel_remaining_kg": 0.352,
+        "pit_stops": 1,
+        "status": "on_track",
+        "pressure_psi": 38.598
+      },
+      {
+        "car_id": "CAR-17",
+        "strategy": "B",
+        "position": 12,
+        "distance_laps": 59.723,
+        "fuel_consumed_kg": 218.984,
+        "fuel_remaining_kg": 1.016,
+        "pit_stops": 2,
+        "status": "on_track",
+        "pressure_psi": 38.954
+      },
+      {
+        "car_id": "CAR-18",
+        "strategy": "C",
+        "position": 17,
+        "distance_laps": 48.008,
+        "fuel_consumed_kg": 176.03,
+        "fuel_remaining_kg": 0.0,
+        "pit_stops": 2,
+        "status": "out_of_fuel",
+        "pressure_psi": 38.78
+      },
+      {
+        "car_id": "CAR-19",
+        "strategy": "A",
+        "position": 8,
+        "distance_laps": 59.907,
+        "fuel_consumed_kg": 219.66,
+        "fuel_remaining_kg": 0.34,
+        "pit_stops": 1,
+        "status": "on_track",
+        "pressure_psi": 38.598
+      },
+      {
+        "car_id": "CAR-20",
+        "strategy": "B",
+        "position": 13,
+        "distance_laps": 59.724,
+        "fuel_consumed_kg": 218.989,
+        "fuel_remaining_kg": 1.011,
+        "pit_stops": 2,
+        "status": "on_track",
+        "pressure_psi": 38.954
+      }
+    ]
+  },
+  {
+    "seed": 7,
+    "ticks": 1201,
+    "overtakes": 12,
+    "cars": [
+      {
+        "car_id": "CAR-01",
+        "strategy": "A",
+        "position": 2,
+        "distance_laps": 59.999,
+        "fuel_consumed_kg": 219.995,
+        "fuel_remaining_kg": 0.005,
+        "pit_stops": 1,
+        "status": "on_track",
+        "pressure_psi": 38.6
+      },
+      {
+        "car_id": "CAR-02",
+        "strategy": "B",
+        "position": 1,
+        "distance_laps": 60.0,
+        "fuel_consumed_kg": 220.0,
+        "fuel_remaining_kg": 0.0,
+        "pit_stops": 2,
+        "status": "on_track",
+        "pressure_psi": 38.96
+      },
+      {
+        "car_id": "CAR-03",
+        "strategy": "C",
+        "position": 15,
+        "distance_laps": 48.002,
+        "fuel_consumed_kg": 176.007,
+        "fuel_remaining_kg": 0.0,
+        "pit_stops": 2,
+        "status": "out_of_fuel",
+        "pressure_psi": 38.78
+      },
+      {
+        "car_id": "CAR-04",
+        "strategy": "A",
+        "position": 4,
+        "distance_laps": 59.995,
+        "fuel_consumed_kg": 219.982,
+        "fuel_remaining_kg": 0.018,
+        "pit_stops": 1,
+        "status": "on_track",
+        "pressure_psi": 38.6
+      },
+      {
+        "car_id": "CAR-05",
+        "strategy": "B",
+        "position": 6,
+        "distance_laps": 59.93,
+        "fuel_consumed_kg": 219.744,
+        "fuel_remaining_kg": 0.256,
+        "pit_stops": 2,
+        "status": "on_track",
+        "pressure_psi": 38.959
+      },
+      {
+        "car_id": "CAR-06",
+        "strategy": "C",
+        "position": 16,
+        "distance_laps": 48.003,
+        "fuel_consumed_kg": 176.013,
+        "fuel_remaining_kg": 0.0,
+        "pit_stops": 2,
+        "status": "out_of_fuel",
+        "pressure_psi": 38.78
+      },
+      {
+        "car_id": "CAR-07",
+        "strategy": "A",
+        "position": 5,
+        "distance_laps": 59.997,
+        "fuel_consumed_kg": 219.987,
+        "fuel_remaining_kg": 0.013,
+        "pit_stops": 1,
+        "status": "on_track",
+        "pressure_psi": 38.6
+      },
+      {
+        "car_id": "CAR-08",
+        "strategy": "B",
+        "position": 7,
+        "distance_laps": 59.932,
+        "fuel_consumed_kg": 219.749,
+        "fuel_remaining_kg": 0.251,
+        "pit_stops": 2,
+        "status": "on_track",
+        "pressure_psi": 38.959
+      },
+      {
+        "car_id": "CAR-09",
+        "strategy": "C",
+        "position": 18,
+        "distance_laps": 48.001,
+        "fuel_consumed_kg": 176.005,
+        "fuel_remaining_kg": 0.0,
+        "pit_stops": 2,
+        "status": "out_of_fuel",
+        "pressure_psi": 38.78
+      },
+      {
+        "car_id": "CAR-10",
+        "strategy": "A",
+        "position": 3,
+        "distance_laps": 60.0,
+        "fuel_consumed_kg": 220.0,
+        "fuel_remaining_kg": 0.0,
+        "pit_stops": 1,
+        "status": "on_track",
+        "pressure_psi": 38.6
+      },
+      {
+        "car_id": "CAR-11",
+        "strategy": "B",
+        "position": 11,
+        "distance_laps": 59.766,
+        "fuel_consumed_kg": 219.144,
+        "fuel_remaining_kg": 0.856,
+        "pit_stops": 2,
+        "status": "on_track",
+        "pressure_psi": 38.955
+      },
+      {
+        "car_id": "CAR-12",
+        "strategy": "C",
+        "position": 19,
+        "distance_laps": 48.002,
+        "fuel_consumed_kg": 176.007,
+        "fuel_remaining_kg": 0.0,
+        "pit_stops": 2,
+        "status": "out_of_fuel",
+        "pressure_psi": 38.78
+      },
+      {
+        "car_id": "CAR-13",
+        "strategy": "A",
+        "position": 9,
+        "distance_laps": 59.902,
+        "fuel_consumed_kg": 219.641,
+        "fuel_remaining_kg": 0.359,
+        "pit_stops": 1,
+        "status": "on_track",
+        "pressure_psi": 38.598
+      },
+      {
+        "car_id": "CAR-14",
+        "strategy": "B",
+        "position": 14,
+        "distance_laps": 59.719,
+        "fuel_consumed_kg": 218.971,
+        "fuel_remaining_kg": 1.029,
+        "pit_stops": 2,
+        "status": "on_track",
+        "pressure_psi": 38.954
+      },
+      {
+        "car_id": "CAR-15",
+        "strategy": "C",
+        "position": 20,
+        "distance_laps": 48.002,
+        "fuel_consumed_kg": 176.007,
+        "fuel_remaining_kg": 0.0,
+        "pit_stops": 2,
+        "status": "out_of_fuel",
+        "pressure_psi": 38.78
+      },
+      {
+        "car_id": "CAR-16",
+        "strategy": "A",
+        "position": 10,
+        "distance_laps": 59.904,
+        "fuel_consumed_kg": 219.646,
+        "fuel_remaining_kg": 0.354,
+        "pit_stops": 1,
+        "status": "on_track",
+        "pressure_psi": 38.598
+      },
+      {
+        "car_id": "CAR-17",
+        "strategy": "B",
+        "position": 12,
+        "distance_laps": 59.723,
+        "fuel_consumed_kg": 218.984,
+        "fuel_remaining_kg": 1.016,
+        "pit_stops": 2,
+        "status": "on_track",
+        "pressure_psi": 38.954
+      },
+      {
+        "car_id": "CAR-18",
+        "strategy": "C",
+        "position": 17,
+        "distance_laps": 48.008,
+        "fuel_consumed_kg": 176.03,
+        "fuel_remaining_kg": 0.0,
+        "pit_stops": 2,
+        "status": "out_of_fuel",
+        "pressure_psi": 38.78
+      },
+      {
+        "car_id": "CAR-19",
+        "strategy": "A",
+        "position": 8,
+        "distance_laps": 59.907,
+        "fuel_consumed_kg": 219.659,
+        "fuel_remaining_kg": 0.341,
+        "pit_stops": 1,
+        "status": "on_track",
+        "pressure_psi": 38.598
+      },
+      {
+        "car_id": "CAR-20",
+        "strategy": "B",
+        "position": 13,
+        "distance_laps": 59.724,
+        "fuel_consumed_kg": 218.989,
+        "fuel_remaining_kg": 1.011,
+        "pit_stops": 2,
+        "status": "on_track",
+        "pressure_psi": 38.954
+      }
+    ]
+  }
+]

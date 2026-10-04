@@ -70,4 +70,4 @@ def test_race_service_publishes_and_persists_result_snapshot() -> None:
     assert len(publisher.events) == 2
     assert repository.race_id == simulator.race_id
     assert repository.results == results
-    assert [result.laps_completed for result in results] == [60, 60]
+    assert [result.laps_completed for result in results] == [59, 59]

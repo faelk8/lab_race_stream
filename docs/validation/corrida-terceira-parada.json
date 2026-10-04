@@ -1,0 +1,49 @@
+{
+  "semente": 42,
+  "ultrapassagens": 12,
+  "abandonos": 0,
+  "estrategia_c": [
+    {
+      "carro": "CAR-03",
+      "paradas": 3,
+      "voltas_percorridas": 59.898,
+      "combustivel_restante_kg": 4.04,
+      "reserva_apos_distancia_restante_kg": 3.667
+    },
+    {
+      "carro": "CAR-06",
+      "paradas": 3,
+      "voltas_percorridas": 59.559,
+      "combustivel_restante_kg": 5.284,
+      "reserva_apos_distancia_restante_kg": 3.667
+    },
+    {
+      "carro": "CAR-09",
+      "paradas": 3,
+      "voltas_percorridas": 59.563,
+      "combustivel_restante_kg": 5.268,
+      "reserva_apos_distancia_restante_kg": 3.667
+    },
+    {
+      "carro": "CAR-12",
+      "paradas": 3,
+      "voltas_percorridas": 59.565,
+      "combustivel_restante_kg": 5.263,
+      "reserva_apos_distancia_restante_kg": 3.667
+    },
+    {
+      "carro": "CAR-15",
+      "paradas": 3,
+      "voltas_percorridas": 59.565,
+      "combustivel_restante_kg": 5.263,
+      "reserva_apos_distancia_restante_kg": 3.667
+    },
+    {
+      "carro": "CAR-18",
+      "paradas": 3,
+      "voltas_percorridas": 59.253,
+      "combustivel_restante_kg": 6.405,
+      "reserva_apos_distancia_restante_kg": 3.667
+    }
+  ]
+}

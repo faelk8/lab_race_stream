@@ -29,6 +29,30 @@ class CarConfiguration:
     driver_weight_kg: float
     top_speed_kmh: float
     tire_compound: TireCompound
+    team_id: str = "TEAM-A-01"
+    team_category: str = "A"
+    driver_height_m: float = 1.75
+    strategy: str = "A"
+    pit_service_seconds: float = 3.0
+    car_length_m: float = 3.0
+    driver_name: str = ""
+    driver_country_code: str = ""
+
+
+@dataclass(frozen=True)
+class RaceRules:
+    """Regras educacionais versionadas da corrida e suas unidades físicas."""
+
+    tank_capacity_kg: float = 110.0
+    fuel_tanks_per_race: float = 2.0
+    initial_tire_pressure_psi: float = 38.0
+    burst_pressure_psi: float = 40.0
+    pressure_gain_per_lap: float = 0.02
+    max_overtakes: int = 12
+    weight_speed_penalty_per_kg: float = 0.00008
+    max_step_seconds: float = 0.01
+    strategy_c_extra_stop: bool = True
+    strategy_c_reserve_laps: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -95,6 +119,14 @@ class CarState:
     last_lap_time_ms: int | None = None
     best_lap_time_ms: int | None = None
     telemetry_sequence: int = 0
+    pit_stops: int = 0
+    pit_remaining_seconds: float = 0.0
+    pending_fuel_kg: float = 0.0
+    fuel_consumed_kg: float = 0.0
+    tire_pressure_psi: float = 38.0
+    distance_laps: float = 0.0
+    retired: bool = False
+    overtaking_lane: int = 0
 
     @property
     def car_weight_kg(self) -> float:
@@ -145,6 +177,9 @@ class TelemetryEvent:
     elapsed_race_seconds: float
     target_laps: int
     race_status: str
+    tire_pressure_psi: float = 38.0
+    pit_stops: int = 0
+    overtaking_lane: int = 0
 
 
 def calculate_lap_time_ms(
@@ -161,10 +196,9 @@ def calculate_lap_time_ms(
     if tire_age_laps < 0:
         raise ValueError("tire_age_laps must be non-negative")
 
-    weight_delta_ms = (
-        (configuration.car_weight_kg - 820.0) * 4.0
-        + (configuration.driver_weight_kg - 75.0) * 3.0
-    )
+    weight_delta_ms = (configuration.car_weight_kg - 820.0) * 4.0 + (
+        configuration.driver_weight_kg - 75.0
+    ) * 3.0
     speed_delta_ms = (330.0 - configuration.top_speed_kmh) * 18.0
     tire_delta_ms = TIRE_LAP_DELTA_MS[configuration.tire_compound.value]
     tire_wear_ms = tire_age_laps * 15.0

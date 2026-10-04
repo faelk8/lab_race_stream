@@ -18,8 +18,8 @@ def test_domain_event_maps_to_valid_telemetry_payload() -> None:
     payload = telemetry_to_payload(event)
     validated = TelemetryPayload.model_validate(payload)
 
-    assert payload["event_type"] == "race.telemetry.v2"
-    assert payload["schema_version"] == 2
+    assert payload["event_type"] == "race.telemetry.v3"
+    assert payload["schema_version"] == 3
     assert payload["car_id"] == "CAR-01"
     assert validated.track_progress >= 0.0
     assert validated.target_laps == 60

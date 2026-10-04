@@ -449,7 +449,7 @@ h1 span {
 .leaderboard-columns,
 .leaderboard-row {
     display: grid;
-    grid-template-columns: 32px minmax(80px, 1fr) 42px minmax(68px, .9fr);
+    grid-template-columns: 26px minmax(110px, 1fr) 30px 76px;
     align-items: center;
     gap: 7px;
 }
@@ -475,8 +475,8 @@ h1 span {
 
 .leaderboard-row {
     width: 100%;
-    min-height: 29px;
-    padding: 3px 11px;
+    min-height: 44px;
+    padding: 5px 11px;
     text-align: left;
     border: 0;
     border-bottom: 1px solid #edf0ea;
@@ -505,8 +505,8 @@ h1 span {
 .car-identity {
     min-width: 0;
     display: flex;
-    align-items: baseline;
-    gap: 7px;
+    flex-direction: column;
+    gap: 3px;
 }
 
 .car-identity strong {
@@ -979,3 +979,19 @@ h1 span {
         padding: 8px 0;
     }
 }
+/* Identificação dos carros e pilotos. */
+.driver-identity { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.driver-identity strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.country-flag { font: 16px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; flex-shrink: 0; }
+.leaderboard-note { padding: 8px 11px; margin: 0; font-size: 10px; color: #616c68; line-height: 1.5; }
+.map-label-connector { stroke: #53605b; stroke-width: .7; opacity: .65; pointer-events: none; }
+.map-car-balloon rect { fill: #17221e; stroke: #dce4d6; stroke-width: .7; }
+.map-car-balloon text { fill: #f7faf4; font: 600 9px var(--mono); pointer-events: none; }
+.track-car.is-selected .map-car-balloon rect { stroke: var(--acid); stroke-width: 1.5; }
+.track-car:focus-visible .map-car-balloon rect { stroke: var(--acid); stroke-width: 2; }
+
+.race-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0 0 20px; }
+.race-controls button { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #48cf94; border-radius: 6px; background: #143c2d; color: #b5f7d7; padding: 10px 16px; font: inherit; cursor: pointer; }
+.race-controls .stop-race { border-color: #ef7777; background: #3e2026; color: #ffbbbb; }
+.race-controls button:disabled { opacity: .4; cursor: not-allowed; }
+.race-controls span { color: #9ba5b6; font-size: 12px; }

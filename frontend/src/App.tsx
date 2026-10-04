@@ -6,6 +6,8 @@ import {
     Flag,
     Gauge,
     Radio,
+    Play,
+    Square,
     Save,
     Settings2,
     Timer,
@@ -14,8 +16,9 @@ import {
     Zap,
 } from "lucide-react";
 import { startTransition, useDeferredValue, useEffect, useState } from "react";
-import { getCars, getLatestRace, telemetrySocketUrl, updateCar } from "./api";
+import { getCars, getLatestRace, startRace, stopRace, telemetrySocketUrl, updateCar } from "./api";
 import { InterlagosTrack } from "./InterlagosTrack";
+import { countryFlag, countryName, formatGap, leaderGapMs, RaceFrameBuffer, rankCars, teamName } from "./racePresentation";
 import type { CarConfiguration, RaceSnapshot, RaceTelemetry, TireCompound } from "./types";
 
 type ConnectionState = "connecting" | "connected" | "reconnecting";
@@ -48,6 +51,7 @@ export function App() {
     const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
     const [draft, setDraft] = useState<CarConfiguration | null>(null);
     const [connection, setConnection] = useState<ConnectionState>("connecting");
+    const [raceAction, setRaceAction] = useState<"start" | "stop" | null>(null);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -83,7 +87,8 @@ export function App() {
     }, [cars, selectedCarId]);
 
     useEffect(() => {
-        if (!race?.race_id) return;
+        if (!race?.race_id || cars.length === 0) return;
+        const frameBuffer = new RaceFrameBuffer(race.race_id, cars.map((car) => car.car_id));
         let stopped = false;
         let socket: WebSocket | null = null;
         let reconnectTimer = 0;
@@ -96,9 +101,8 @@ export function App() {
             socket.onopen = () => setConnection("connected");
             socket.onmessage = (message) => {
                 const event = JSON.parse(message.data) as RaceTelemetry;
-                startTransition(() => {
-                    setTelemetryByCar((current) => ({ ...current, [event.car_id]: event }));
-                });
+                const frame = frameBuffer.push(event);
+                if (frame) startTransition(() => setTelemetryByCar(frame));
             };
             socket.onclose = () => {
                 if (!stopped) {
@@ -115,19 +119,27 @@ export function App() {
             window.clearTimeout(reconnectTimer);
             socket?.close();
         };
-    }, [race?.race_id]);
+    }, [race?.race_id, cars.length]);
 
     const liveCars = Object.values(telemetry);
     const leader = [...liveCars].sort((left, right) => left.race_position - right.race_position)[0];
     const elapsed = leader?.elapsed_race_seconds ?? 0;
-    const currentStatus = leader?.race_status ?? race?.status ?? "running";
+    const currentStatus = race?.status === "running" ? leader?.race_status ?? "running" : race?.status ?? "idle";
+    const activeRace = ["queued", "running", "stopping"].includes(currentStatus);
+    const statusLabel = { idle: "PRONTA", queued: "AGUARDANDO INÍCIO", running: "CORRIDA", stopping: "PARANDO", stopped: "PARADA", finished: "FINALIZADA", failed: "FALHA" }[currentStatus];
     const selectedTelemetry = selectedCarId ? telemetry[selectedCarId] : undefined;
     const selectedConfiguration = cars.find((car) => car.car_id === selectedCarId);
-    const rankedConfigurations = [...cars].sort((left, right) => {
-        const leftPosition = telemetry[left.car_id]?.race_position ?? Number.MAX_SAFE_INTEGER;
-        const rightPosition = telemetry[right.car_id]?.race_position ?? Number.MAX_SAFE_INTEGER;
-        return leftPosition - rightPosition || left.car_id.localeCompare(right.car_id);
-    });
+    const rankedConfigurations = rankCars(cars, telemetry);
+
+    async function controlRace(action: "start" | "stop") {
+        setRaceAction(action);
+        setError(null);
+        try {
+            setRace(action === "start" ? await startRace() : await stopRace(race!.race_id));
+        } catch {
+            setError(action === "start" ? "Não foi possível iniciar a corrida." : "Não foi possível parar a corrida.");
+        } finally { setRaceAction(null); }
+    }
 
     async function saveConfiguration(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -177,19 +189,24 @@ export function App() {
                     <div className="race-metrics">
                         <div className="race-clock metric-cell">
                             <Timer size={18} />
-                            <div><span>TEMPO RESTANTE</span><strong>{formatRaceClock(120 - elapsed)}</strong></div>
+                            <div><span>TEMPO RESTANTE</span><strong>{formatRaceClock((race?.duration_seconds ?? 120) - elapsed)}</strong></div>
                         </div>
                         <div className="metric-cell">
                             <Flag size={17} />
-                            <div><span>VOLTA DO LÍDER</span><strong>{Math.min(leader?.lap ?? 1, 60).toString().padStart(2, "0")} <small>/ 60</small></strong></div>
+                            <div><span>VOLTA DO LÍDER</span><strong>{Math.min(leader?.lap ?? 1, race?.target_laps ?? 60).toString().padStart(2, "0")} <small>/ {race?.target_laps ?? 60}</small></strong></div>
                         </div>
                         <div className="metric-cell status-cell">
                             <Activity size={17} />
-                            <div><span>STATUS</span><strong>{currentStatus === "finished" ? "FINALIZADA" : "CORRIDA"}</strong></div>
+                            <div><span>STATUS</span><strong>{statusLabel}</strong></div>
                         </div>
                     </div>
                 </section>
 
+                <section className="race-controls" aria-label="Controle da corrida">
+                    <button id="start-race" disabled={activeRace || raceAction !== null} onClick={() => void controlRace("start")}><Play size={16} />{raceAction === "start" ? "Iniciando..." : "Iniciar corrida"}</button>
+                    <button id="stop-race" className="stop-race" disabled={!race || !["queued", "running"].includes(currentStatus) || raceAction !== null} onClick={() => void controlRace("stop")}><Square size={16} />{raceAction === "stop" ? "Parando..." : "Parar corrida"}</button>
+                    <span>Parar encerra a prova atual. Iniciar cria uma nova corrida.</span>
+                </section>
                 {error && <div className="error-banner" role="alert">{error}</div>}
 
                 <div className="dashboard-grid">
@@ -226,7 +243,7 @@ export function App() {
                             </div>
                             <span className="field-count">{cars.length.toString().padStart(2, "0")} CARROS</span>
                         </div>
-                        <div className="leaderboard-columns"><span>POS</span><span>CARRO / PILOTO</span><span>VOLTA</span><span>TEMPO</span></div>
+                        <div className="leaderboard-columns"><span>POS</span><span>PILOTO / EQUIPE</span><span>VOLTA</span><span title="Diferença estimada para o líder">DIF. LÍDER*</span></div>
                         <div className="leaderboard-list">
                             {rankedConfigurations.map((car, index) => {
                                 const event = telemetry[car.car_id];
@@ -239,15 +256,19 @@ export function App() {
                                         onClick={() => setSelectedCarId(car.car_id)}
                                         type="button"
                                     >
-                                        <span className="position-cell">{position === 1 ? <Trophy size={14} /> : position.toString().padStart(2, "0")}</span>
-                                        <span className="car-identity"><strong>{car.car_id}</strong><small>{car.driver_id}</small></span>
-                                        <span className="lap-cell">{event ? Math.min(event.lap, 60).toString().padStart(2, "0") : "--"}</span>
-                                        <span className="time-cell">{formatLapTime(event?.last_lap_time_ms)}</span>
+                                        <span className="position-cell">{position === 1 && <Trophy size={12} />}{position.toString().padStart(2, "0")}</span>
+                                        <span className="car-identity">
+                                            <span className="driver-identity"><span className="country-flag" role="img" aria-label={`País: ${countryName(car.driver_country_code)}`} title={countryName(car.driver_country_code)}>{countryFlag(car.driver_country_code)}</span><strong>{car.driver_name || car.driver_id}</strong></span>
+                                            <small>{teamName(car.team_id)} · {car.car_id}</small>
+                                        </span>
+                                        <span className="lap-cell">{event ? Math.min(event.lap, event.target_laps).toString().padStart(2, "0") : "--"}</span>
+                                        <span className="time-cell">{event?.race_position === 1 ? "LÍDER" : formatGap(leaderGapMs(event, leader))}</span>
                                     </button>
                                 );
                             })}
                             {cars.length === 0 && <div className="empty-list">CARREGANDO GRID...</div>}
                         </div>
+                        <p className="leaderboard-note">* Diferença estimada para o líder. Tempos de volta no painel do carro.</p>
                     </section>
 
                     <aside className="car-panel" aria-labelledby="car-heading">
@@ -295,12 +316,23 @@ export function App() {
                             <strong>{selectedTelemetry?.driving_phase === "braking" ? "FREANDO PARA A CURVA" : selectedTelemetry?.driving_phase === "corner" ? "CONTORNANDO A CURVA" : "ACELERANDO NA RETA"}</strong>
                         </div>
 
+                        <p>{selectedConfiguration?.team_id} · Estratégia {selectedConfiguration?.strategy} · {selectedTelemetry?.pit_status === "in_pit" ? "NOS BOXES" : selectedTelemetry?.pit_status === "out_of_fuel" ? "SEM COMBUSTÍVEL" : selectedTelemetry?.pit_status === "tire_burst" ? "PNEU ESTOURADO" : "NA PISTA"}</p>
+                        <p>Pressão {selectedTelemetry?.tire_pressure_psi?.toFixed(1) ?? "38.0"} psi · Paradas {selectedTelemetry?.pit_stops ?? 0}</p>
                         <form className="setup-form" onSubmit={saveConfiguration}>
                             <div className="setup-title">
                                 <span><Settings2 size={16} /> CONFIGURAÇÃO</span>
                                 <span className="next-race-label">PRÓXIMA CORRIDA</span>
                             </div>
-                            <label className="field-label" htmlFor="driver-id">PILOTO</label>
+                            <label className="field-label" htmlFor="driver-name">NOME DO PILOTO</label>
+                            <input id="driver-name" value={draft?.driver_name ?? ""} maxLength={100} onChange={(event) => setDraft((current) => current ? { ...current, driver_name: event.target.value } : current)} required />
+                            <div className="form-row">
+                                <label className="field-label" htmlFor="driver-country">PAÍS DO PILOTO</label>
+                                <select id="driver-country" value={draft?.driver_country_code ?? ""} onChange={(event) => setDraft((current) => current ? { ...current, driver_country_code: event.target.value } : current)}>
+                                    <option value="">Não informado</option>
+                                    {Array.from(new Set([...cars.map((car) => car.driver_country_code), draft?.driver_country_code ?? "", "BR", "AR", "PT", "GB", "IT", "ES", "FR", "DE", "JP", "CA"])).filter(Boolean).sort((left, right) => countryName(left).localeCompare(countryName(right), "pt-BR")).map((code) => <option key={code} value={code}>{countryName(code)}</option>)}
+                                </select>
+                            </div>
+                            <label className="field-label" htmlFor="driver-id">IDENTIFICADOR DO PILOTO</label>
                             <input
                                 id="driver-id"
                                 value={draft?.driver_id ?? ""}
@@ -309,7 +341,7 @@ export function App() {
                             />
                             <div className="form-row">
                                 <label className="field-label" htmlFor="car-weight">PESO DO CARRO <small>kg</small></label>
-                                <input id="car-weight" type="number" min="700" max="1000" step="1" value={draft?.car_weight_kg ?? ""} onChange={(event) => setDraft((current) => current ? { ...current, car_weight_kg: Number(event.target.value) } : current)} />
+                                <input id="car-weight" type="number" min="450" max="1000" step="1" value={draft?.car_weight_kg ?? ""} onChange={(event) => setDraft((current) => current ? { ...current, car_weight_kg: Number(event.target.value) } : current)} />
                             </div>
                             <div className="form-row">
                                 <label className="field-label" htmlFor="driver-weight">PESO DO PILOTO <small>kg</small></label>
@@ -318,6 +350,14 @@ export function App() {
                             <div className="form-row">
                                 <label className="field-label" htmlFor="top-speed">VELOCIDADE FINAL <small>km/h</small></label>
                                 <input id="top-speed" type="number" min="250" max="380" step="1" value={draft?.top_speed_kmh ?? ""} onChange={(event) => setDraft((current) => current ? { ...current, top_speed_kmh: Number(event.target.value) } : current)} />
+                            </div>
+                            <div className="form-row">
+                                <label className="field-label" htmlFor="strategy">ESTRATÉGIA</label>
+                                <select id="strategy" value={draft?.strategy ?? "A"} onChange={(event) => setDraft((current) => current ? { ...current, strategy: event.target.value as CarConfiguration["strategy"] } : current)}>
+                                    <option value="A">A · tanque cheio</option>
+                                    <option value="B">B · parada a 10%</option>
+                                    <option value="C">C · parada a 20%</option>
+                                </select>
                             </div>
                             <fieldset className="tire-selector">
                                 <legend>COMPOSTO DE PNEU</legend>

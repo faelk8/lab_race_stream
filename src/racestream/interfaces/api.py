@@ -5,14 +5,16 @@ import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict
-from typing import Literal
+from typing import Literal, cast
+from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from racestream.application.ports import RaceRepository
-from racestream.domain.models import CarConfiguration, TireCompound
+from racestream.application.ports import RaceControl, RaceRepository
+from racestream.domain.models import CarConfiguration, RaceConfiguration, TireCompound
+from racestream.domain.simulator import RACE_DURATION_SECONDS, TARGET_LAPS
 from racestream.infrastructure.postgres_repository import PostgresRaceRepository
 from racestream.interfaces.kafka_hub import KafkaTelemetryHub
 from racestream.interfaces.logging_config import configure_logging
@@ -22,20 +24,30 @@ class CarConfigurationRequest(BaseModel):
     """Validated editable setup for one car."""
 
     driver_id: str = Field(min_length=1, max_length=64)
-    car_weight_kg: float = Field(ge=700.0, le=1_000.0)
+    car_weight_kg: float = Field(ge=450.0, le=1_000.0)
     driver_weight_kg: float = Field(ge=45.0, le=150.0)
     top_speed_kmh: float = Field(ge=250.0, le=380.0)
     tire_compound: Literal["soft", "medium", "hard"]
+    team_id: str = Field(default="TEAM-A-01", min_length=1, max_length=64)
+    team_category: Literal["A", "B", "C"] = "A"
+    driver_height_m: float = Field(default=1.75, ge=1.60, le=1.90)
+    strategy: Literal["A", "B", "C"] = "A"
+    pit_service_seconds: float = Field(default=3.0, ge=3.0, le=6.0)
+    car_length_m: float = Field(default=3.0, ge=3.0, le=3.0)
+    driver_name: str = Field(default="", max_length=100)
+    driver_country_code: str = Field(default="", pattern=r"^([A-Z]{2})?$")
 
 
 def create_app(
     repository: RaceRepository | None = None,
     telemetry_hub: KafkaTelemetryHub | None = None,
+    race_control: RaceControl | None = None,
 ) -> FastAPI:
     """Compose REST and WebSocket routes with injected infrastructure ports.
 
     :param repository: Optional race repository for tests or alternate adapters.
     :param telemetry_hub: Optional Kafka telemetry fanout adapter.
+    :param race_control: Porta opcional para os comandos de início e parada.
     :return: Configured FastAPI application.
     """
     configure_logging()
@@ -45,6 +57,7 @@ def create_app(
             "postgresql://racestream:racestream@localhost:5432/racestream",
         )
     )
+    control = race_control or cast(RaceControl, race_repository)
     hub = telemetry_hub or KafkaTelemetryHub()
 
     @asynccontextmanager
@@ -58,7 +71,7 @@ def create_app(
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-        allow_methods=["GET", "PUT"],
+        allow_methods=["GET", "PUT", "POST"],
         allow_headers=["*"],
     )
 
@@ -89,6 +102,18 @@ def create_app(
         :param request: Validated performance configuration.
         :return: Persisted car setup.
         """
+        existing = next(
+            (
+                item
+                for item in race_repository.list_car_configurations()
+                if item.car_id == car_id
+            ),
+            None,
+        )
+        if existing is None:
+            raise HTTPException(
+                status_code=404, detail=f"car_id desconhecido: {car_id}"
+            )
         configuration = CarConfiguration(
             car_id=car_id,
             driver_id=request.driver_id,
@@ -96,12 +121,54 @@ def create_app(
             driver_weight_kg=request.driver_weight_kg,
             top_speed_kmh=request.top_speed_kmh,
             tire_compound=TireCompound(request.tire_compound),
+            **{
+                field: getattr(request, field)
+                if field in request.model_fields_set
+                else getattr(existing, field)
+                for field in (
+                    "team_id",
+                    "team_category",
+                    "driver_height_m",
+                    "strategy",
+                    "pit_service_seconds",
+                    "car_length_m",
+                    "driver_name",
+                    "driver_country_code",
+                )
+            },
         )
         try:
             saved = race_repository.save_car_configuration(configuration)
         except KeyError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
         return {**asdict(saved), "tire_compound": saved.tire_compound.value}
+
+    @app.post("/api/races/start")
+    def start_race() -> dict[str, object]:
+        """Solicite uma nova corrida ou retorne a corrida ativa existente.
+
+        :return: Estado persistido da corrida solicitada.
+        """
+        configuration = RaceConfiguration(
+            race_id=f"race-{uuid4().hex[:12]}",
+            duration_seconds=float(
+                os.environ.get("RACE_DURATION_SECONDS", str(RACE_DURATION_SECONDS))
+            ),
+            target_laps=int(os.environ.get("RACE_TARGET_LAPS", str(TARGET_LAPS))),
+        )
+        return asdict(control.request_start(configuration))
+
+    @app.post("/api/races/{race_id}/stop")
+    def stop_race(race_id: str) -> dict[str, object]:
+        """Solicite a parada da corrida e preserve a classificação parcial.
+
+        :param race_id: Identificador da corrida a interromper.
+        :return: Estado persistido após solicitar a parada.
+        """
+        try:
+            return asdict(control.request_stop(race_id))
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
 
     @app.get("/api/races/latest")
     def latest_race() -> dict[str, object] | None:

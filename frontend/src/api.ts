@@ -35,3 +35,5 @@ export function telemetrySocketUrl(raceId: string): string {
     const websocketBase = apiBase.replace(/^http/, "ws");
     return `${websocketBase}/ws/races/${encodeURIComponent(raceId)}`;
 }
+export function startRace(): Promise<RaceSnapshot> { return request("/api/races/start", { method: "POST" }); }
+export function stopRace(id: string): Promise<RaceSnapshot> { return request(`/api/races/${encodeURIComponent(id)}/stop`, { method: "POST" }); }

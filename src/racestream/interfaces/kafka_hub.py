@@ -44,7 +44,7 @@ class KafkaTelemetryHub:
 
         :return: Queue containing the latest state events.
         """
-        queue: asyncio.Queue[dict[str, object]] = asyncio.Queue(maxsize=2)
+        queue: asyncio.Queue[dict[str, object]] = asyncio.Queue(maxsize=256)
         self._subscribers.add(queue)
         return queue
 

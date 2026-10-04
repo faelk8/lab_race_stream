@@ -5,7 +5,7 @@ from pathlib import Path
 
 from confluent_kafka.schema_registry import SchemaRegistryClient
 
-DEFAULT_SCHEMA_PATH = Path("schemas/telemetry-v2.avsc")
+DEFAULT_SCHEMA_PATH = Path("schemas/telemetry-v3.avsc")
 
 
 def schema_registry_url() -> str:

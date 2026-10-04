@@ -1,25 +1,19 @@
-"""Run the seeded race simulator and publish Avro telemetry to Kafka."""
+"""Execute corridas solicitadas pelo painel e publique telemetria Avro no Kafka."""
 
 import logging
 import os
+import signal
+import threading
 import time
-from uuid import uuid4
 
-from racestream.application.race_service import RaceRunService
-from racestream.domain.models import RaceConfiguration
-from racestream.domain.simulator import (
-    RACE_DURATION_SECONDS,
-    TARGET_LAPS,
-    TRACK_LENGTH_M,
-    RaceSimulator,
-)
+from racestream.application.race_worker import RaceWorker
 from racestream.infrastructure.kafka import AvroKafkaPublisher
 from racestream.infrastructure.postgres_repository import PostgresRaceRepository
 from racestream.interfaces.logging_config import configure_logging
 
 
 def main() -> None:
-    """Run the simulator until interrupted by the operator."""
+    """Aguarde comandos do painel e execute uma corrida de cada vez."""
     configure_logging()
     logger = logging.getLogger(__name__)
     repository = PostgresRaceRepository(
@@ -29,62 +23,41 @@ def main() -> None:
         )
     )
     repository.seed_default_cars()
-    car_configurations = repository.list_car_configurations()
-    topic = os.environ.get("KAFKA_TOPIC", "race.telemetry.raw")
+    repository.recover_interrupted_races()
     interval = float(os.environ.get("SIMULATION_INTERVAL_SECONDS", "0.1"))
-    duration_seconds = float(
-        os.environ.get("RACE_DURATION_SECONDS", str(RACE_DURATION_SECONDS))
+    if interval <= 0:
+        raise ValueError("O intervalo da simulação precisa ser positivo")
+    shutdown = threading.Event()
+    signal.signal(signal.SIGTERM, lambda _signal, _frame: shutdown.set())
+    signal.signal(signal.SIGINT, lambda _signal, _frame: shutdown.set())
+    publisher = AvroKafkaPublisher(os.environ.get("KAFKA_TOPIC", "race.telemetry.raw"))
+    worker = RaceWorker(
+        repository, repository, publisher, seed=int(os.environ.get("RACE_SEED", "42"))
     )
-    target_laps = int(os.environ.get("RACE_TARGET_LAPS", str(TARGET_LAPS)))
-    seed = int(os.environ.get("RACE_SEED", "42"))
-    publisher = AvroKafkaPublisher(topic)
-
-    logger.info("Race runner started", extra={"car_count": len(car_configurations)})
+    logger.info("Simulador pronto; aguardando início pelo painel")
+    previous_tick = time.monotonic()
     try:
-        while True:
-            race_id = f"race-{uuid4().hex[:12]}"
-            race_configuration = RaceConfiguration(
-                race_id=race_id,
-                duration_seconds=duration_seconds,
-                target_laps=target_laps,
-                track_length_m=TRACK_LENGTH_M,
-            )
-            repository.start_race(race_configuration)
-            simulator = RaceSimulator(
-                seed=seed,
-                race_id=race_id,
-                track_length_m=TRACK_LENGTH_M,
-                race_duration_seconds=duration_seconds,
-                target_laps=target_laps,
-                car_configurations=car_configurations,
-            )
-            service = RaceRunService(simulator, publisher, repository)
-            logger.info(
-                "Race started",
-                extra={"race_id": race_id, "target_laps": target_laps},
-            )
-
-            previous_tick = time.monotonic()
-            while simulator.race_status == "running":
-                tick_started = time.monotonic()
-                elapsed = max(0.001, tick_started - previous_tick)
-                service.publish_tick(elapsed)
-                previous_tick = tick_started
-                time.sleep(max(0.0, interval - (time.monotonic() - tick_started)))
-
-            results = service.persist_results()
-            logger.info(
-                "Race finished",
-                extra={
-                    "race_id": race_id,
-                    "winner_car_id": results[0].car_id,
-                    "winner_best_lap_time_ms": results[0].best_lap_time_ms,
-                },
-            )
-    except KeyboardInterrupt:
-        logger.info("Race runner stopping")
+        while not shutdown.is_set():
+            tick_started = time.monotonic()
+            previous_race_id = worker.active_race_id
+            try:
+                worker.step(max(0.001, tick_started - previous_tick))
+            except Exception:
+                logger.exception("Falha ao executar o comando de corrida")
+                worker.fail_active()
+            if previous_race_id != worker.active_race_id:
+                logger.info(
+                    "Estado do simulador atualizado",
+                    extra={"race_id": worker.active_race_id or previous_race_id},
+                )
+            previous_tick = tick_started
+            shutdown.wait(max(0.0, interval - (time.monotonic() - tick_started)))
     finally:
-        publisher.close()
+        try:
+            worker.stop_active()
+        finally:
+            publisher.close()
+    logger.info("Simulador encerrado")
 
 
 if __name__ == "__main__":
