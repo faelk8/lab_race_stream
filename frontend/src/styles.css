@@ -995,3 +995,26 @@ h1 span {
 .race-controls .stop-race { border-color: #ef7777; background: #3e2026; color: #ffbbbb; }
 .race-controls button:disabled { opacity: .4; cursor: not-allowed; }
 .race-controls span { color: #9ba5b6; font-size: 12px; }
+
+.console-link { color: #8ec5ff; white-space: nowrap; font-size: 12px; font-weight: 700; }
+.race-follow { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0; font-size: 12px; }
+.race-follow select, .split-reference select { background: #17202d; border: 1px solid #455166; color: #f1f5fa; border-radius: 5px; padding: 8px; max-width: 100%; }
+.race-follow span { color: #596665; }
+.insights-panel { color: #edf2f8; margin-top: 24px; padding: 20px; background: #101721; border: 1px solid #293241; border-radius: 10px; min-width: 0; }
+.comparison-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 16px; }
+.comparison-cards article { padding: 16px; background: #182130; border-radius: 8px; }
+.comparison-cards small { display: block; color: #aebcd0; margin: 8px 0; }
+.comparison-cards dl { display: grid; grid-template-columns: 1fr auto; gap: 8px; font-size: 13px; }
+.comparison-cards dd { margin: 0; font-variant-numeric: tabular-nums; }
+.g-force-panel { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 20px 0; font-size: 12px; }
+.g-force-panel svg { flex-shrink: 0; }
+.split-legend { color: #acb6c5; font-size: 12px; }
+.insights-table-wrap { overflow-x: auto; width: 100%; margin: 14px 0; }
+.insights-table { width: 100%; text-align: left; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+.insights-table th, .insights-table td { padding: 10px; border-bottom: 1px solid #293241; }
+.split-purple th { color: #d099ff; }.split-green th { color: #6de8a1; }.split-yellow th { color: #ffe182; }.split-gray th { color: #a0a6b2; }
+.insights-panel summary { cursor: pointer; }
+@media(max-width: 600px) { .topbar-meta { flex-wrap: wrap; } .insights-panel { padding: 12px; } .race-follow select { width: 100%; } }
+.split-chart { margin: 20px 0; padding: 12px; background: #182130; border-radius: 8px; }
+.split-chart svg { display: block; width: 100%; max-height: 230px; }
+.split-chart figcaption, .split-chart small { font-size: 12px; color: #c4cddd; }

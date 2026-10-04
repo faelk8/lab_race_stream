@@ -1,5 +1,12 @@
 export type TireCompound = "soft" | "medium" | "hard";
 
+export interface TrackDefinition {
+    map_start_offset: number;
+    length_m: number;
+    sector_ends: number[];
+    checkpoints: number[];
+}
+
 export interface CarConfiguration {
     car_id: string;
     driver_id: string;
@@ -20,8 +27,20 @@ export interface CarConfiguration {
 export interface RaceTelemetry {
     event_time: string;
     event_id: string;
-    event_type: "race.telemetry.v2" | "race.telemetry.v3";
-    schema_version: 2 | 3;
+    event_type: "race.telemetry.v2" | "race.telemetry.v3" | "race.telemetry.v4";
+    schema_version: 2 | 3 | 4;
+    kind?: string;
+    snapshot_id?: number;
+    distance_m?: number;
+    driver_name?: string;
+    driver_country_code?: string;
+    team_id?: string;
+    car_status?: string;
+    g_longitudinal?: number | null;
+    g_lateral?: number | null;
+    g_horizontal?: number | null;
+    g_peak?: number;
+    worst_lap_time_ms?: number | null;
     race_id: string;
     car_id: string;
     driver_id: string;
@@ -55,4 +74,53 @@ export interface RaceSnapshot {
     status: "queued" | "running" | "stopping" | "stopped" | "finished" | "failed";
     started_at: string;
     finished_at: string | null;
+}
+export interface Split {
+    checkpoint_id: string;
+    lap: number;
+    segment_time_ms: number;
+    lap_elapsed_ms: number;
+    best_personal_ms: number | null;
+    best_team_ms: number | null;
+    best_race_ms: number | null;
+    delta_ms: number | null;
+    color: string;
+    valid: boolean;
+}
+
+export interface CarAnalytics {
+    car_id: string;
+    driver_id: string;
+    team_id: string;
+    last_lap_time_ms: number | null;
+    best_lap_time_ms: number | null;
+    worst_lap_time_ms: number | null;
+    theoretical_lap_ms: number | null;
+    pace_ms: number | null;
+    lap_count: number;
+    sector_best_ms: (number | null)[];
+    splits: Split[];
+    gap_to_leader_ms: number | null;
+    interval_to_ahead_ms: number | null;
+    gap_reference: string;
+    gap_reference_age_ms: number | null;
+    laps_behind: number;
+}
+
+export interface RaceStateEvent {
+    kind: "state";
+    race_id: string;
+    state_sequence: number;
+    produced_at: string;
+    snapshot_id: number;
+    complete: boolean;
+    cars: { telemetry: RaceTelemetry; stale: boolean }[];
+}
+
+export interface AnalyticsEvent {
+    kind: "analytics";
+    race_id: string;
+    revision: number;
+    snapshot_id: number;
+    cars: CarAnalytics[];
 }

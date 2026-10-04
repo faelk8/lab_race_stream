@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef, useState } from "react";
-import type { RaceTelemetry } from "./types";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { RaceTelemetry, TrackDefinition } from "./types";
 import { placeMapLabels } from "./racePresentation";
 
 const trackPath =
@@ -32,24 +32,59 @@ interface InterlagosTrackProps {
     cars: RaceTelemetry[];
     selectedCarId: string | null;
     onSelectCar: (carId: string) => void;
+    highlightedCarIds?: string[];
+    trackDefinition?: TrackDefinition | null;
 }
 
 export function InterlagosTrack({
     cars,
     selectedCarId,
     onSelectCar,
+    highlightedCarIds = [],
+    trackDefinition,
 }: InterlagosTrackProps) {
+    const [displayCars, setDisplayCars] = useState(cars);
+    const displayed = useRef(cars);
+    const [defaultTrack, setTrack] = useState<TrackDefinition | null>(null);
+    const track = trackDefinition ?? defaultTrack;
+    useEffect(() => {
+        const controller = new AbortController();
+        fetch(`${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"}/api/tracks/interlagos`, { signal: controller.signal })
+            .then(response => { if (!response.ok) throw new Error(); return response.json(); })
+            .then(setTrack).catch(() => setTrack(null));
+        return () => controller.abort();
+    }, []);
+    const frameKey = cars.map(car => car.event_id).join(":");
+    useEffect(() => {
+        const previous = new Map(displayed.current.map(car => [car.car_id, car]));
+        const started = performance.now();
+        let animation = 0;
+        const render = () => {
+            const fraction = Math.min(1, (performance.now() - started) / 1000);
+            const next = cars.map(car => {
+                const old = previous.get(car.car_id);
+                if (!old || car.race_status === "stopped" || car.distance_m == null || old.distance_m == null) return car;
+                const distance = old.distance_m + (car.distance_m - old.distance_m) * fraction;
+                return { ...car, distance_m: distance, track_progress: ((distance / (track?.length_m ?? 4309)) % 1 + 1) % 1 };
+            });
+            displayed.current = next;
+            setDisplayCars(next);
+            if (fraction < 1) animation = requestAnimationFrame(render);
+        };
+        animation = requestAnimationFrame(render);
+        return () => cancelAnimationFrame(animation);
+    }, [frameKey, track?.length_m]);
     const pathRef = useRef<SVGPathElement>(null);
     const [pathLength, setPathLength] = useState(0);
     useLayoutEffect(() => {
         setPathLength(pathRef.current?.getTotalLength() ?? 0);
     }, []);
-    const anchors = pathLength > 0 ? cars.map((car) => {
-        const distance = Math.max(0, Math.min(0.99999, car.track_progress)) * pathLength;
+    const anchors = pathLength > 0 ? displayCars.map((car) => {
+        const distance = ((car.track_progress + (track?.map_start_offset ?? 0)) % 1) * pathLength;
         const point = pathRef.current!.getPointAtLength(distance);
         const ahead = pathRef.current!.getPointAtLength(Math.min(distance + 1, pathLength));
         const tangentLength = Math.hypot(ahead.x - point.x, ahead.y - point.y) || 1;
-        const laneOffset = (car.overtaking_lane ?? 0) * 6;
+        const laneOffset = car.pit_status === "pit_lane" || car.pit_status === "in_pit" ? -10 : (car.overtaking_lane ?? 0) * 6;
         return { carId: car.car_id, x: point.x - (ahead.y - point.y) / tangentLength * laneOffset,
             y: point.y + (ahead.x - point.x) / tangentLength * laneOffset };
     }) : [];
@@ -71,11 +106,15 @@ export function InterlagosTrack({
             />
             <g transform="translate(-136.686 -208.815)">
                 <path ref={pathRef} d={trackPath} className="track-racing-line" />
+                {pathLength > 0 && track && [...track.checkpoints.map((p, i) => ({ progress: p, label: `P${i+1}` })), ...track.sector_ends.map((p, i) => ({ progress: p, label: i === 2 ? "SF" : `S${i+1}` }))].map(line => {
+                    const point = pathRef.current!.getPointAtLength(((line.progress + track.map_start_offset) % 1) * pathLength);
+                    return <g key={line.label}><circle cx={point.x} cy={point.y} r={line.label.startsWith("S") ? 4 : 2} fill="#6f849f"><title>{line.label} · ponto simulado</title></circle></g>;
+                })}
                 {pathLength > 0 &&
-                    cars.map((car, index) => {
+                    displayCars.map((car, index) => {
                         const { x, y } = anchors[index];
                         const label = labels.get(car.car_id);
-                        const selected = car.car_id === selectedCarId;
+                        const selected = car.car_id === selectedCarId || highlightedCarIds.includes(car.car_id);
 
                         return (
                             <g

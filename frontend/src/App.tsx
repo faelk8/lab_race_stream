@@ -1,3 +1,4 @@
+import type { TrackDefinition } from "./types";
 import {
     Activity,
     Check,
@@ -17,9 +18,10 @@ import {
 } from "lucide-react";
 import { startTransition, useDeferredValue, useEffect, useState } from "react";
 import { getCars, getLatestRace, startRace, stopRace, telemetrySocketUrl, updateCar } from "./api";
+import { RaceInsights } from "./RaceInsights";
 import { InterlagosTrack } from "./InterlagosTrack";
-import { countryFlag, countryName, formatGap, leaderGapMs, RaceFrameBuffer, rankCars, teamName } from "./racePresentation";
-import type { CarConfiguration, RaceSnapshot, RaceTelemetry, TireCompound } from "./types";
+import { countryFlag, countryName, formatGap, rankCars, teamName } from "./racePresentation";
+import type { AnalyticsEvent, CarAnalytics, CarConfiguration, RaceSnapshot, RaceStateEvent, RaceTelemetry, TireCompound } from "./types";
 
 type ConnectionState = "connecting" | "connected" | "reconnecting";
 
@@ -46,6 +48,16 @@ function tireLabel(compound: TireCompound): string {
 
 export function App() {
     const [cars, setCars] = useState<CarConfiguration[]>([]);
+    const [analytics, setAnalytics] = useState<Record<string, CarAnalytics>>({});
+    const [sessionCars, setSessionCars] = useState<CarConfiguration[]>([]);
+    const [sessionTrack, setSessionTrack] = useState<TrackDefinition | null>(null);
+    const [analyticsSnapshot, setAnalyticsSnapshot] = useState(-1);
+    const [selectionMode, setSelectionMode] = useState<"car" | "driver" | "team">("car");
+    const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+    const [staleCars, setStaleCars] = useState<string[]>([]);
+    const [lastUpdate, setLastUpdate] = useState(0);
+    const [now, setNow] = useState(Date.now());
+    useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
     const [race, setRace] = useState<RaceSnapshot | null>(null);
     const [telemetryByCar, setTelemetryByCar] = useState<Record<string, RaceTelemetry>>({});
     const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
@@ -88,7 +100,27 @@ export function App() {
 
     useEffect(() => {
         if (!race?.race_id || cars.length === 0) return;
-        const frameBuffer = new RaceFrameBuffer(race.race_id, cars.map((car) => car.car_id));
+        let stateSequence = -1;
+        let analysisRevision = -1;
+        setAnalytics({});
+        setSessionCars([]);
+        setSessionTrack(null);
+        setStaleCars([]);
+        setLastUpdate(0);
+        const receiveState = (event: RaceStateEvent) => {
+            if (event.state_sequence <= stateSequence) return;
+            stateSequence = event.state_sequence;
+            const frame = Object.fromEntries(event.cars.map(car => [car.telemetry.car_id, car.telemetry]));
+            setStaleCars(event.cars.filter(car => car.stale).map(car => car.telemetry.car_id));
+            setLastUpdate(Date.parse(event.produced_at));
+            startTransition(() => setTelemetryByCar(frame));
+        };
+        const receiveAnalytics = (event: AnalyticsEvent) => {
+            if (event.revision <= analysisRevision) return;
+            analysisRevision = event.revision;
+            setAnalyticsSnapshot(event.snapshot_id);
+            setAnalytics(Object.fromEntries(event.cars.map(car => [car.car_id, car])));
+        };
         let stopped = false;
         let socket: WebSocket | null = null;
         let reconnectTimer = 0;
@@ -100,9 +132,19 @@ export function App() {
             socket = new WebSocket(telemetrySocketUrl(race.race_id));
             socket.onopen = () => setConnection("connected");
             socket.onmessage = (message) => {
-                const event = JSON.parse(message.data) as RaceTelemetry;
-                const frame = frameBuffer.push(event);
-                if (frame) startTransition(() => setTelemetryByCar(frame));
+                const event = JSON.parse(message.data);
+                if (event.race_id !== race.race_id) return;
+                if (event.kind === "snapshot") {
+                    if (event.participants?.length) setSessionCars(event.participants);
+                    if (event.control?.track) setSessionTrack(event.control.track);
+                    if (event.state) receiveState(event.state);
+                    if (event.analytics) receiveAnalytics(event.analytics);
+                } else if (event.kind === "state") receiveState(event);
+                else if (event.kind === "analytics") receiveAnalytics(event);
+                else if (event.kind === "control") {
+                    if (event.participants?.length) setSessionCars(event.participants);
+                    if (event.track) setSessionTrack(event.track);
+                }
             };
             socket.onclose = () => {
                 if (!stopped) {
@@ -129,7 +171,8 @@ export function App() {
     const statusLabel = { idle: "PRONTA", queued: "AGUARDANDO INÍCIO", running: "CORRIDA", stopping: "PARANDO", stopped: "PARADA", finished: "FINALIZADA", failed: "FALHA" }[currentStatus];
     const selectedTelemetry = selectedCarId ? telemetry[selectedCarId] : undefined;
     const selectedConfiguration = cars.find((car) => car.car_id === selectedCarId);
-    const rankedConfigurations = rankCars(cars, telemetry);
+    const participants = sessionCars.length ? sessionCars : cars;
+    const rankedConfigurations = rankCars(participants, telemetry);
 
     async function controlRace(action: "start" | "stop") {
         setRaceAction(action);
@@ -176,6 +219,7 @@ export function App() {
                         <Radio size={15} />
                         {connection === "connected" ? "AO VIVO" : connection === "reconnecting" ? "RECONECTANDO" : "CONECTANDO"}
                     </span>
+                    <a className="console-link" href={import.meta.env.VITE_KAFKA_CONSOLE_URL ?? "http://localhost:8080"} target="_blank" rel="noreferrer">VER KAFKA ↗</a>
                     <span className="race-id">{race?.race_id ?? "AGUARDANDO CORRIDA"}</span>
                 </div>
             </header>
@@ -189,7 +233,7 @@ export function App() {
                     <div className="race-metrics">
                         <div className="race-clock metric-cell">
                             <Timer size={18} />
-                            <div><span>TEMPO RESTANTE</span><strong>{formatRaceClock((race?.duration_seconds ?? 120) - elapsed)}</strong></div>
+                            <div><span>TEMPO DA CORRIDA</span><strong>{formatRaceClock(elapsed)}</strong></div>
                         </div>
                         <div className="metric-cell">
                             <Flag size={17} />
@@ -207,6 +251,11 @@ export function App() {
                     <button id="stop-race" className="stop-race" disabled={!race || !["queued", "running"].includes(currentStatus) || raceAction !== null} onClick={() => void controlRace("stop")}><Square size={16} />{raceAction === "stop" ? "Parando..." : "Parar corrida"}</button>
                     <span>Parar encerra a prova atual. Iniciar cria uma nova corrida.</span>
                 </section>
+                <section className="race-follow" aria-label="Selecionar acompanhamento">
+                    <label>Acompanhar por <select value={selectionMode} onChange={e => { setSelectionMode(e.target.value as typeof selectionMode); setSelectedTeam(null); }}><option value="car">Carro</option><option value="driver">Piloto</option><option value="team">Equipe</option></select></label>
+                    {selectionMode === "team" ? <select aria-label="Equipe acompanhada" value={selectedTeam ?? ""} onChange={e => { setSelectedTeam(e.target.value); setSelectedCarId(participants.find(c => c.team_id === e.target.value)?.car_id ?? null); }}><option value="">Selecione a equipe</option>{[...new Set(participants.map(c => c.team_id))].map(id => <option key={id} value={id}>{teamName(id)}</option>)}</select> : <select aria-label="Participante acompanhado" value={selectedCarId ?? ""} onChange={e => setSelectedCarId(e.target.value)}>{participants.map(c => <option key={c.car_id} value={c.car_id}>{selectionMode === "driver" ? c.driver_name : c.car_id} · {teamName(c.team_id)}</option>)}</select>}
+                    <span>{lastUpdate ? `Quadro produzido há ${Math.max(0, Math.floor((now - lastUpdate) / 1000))} s` : "Aguardando quadro da corrida"}{activeRace && lastUpdate > 0 && now - lastUpdate > 3000 ? " · TELEMETRIA ATRASADA" : ""}{staleCars.length ? ` · ${staleCars.length} carro(s) com dados antigos` : ""}</span>
+                </section>
                 {error && <div className="error-banner" role="alert">{error}</div>}
 
                 <div className="dashboard-grid">
@@ -223,6 +272,8 @@ export function App() {
                                 cars={liveCars}
                                 selectedCarId={selectedCarId}
                                 onSelectCar={setSelectedCarId}
+                                trackDefinition={sessionTrack}
+                                highlightedCarIds={selectionMode === "team" ? participants.filter(c => c.team_id === selectedTeam).map(c => c.car_id) : []}
                             />
                             {liveCars.length === 0 && (
                                 <div className="track-waiting"><Activity size={18} /> Aguardando telemetria</div>
@@ -243,7 +294,7 @@ export function App() {
                             </div>
                             <span className="field-count">{cars.length.toString().padStart(2, "0")} CARROS</span>
                         </div>
-                        <div className="leaderboard-columns"><span>POS</span><span>PILOTO / EQUIPE</span><span>VOLTA</span><span title="Diferença estimada para o líder">DIF. LÍDER*</span></div>
+                        <div className="leaderboard-columns"><span>POS</span><span>PILOTO / EQUIPE</span><span>VOLTA</span><span title="Diferença medida em uma passagem comum">DIF. LÍDER</span></div>
                         <div className="leaderboard-list">
                             {rankedConfigurations.map((car, index) => {
                                 const event = telemetry[car.car_id];
@@ -258,17 +309,17 @@ export function App() {
                                     >
                                         <span className="position-cell">{position === 1 && <Trophy size={12} />}{position.toString().padStart(2, "0")}</span>
                                         <span className="car-identity">
-                                            <span className="driver-identity"><span className="country-flag" role="img" aria-label={`País: ${countryName(car.driver_country_code)}`} title={countryName(car.driver_country_code)}>{countryFlag(car.driver_country_code)}</span><strong>{car.driver_name || car.driver_id}</strong></span>
+                                            <span className="driver-identity"><span className="country-flag" role="img" aria-label={`País: ${countryName(car.driver_country_code)}`} title={countryName(car.driver_country_code)}>{countryFlag(car.driver_country_code)}</span><strong>{event?.driver_name || car.driver_name || car.driver_id}</strong></span>
                                             <small>{teamName(car.team_id)} · {car.car_id}</small>
                                         </span>
                                         <span className="lap-cell">{event ? Math.min(event.lap, event.target_laps).toString().padStart(2, "0") : "--"}</span>
-                                        <span className="time-cell">{event?.race_position === 1 ? "LÍDER" : formatGap(leaderGapMs(event, leader))}</span>
+                                        <span className="time-cell">{event?.car_status === "retired" ? "FORA" : event?.race_position === 1 ? "LÍDER" : analyticsSnapshot !== event?.snapshot_id ? "—" : (analytics[car.car_id]?.laps_behind ?? 0) > 0 ? `+${analytics[car.car_id].laps_behind} volta(s)` : formatGap(analytics[car.car_id]?.gap_to_leader_ms ?? null)}</span>
                                     </button>
                                 );
                             })}
                             {cars.length === 0 && <div className="empty-list">CARREGANDO GRID...</div>}
                         </div>
-                        <p className="leaderboard-note">* Diferença estimada para o líder. Tempos de volta no painel do carro.</p>
+                        <p className="leaderboard-note">Diferença medida na última passagem comum. “—” indica referência ainda indisponível.</p>
                     </section>
 
                     <aside className="car-panel" aria-labelledby="car-heading">
@@ -365,7 +416,7 @@ export function App() {
                                     <label className={`tire-option tire-${compound}${draft?.tire_compound === compound ? " active" : ""}`} key={compound}>
                                         <input type="radio" name="tire" value={compound} checked={draft?.tire_compound === compound} onChange={() => setDraft((current) => current ? { ...current, tire_compound: compound } : current)} />
                                         <span>{tireLabel(compound)}</span>
-                                        <small>{compound === "soft" ? "−250 ms" : compound === "hard" ? "+300 ms" : "BASE"}</small>
+                                        <small>{compound === "soft" ? "ADERÊNCIA +1%" : compound === "hard" ? "ADERÊNCIA −1%" : "BASE"}</small>
                                     </label>
                                 ))}
                             </fieldset>
@@ -380,8 +431,9 @@ export function App() {
 
                 <footer className="dashboard-footer">
                     <span>RACESTREAM LAB <b>·</b> SIMULAÇÃO 60 VOLTAS</span>
-                    <span><CircleHelp size={13} /> TEMPOS DE PNEU: MACIO −250 ms · MÉDIO BASE · DURO +300 ms</span>
+                    <span><CircleHelp size={13} /> COMPOSTO E PRESSÃO DISPONÍVEIS NA TELEMETRIA</span>
                 </footer>
+                <RaceInsights raceId={race?.race_id} selectedCarId={selectedCarId} selectedTeam={selectionMode === "team" ? selectedTeam : null} cars={participants} telemetry={telemetry} analytics={analytics} />
             </main>
         </div>
     );
