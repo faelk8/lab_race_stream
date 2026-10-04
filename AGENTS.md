@@ -560,3 +560,10 @@ After changes:
 Do not proceed to a later architecture phase merely because it appears in this document.
 
 Implement only the current requested phase.
+
+
+## 29. Idioma dos textos gerados
+
+Toda documentação, mensagens, comentários e docstrings gerados devem estar em
+português do Brasil. Preserve identificadores técnicos de código, contratos,
+comandos e nomes de tecnologias quando necessário para compatibilidade.

@@ -12,3 +12,6 @@ htmlcov/
 **/.cache/
 frontend/node_modules/
 frontend/dist/
+.agents
+.aws
+.codex
