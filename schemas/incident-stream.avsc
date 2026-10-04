@@ -1,0 +1,55 @@
+{
+  "type": "record",
+  "name": "Incident",
+  "namespace": "racestream.v4",
+  "fields": [
+    {
+      "name": "kind",
+      "type": "string"
+    },
+    {
+      "name": "event_id",
+      "type": "string"
+    },
+    {
+      "name": "race_id",
+      "type": "string"
+    },
+    {
+      "name": "event_time",
+      "type": "string"
+    },
+    {
+      "name": "produced_at",
+      "type": "string"
+    },
+    {
+      "name": "simulation_time_us",
+      "type": "long"
+    },
+    {
+      "name": "source_sequence",
+      "type": "long"
+    },
+    {
+      "name": "track_version",
+      "type": "string"
+    },
+    {
+      "name": "rules_version",
+      "type": "string"
+    },
+    {
+      "name": "schema_version",
+      "type": "int"
+    },
+    {
+      "name": "car_id",
+      "type": "string"
+    },
+    {
+      "name": "reason",
+      "type": "string"
+    }
+  ]
+}

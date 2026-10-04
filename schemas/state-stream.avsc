@@ -1,0 +1,314 @@
+{
+  "type": "record",
+  "name": "State",
+  "namespace": "racestream.v4",
+  "fields": [
+    {
+      "name": "kind",
+      "type": "string"
+    },
+    {
+      "name": "event_id",
+      "type": "string"
+    },
+    {
+      "name": "race_id",
+      "type": "string"
+    },
+    {
+      "name": "event_time",
+      "type": "string"
+    },
+    {
+      "name": "produced_at",
+      "type": "string"
+    },
+    {
+      "name": "simulation_time_us",
+      "type": "long"
+    },
+    {
+      "name": "source_sequence",
+      "type": "long"
+    },
+    {
+      "name": "track_version",
+      "type": "string"
+    },
+    {
+      "name": "rules_version",
+      "type": "string"
+    },
+    {
+      "name": "schema_version",
+      "type": "int"
+    },
+    {
+      "name": "car_id",
+      "type": "string"
+    },
+    {
+      "name": "state_sequence",
+      "type": "long"
+    },
+    {
+      "name": "snapshot_id",
+      "type": "long"
+    },
+    {
+      "name": "complete",
+      "type": "boolean"
+    },
+    {
+      "name": "cars",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "StateCar",
+          "namespace": "racestream.v4",
+          "fields": [
+            {
+              "name": "telemetry",
+              "type": {
+                "type": "record",
+                "name": "Telemetry",
+                "namespace": "racestream.v4",
+                "fields": [
+                  {
+                    "name": "kind",
+                    "type": "string"
+                  },
+                  {
+                    "name": "event_id",
+                    "type": "string"
+                  },
+                  {
+                    "name": "race_id",
+                    "type": "string"
+                  },
+                  {
+                    "name": "event_time",
+                    "type": "string"
+                  },
+                  {
+                    "name": "produced_at",
+                    "type": "string"
+                  },
+                  {
+                    "name": "simulation_time_us",
+                    "type": "long"
+                  },
+                  {
+                    "name": "source_sequence",
+                    "type": "long"
+                  },
+                  {
+                    "name": "track_version",
+                    "type": "string"
+                  },
+                  {
+                    "name": "rules_version",
+                    "type": "string"
+                  },
+                  {
+                    "name": "schema_version",
+                    "type": "int"
+                  },
+                  {
+                    "name": "car_id",
+                    "type": "string"
+                  },
+                  {
+                    "name": "driver_id",
+                    "type": "string"
+                  },
+                  {
+                    "name": "driver_name",
+                    "type": "string"
+                  },
+                  {
+                    "name": "driver_country_code",
+                    "type": "string"
+                  },
+                  {
+                    "name": "team_id",
+                    "type": "string"
+                  },
+                  {
+                    "name": "race_status",
+                    "type": "string"
+                  },
+                  {
+                    "name": "car_status",
+                    "type": "string"
+                  },
+                  {
+                    "name": "tire_compound",
+                    "type": "string"
+                  },
+                  {
+                    "name": "pit_status",
+                    "type": "string"
+                  },
+                  {
+                    "name": "driving_phase",
+                    "type": "string"
+                  },
+                  {
+                    "name": "snapshot_id",
+                    "type": "long"
+                  },
+                  {
+                    "name": "sample_sequence",
+                    "type": "long"
+                  },
+                  {
+                    "name": "current_lap_time_ms",
+                    "type": "long"
+                  },
+                  {
+                    "name": "race_position",
+                    "type": "int"
+                  },
+                  {
+                    "name": "lap",
+                    "type": "int"
+                  },
+                  {
+                    "name": "laps_completed",
+                    "type": "int"
+                  },
+                  {
+                    "name": "sector",
+                    "type": "int"
+                  },
+                  {
+                    "name": "target_laps",
+                    "type": "int"
+                  },
+                  {
+                    "name": "gear",
+                    "type": "int"
+                  },
+                  {
+                    "name": "rpm",
+                    "type": "int"
+                  },
+                  {
+                    "name": "tire_age_laps",
+                    "type": "int"
+                  },
+                  {
+                    "name": "pit_stops",
+                    "type": "int"
+                  },
+                  {
+                    "name": "overtaking_lane",
+                    "type": "int"
+                  },
+                  {
+                    "name": "speed_kmh",
+                    "type": "double"
+                  },
+                  {
+                    "name": "distance_m",
+                    "type": "double"
+                  },
+                  {
+                    "name": "track_progress",
+                    "type": "double"
+                  },
+                  {
+                    "name": "lap_distance_m",
+                    "type": "double"
+                  },
+                  {
+                    "name": "fuel_kg",
+                    "type": "double"
+                  },
+                  {
+                    "name": "car_weight_kg",
+                    "type": "double"
+                  },
+                  {
+                    "name": "throttle",
+                    "type": "double"
+                  },
+                  {
+                    "name": "brake",
+                    "type": "double"
+                  },
+                  {
+                    "name": "tire_pressure_psi",
+                    "type": "double"
+                  },
+                  {
+                    "name": "elapsed_race_seconds",
+                    "type": "double"
+                  },
+                  {
+                    "name": "g_longitudinal",
+                    "type": [
+                      "null",
+                      "double"
+                    ],
+                    "default": null
+                  },
+                  {
+                    "name": "g_lateral",
+                    "type": [
+                      "null",
+                      "double"
+                    ],
+                    "default": null
+                  },
+                  {
+                    "name": "g_horizontal",
+                    "type": [
+                      "null",
+                      "double"
+                    ],
+                    "default": null
+                  },
+                  {
+                    "name": "g_peak",
+                    "type": "double"
+                  },
+                  {
+                    "name": "last_lap_time_ms",
+                    "type": [
+                      "null",
+                      "long"
+                    ],
+                    "default": null
+                  },
+                  {
+                    "name": "best_lap_time_ms",
+                    "type": [
+                      "null",
+                      "long"
+                    ],
+                    "default": null
+                  },
+                  {
+                    "name": "worst_lap_time_ms",
+                    "type": [
+                      "null",
+                      "long"
+                    ],
+                    "default": null
+                  }
+                ]
+              }
+            },
+            {
+              "name": "stale",
+              "type": "boolean"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

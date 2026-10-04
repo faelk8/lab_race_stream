@@ -6,9 +6,10 @@ import signal
 import threading
 import time
 
-from racestream.application.race_worker import RaceWorker
-from racestream.infrastructure.kafka import AvroKafkaPublisher
+from racestream.application.physical_worker import PhysicalWorker
+from racestream.infrastructure.event_stream import EventStream
 from racestream.infrastructure.postgres_repository import PostgresRaceRepository
+from racestream.infrastructure.track_config import load_track
 from racestream.interfaces.logging_config import configure_logging
 
 
@@ -30,9 +31,14 @@ def main() -> None:
     shutdown = threading.Event()
     signal.signal(signal.SIGTERM, lambda _signal, _frame: shutdown.set())
     signal.signal(signal.SIGINT, lambda _signal, _frame: shutdown.set())
-    publisher = AvroKafkaPublisher(os.environ.get("KAFKA_TOPIC", "race.telemetry.raw"))
-    worker = RaceWorker(
-        repository, repository, publisher, seed=int(os.environ.get("RACE_SEED", "42"))
+    publisher = EventStream()
+    worker = PhysicalWorker(
+        repository,
+        repository,
+        publisher,
+        load_track(),
+        time_scale=float(os.environ.get("RACE_TIME_SCALE", "45")),
+        seed=int(os.environ.get("RACE_SEED", "42")),
     )
     logger.info("Simulador pronto; aguardando início pelo painel")
     previous_tick = time.monotonic()

@@ -5,17 +5,20 @@ import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict
-from typing import Literal, cast
+from typing import Any, Literal, cast
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from racestream.application.event_contracts import TOPICS
 from racestream.application.ports import RaceControl, RaceRepository
 from racestream.domain.models import CarConfiguration, RaceConfiguration, TireCompound
 from racestream.domain.simulator import RACE_DURATION_SECONDS, TARGET_LAPS
 from racestream.infrastructure.postgres_repository import PostgresRaceRepository
+from racestream.infrastructure.projection_store import ProjectionStore
+from racestream.infrastructure.track_config import load_track
 from racestream.interfaces.kafka_hub import KafkaTelemetryHub
 from racestream.interfaces.logging_config import configure_logging
 
@@ -176,6 +179,69 @@ def create_app(
         race = race_repository.get_latest_race()
         return asdict(race) if race is not None else None
 
+    def read_projection(race_id: str) -> dict[str, Any] | None:
+        """Recupere uma projeção com conexão curta e independente por requisição."""
+        store = ProjectionStore(
+            os.environ.get(
+                "DATABASE_URL",
+                "postgresql://racestream:racestream@localhost:5432/racestream",
+            )
+        )
+        try:
+            return store.snapshot(race_id)
+        finally:
+            store.close()
+
+    @app.get("/api/streaming")
+    def streaming_info() -> dict[str, Any]:
+        """Exponha o catálogo de tópicos e a frequência de publicação."""
+        return {
+            "topics": TOPICS,
+            "telemetry_interval_seconds": 1,
+            "time_scale": float(os.environ.get("RACE_TIME_SCALE", "45")),
+        }
+
+    @app.get("/api/tracks/{track_id}")
+    def track_definition(track_id: str) -> dict[str, Any]:
+        """Retorne a geometria aproximada e a posição das linhas simuladas."""
+        track = load_track()
+        if track_id != track.track_id:
+            raise HTTPException(404, "Pista desconhecida")
+        return asdict(track)
+
+    @app.get("/api/races/{race_id}/state")
+    def race_state(race_id: str) -> dict[str, Any] | None:
+        """Retorne estado recuperável, análises e participantes da sessão."""
+        return read_projection(race_id)
+
+    @app.get("/api/races/{race_id}/cars/{car_id}/laps")
+    def car_laps(race_id: str, car_id: str) -> list[dict[str, Any]]:
+        """Consulte o histórico de voltas cronometradas do carro."""
+        store = ProjectionStore(os.environ["DATABASE_URL"])
+        try:
+            return store.history(race_id, car_id, "lap")
+        finally:
+            store.close()
+
+    @app.get("/api/races/{race_id}/cars/{car_id}/splits")
+    def car_splits(race_id: str, car_id: str) -> list[dict[str, Any]]:
+        """Consulte todas as passagens cronometradas pela pista."""
+        store = ProjectionStore(os.environ["DATABASE_URL"])
+        try:
+            return store.history(race_id, car_id, "timing")
+        finally:
+            store.close()
+
+    @app.get("/api/races/{race_id}/teams/{team_id}/analytics")
+    def team_analytics(race_id: str, team_id: str) -> list[dict[str, Any]]:
+        """Compare os resumos individuais dos carros de uma equipe."""
+        projection = read_projection(race_id)
+        return [
+            car
+            for car in ((projection or {}).get("analytics") or {}).get("cars", [])
+            if car["team_id"] == team_id
+        ]
+
     @app.websocket("/ws/races/{race_id}")
     async def race_telemetry(websocket: WebSocket, race_id: str) -> None:
         """Stream the latest snapshots for one race to a browser client.
@@ -186,6 +252,11 @@ def create_app(
         await websocket.accept()
         queue = hub.subscribe()
         try:
+            initial = await asyncio.to_thread(read_projection, race_id)
+            if initial:
+                await websocket.send_json(
+                    {"kind": "snapshot", "race_id": race_id, **initial}
+                )
             while True:
                 event = await queue.get()
                 if event.get("race_id") == race_id:

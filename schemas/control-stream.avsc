@@ -1,0 +1,263 @@
+{
+  "type": "record",
+  "name": "Control",
+  "namespace": "racestream.v4",
+  "fields": [
+    {
+      "name": "kind",
+      "type": "string"
+    },
+    {
+      "name": "event_id",
+      "type": "string"
+    },
+    {
+      "name": "race_id",
+      "type": "string"
+    },
+    {
+      "name": "event_time",
+      "type": "string"
+    },
+    {
+      "name": "produced_at",
+      "type": "string"
+    },
+    {
+      "name": "simulation_time_us",
+      "type": "long"
+    },
+    {
+      "name": "source_sequence",
+      "type": "long"
+    },
+    {
+      "name": "track_version",
+      "type": "string"
+    },
+    {
+      "name": "rules_version",
+      "type": "string"
+    },
+    {
+      "name": "schema_version",
+      "type": "int"
+    },
+    {
+      "name": "car_id",
+      "type": "string"
+    },
+    {
+      "name": "status",
+      "type": "string"
+    },
+    {
+      "name": "target_laps",
+      "type": "int"
+    },
+    {
+      "name": "participants",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "Participant",
+          "namespace": "racestream.v4",
+          "fields": [
+            {
+              "name": "car_id",
+              "type": "string"
+            },
+            {
+              "name": "driver_id",
+              "type": "string"
+            },
+            {
+              "name": "team_id",
+              "type": "string"
+            },
+            {
+              "name": "team_category",
+              "type": "string"
+            },
+            {
+              "name": "driver_name",
+              "type": "string"
+            },
+            {
+              "name": "driver_country_code",
+              "type": "string"
+            },
+            {
+              "name": "tire_compound",
+              "type": "string"
+            },
+            {
+              "name": "strategy",
+              "type": "string"
+            },
+            {
+              "name": "car_weight_kg",
+              "type": "double"
+            },
+            {
+              "name": "driver_weight_kg",
+              "type": "double"
+            },
+            {
+              "name": "top_speed_kmh",
+              "type": "double"
+            },
+            {
+              "name": "driver_height_m",
+              "type": "double"
+            },
+            {
+              "name": "pit_service_seconds",
+              "type": "double"
+            },
+            {
+              "name": "car_length_m",
+              "type": "double"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "track",
+      "type": {
+        "type": "record",
+        "name": "Track",
+        "namespace": "racestream.v4",
+        "fields": [
+          {
+            "name": "track_id",
+            "type": "string"
+          },
+          {
+            "name": "version",
+            "type": "string"
+          },
+          {
+            "name": "length_m",
+            "type": "double"
+          },
+          {
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "name": "map_start_offset",
+            "type": "double"
+          },
+          {
+            "name": "sector_ends",
+            "type": {
+              "type": "array",
+              "items": "double"
+            }
+          },
+          {
+            "name": "checkpoints",
+            "type": {
+              "type": "array",
+              "items": "double"
+            }
+          },
+          {
+            "name": "corners",
+            "type": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": "double"
+              }
+            }
+          },
+          {
+            "name": "pit_entry",
+            "type": "double"
+          },
+          {
+            "name": "pit_box",
+            "type": "double"
+          },
+          {
+            "name": "pit_exit",
+            "type": "double"
+          },
+          {
+            "name": "pit_speed_kmh",
+            "type": "double"
+          },
+          {
+            "name": "pit_path_ratio",
+            "type": "double"
+          },
+          {
+            "name": "physics_step_seconds",
+            "type": "double"
+          },
+          {
+            "name": "acceleration_m_s2",
+            "type": "double"
+          },
+          {
+            "name": "braking_m_s2",
+            "type": "double"
+          },
+          {
+            "name": "lateral_limit_g",
+            "type": "double"
+          },
+          {
+            "name": "finish_timeout_seconds",
+            "type": "double"
+          },
+          {
+            "name": "refuel_kg_per_second",
+            "type": "double"
+          },
+          {
+            "name": "max_overtakes",
+            "type": "double"
+          },
+          {
+            "name": "grid_spacing_m",
+            "type": "double"
+          },
+          {
+            "name": "fuel_reference_laps",
+            "type": "double"
+          },
+          {
+            "name": "tank_capacity_kg",
+            "type": "double"
+          },
+          {
+            "name": "fuel_tanks_per_reference",
+            "type": "double"
+          },
+          {
+            "name": "tire_grip_factors",
+            "type": {
+              "type": "map",
+              "values": "double"
+            },
+            "default": {
+              "soft": 1.01,
+              "medium": 1.0,
+              "hard": 0.99
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "time_scale",
+      "type": "double",
+      "default": 45.0
+    }
+  ]
+}

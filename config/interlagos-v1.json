@@ -1,0 +1,127 @@
+{
+  "track_id": "interlagos",
+  "version": "interlagos-lab-v1",
+  "length_m": 4309.0,
+  "description": "Geometria aproximada para o laboratório; marcadores e raios não são medições oficiais.",
+  "map_start_offset": 0.94,
+  "sector_ends": [
+    0.34,
+    0.76,
+    1.0
+  ],
+  "checkpoints": [
+    0.04,
+    0.07,
+    0.15,
+    0.32,
+    0.38,
+    0.46,
+    0.5,
+    0.55,
+    0.6,
+    0.64,
+    0.69,
+    0.75,
+    0.82,
+    0.87,
+    0.93
+  ],
+  "corners": [
+    [
+      0.02,
+      0.05,
+      65.0
+    ],
+    [
+      0.05,
+      0.08,
+      -75.0
+    ],
+    [
+      0.08,
+      0.16,
+      230.0
+    ],
+    [
+      0.31,
+      0.34,
+      80.0
+    ],
+    [
+      0.35,
+      0.39,
+      160.0
+    ],
+    [
+      0.44,
+      0.47,
+      -85.0
+    ],
+    [
+      0.48,
+      0.51,
+      -90.0
+    ],
+    [
+      0.53,
+      0.56,
+      45.0
+    ],
+    [
+      0.58,
+      0.61,
+      -48.0
+    ],
+    [
+      0.62,
+      0.65,
+      48.0
+    ],
+    [
+      0.67,
+      0.7,
+      100.0
+    ],
+    [
+      0.73,
+      0.76,
+      65.0
+    ],
+    [
+      0.8,
+      0.83,
+      250.0
+    ],
+    [
+      0.85,
+      0.88,
+      300.0
+    ],
+    [
+      0.91,
+      0.94,
+      350.0
+    ]
+  ],
+  "pit_entry": 0.86,
+  "pit_box": 0.94,
+  "pit_exit": 0.03,
+  "pit_speed_kmh": 80.0,
+  "pit_path_ratio": 0.9,
+  "physics_step_seconds": 0.02,
+  "acceleration_m_s2": 8.0,
+  "braking_m_s2": 22.0,
+  "lateral_limit_g": 2.8,
+  "finish_timeout_seconds": 240.0,
+  "refuel_kg_per_second": 12.0,
+  "max_overtakes": 12,
+  "grid_spacing_m": 6.0,
+  "fuel_reference_laps": 60,
+  "tank_capacity_kg": 110.0,
+  "fuel_tanks_per_reference": 1.99,
+  "tire_grip_factors": {
+    "soft": 1.01,
+    "medium": 1.0,
+    "hard": 0.99
+  }
+}

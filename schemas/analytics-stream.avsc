@@ -1,0 +1,241 @@
+{
+  "type": "record",
+  "name": "Analytics",
+  "namespace": "racestream.v4",
+  "fields": [
+    {
+      "name": "kind",
+      "type": "string"
+    },
+    {
+      "name": "event_id",
+      "type": "string"
+    },
+    {
+      "name": "race_id",
+      "type": "string"
+    },
+    {
+      "name": "event_time",
+      "type": "string"
+    },
+    {
+      "name": "produced_at",
+      "type": "string"
+    },
+    {
+      "name": "simulation_time_us",
+      "type": "long"
+    },
+    {
+      "name": "source_sequence",
+      "type": "long"
+    },
+    {
+      "name": "track_version",
+      "type": "string"
+    },
+    {
+      "name": "rules_version",
+      "type": "string"
+    },
+    {
+      "name": "schema_version",
+      "type": "int"
+    },
+    {
+      "name": "car_id",
+      "type": "string"
+    },
+    {
+      "name": "revision",
+      "type": "long"
+    },
+    {
+      "name": "cars",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "CarAnalytics",
+          "namespace": "racestream.v4",
+          "fields": [
+            {
+              "name": "car_id",
+              "type": "string"
+            },
+            {
+              "name": "driver_id",
+              "type": "string"
+            },
+            {
+              "name": "team_id",
+              "type": "string"
+            },
+            {
+              "name": "last_lap_time_ms",
+              "type": [
+                "null",
+                "long"
+              ],
+              "default": null
+            },
+            {
+              "name": "best_lap_time_ms",
+              "type": [
+                "null",
+                "long"
+              ],
+              "default": null
+            },
+            {
+              "name": "worst_lap_time_ms",
+              "type": [
+                "null",
+                "long"
+              ],
+              "default": null
+            },
+            {
+              "name": "theoretical_lap_ms",
+              "type": [
+                "null",
+                "long"
+              ],
+              "default": null
+            },
+            {
+              "name": "pace_ms",
+              "type": [
+                "null",
+                "long"
+              ],
+              "default": null
+            },
+            {
+              "name": "lap_count",
+              "type": "int"
+            },
+            {
+              "name": "splits",
+              "type": {
+                "type": "array",
+                "items": {
+                  "type": "record",
+                  "name": "Split",
+                  "namespace": "racestream.v4",
+                  "fields": [
+                    {
+                      "name": "checkpoint_id",
+                      "type": "string"
+                    },
+                    {
+                      "name": "lap",
+                      "type": "int"
+                    },
+                    {
+                      "name": "segment_time_ms",
+                      "type": "long"
+                    },
+                    {
+                      "name": "lap_elapsed_ms",
+                      "type": "long"
+                    },
+                    {
+                      "name": "best_personal_ms",
+                      "type": [
+                        "null",
+                        "long"
+                      ],
+                      "default": null
+                    },
+                    {
+                      "name": "best_team_ms",
+                      "type": [
+                        "null",
+                        "long"
+                      ],
+                      "default": null
+                    },
+                    {
+                      "name": "best_race_ms",
+                      "type": [
+                        "null",
+                        "long"
+                      ],
+                      "default": null
+                    },
+                    {
+                      "name": "delta_ms",
+                      "type": [
+                        "null",
+                        "long"
+                      ],
+                      "default": null
+                    },
+                    {
+                      "name": "color",
+                      "type": "string"
+                    },
+                    {
+                      "name": "valid",
+                      "type": "boolean"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "sector_best_ms",
+              "type": {
+                "type": "array",
+                "items": [
+                  "null",
+                  "long"
+                ]
+              }
+            },
+            {
+              "name": "gap_to_leader_ms",
+              "type": [
+                "null",
+                "long"
+              ],
+              "default": null
+            },
+            {
+              "name": "interval_to_ahead_ms",
+              "type": [
+                "null",
+                "long"
+              ],
+              "default": null
+            },
+            {
+              "name": "gap_reference",
+              "type": "string"
+            },
+            {
+              "name": "gap_reference_age_ms",
+              "type": [
+                "null",
+                "long"
+              ],
+              "default": null
+            },
+            {
+              "name": "laps_behind",
+              "type": "long",
+              "default": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "snapshot_id",
+      "type": "long",
+      "default": 0
+    }
+  ]
+}

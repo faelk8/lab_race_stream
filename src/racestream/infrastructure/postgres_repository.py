@@ -31,10 +31,12 @@ class PostgresRaceRepository:
         configurations = create_default_car_configurations()
         with self._connect() as connection:
             with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_advisory_xact_lock(724164)")
                 for migration in (
                     "002_corrida_rules.sql",
                     "003_driver_identity.sql",
                     "004_race_control.sql",
+                    "005_stream_projections.sql",
                 ):
                     cursor.execute(Path("postgres/initdb", migration).read_text())
                 cursor.executemany(

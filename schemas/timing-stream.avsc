@@ -1,0 +1,99 @@
+{
+  "type": "record",
+  "name": "Timing",
+  "namespace": "racestream.v4",
+  "fields": [
+    {
+      "name": "kind",
+      "type": "string"
+    },
+    {
+      "name": "event_id",
+      "type": "string"
+    },
+    {
+      "name": "race_id",
+      "type": "string"
+    },
+    {
+      "name": "event_time",
+      "type": "string"
+    },
+    {
+      "name": "produced_at",
+      "type": "string"
+    },
+    {
+      "name": "simulation_time_us",
+      "type": "long"
+    },
+    {
+      "name": "source_sequence",
+      "type": "long"
+    },
+    {
+      "name": "track_version",
+      "type": "string"
+    },
+    {
+      "name": "rules_version",
+      "type": "string"
+    },
+    {
+      "name": "schema_version",
+      "type": "int"
+    },
+    {
+      "name": "car_id",
+      "type": "string"
+    },
+    {
+      "name": "driver_id",
+      "type": "string"
+    },
+    {
+      "name": "team_id",
+      "type": "string"
+    },
+    {
+      "name": "lap",
+      "type": "int"
+    },
+    {
+      "name": "checkpoint_id",
+      "type": "string"
+    },
+    {
+      "name": "sector",
+      "type": "int"
+    },
+    {
+      "name": "speed_kmh",
+      "type": "double"
+    },
+    {
+      "name": "lap_elapsed_ms",
+      "type": "long"
+    },
+    {
+      "name": "segment_time_ms",
+      "type": "long"
+    },
+    {
+      "name": "sector_time_ms",
+      "type": [
+        "null",
+        "long"
+      ],
+      "default": null
+    },
+    {
+      "name": "pit_lap",
+      "type": "boolean"
+    },
+    {
+      "name": "valid",
+      "type": "boolean"
+    }
+  ]
+}

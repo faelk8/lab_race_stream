@@ -5,7 +5,7 @@ import logging
 import os
 import threading
 
-from racestream.infrastructure.kafka import AvroKafkaConsumer
+from racestream.infrastructure.event_stream import EventReader
 
 LOGGER = logging.getLogger(__name__)
 
@@ -57,18 +57,24 @@ class KafkaTelemetryHub:
 
     def _consume(self) -> None:
         """Read Kafka on a dedicated thread and reconnect after failures."""
-        topic = os.environ.get("KAFKA_TOPIC", "race.telemetry.raw")
-        group_id = os.environ.get("KAFKA_DASHBOARD_GROUP", "racestream-dashboard")
+        group_id = (
+            os.environ.get("KAFKA_DASHBOARD_GROUP", "racestream-dashboard") + "-derived"
+        )
         while not self._stop.is_set():
-            consumer: AvroKafkaConsumer | None = None
+            consumer: EventReader | None = None
             try:
-                consumer = AvroKafkaConsumer(topic=topic, group_id=group_id)
+                consumer = EventReader(("state", "analytics", "control"), group_id)
                 while not self._stop.is_set():
-                    event = consumer.poll(timeout=0.5)
-                    if event is not None and self._loop is not None:
-                        self._loop.call_soon_threadsafe(self._broadcast, event)
+                    received = consumer.poll(timeout=0.5)
+                    if received is not None and self._loop is not None:
+                        message, event, error = received
+                        if error:
+                            raise ValueError(error)
+                        if event:
+                            self._loop.call_soon_threadsafe(self._broadcast, event)
+                            consumer.commit(message)
             except Exception:
-                LOGGER.exception("Dashboard Kafka consumer failed; reconnecting")
+                LOGGER.exception("Falha ao consumir projeções; reconectando")
                 self._stop.wait(2.0)
             finally:
                 if consumer is not None:

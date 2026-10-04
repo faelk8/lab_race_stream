@@ -89,7 +89,10 @@ services:
         condition: service_healthy
     entrypoint: ["/bin/bash", "-ec"]
     command:
-      - kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic race.telemetry.raw --partitions 6 --replication-factor 1
+      - |
+        for topic in race.telemetry.raw race.telemetry.raw.v4 race.telemetry.validated.v4 race.timing.crossed.v1 race.lap.completed.v1 race.pitstop.v1 race.incident.v1 race.control.v1 race.state.v1 race.analytics.v1 race.dead-letter.v1; do
+          kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic "$$topic" --partitions 6 --replication-factor 1 --config retention.ms=604800000
+        done
 
   simulator:
     build: .
@@ -106,6 +109,7 @@ services:
       KAFKA_TOPIC: race.telemetry.raw
       DATABASE_URL: postgresql://${POSTGRES_USER:-racestream}:${POSTGRES_PASSWORD:-racestream}@postgres:5432/${POSTGRES_DB:-racestream}
       RACE_SEED: ${RACE_SEED:-42}
+      RACE_TIME_SCALE: ${RACE_TIME_SCALE:-45}
       RACE_DURATION_SECONDS: ${RACE_DURATION_SECONDS:-120}
       RACE_TARGET_LAPS: ${RACE_TARGET_LAPS:-60}
       SIMULATION_INTERVAL_SECONDS: ${SIMULATION_INTERVAL_SECONDS:-0.1}
@@ -130,6 +134,7 @@ services:
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
       KAFKA_TOPIC: race.telemetry.raw
       KAFKA_DASHBOARD_GROUP: racestream-dashboard
+      RACE_TIME_SCALE: ${RACE_TIME_SCALE:-45}
       RACE_DURATION_SECONDS: ${RACE_DURATION_SECONDS:-120}
       RACE_TARGET_LAPS: ${RACE_TARGET_LAPS:-60}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
@@ -155,17 +160,21 @@ services:
       - "5173:5173"
     environment:
       VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+      VITE_KAFKA_CONSOLE_URL: ${VITE_KAFKA_CONSOLE_URL:-http://localhost:8080}
     restart: unless-stopped
 
   consumer:
     build: .
-    command: ["python", "-m", "racestream.interfaces.consumer"]
+    command: ["python", "-m", "racestream.interfaces.stream_processor"]
     depends_on:
+      postgres:
+        condition: service_healthy
       topic-init:
         condition: service_completed_successfully
       schema-registry:
         condition: service_healthy
     environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-racestream}:${POSTGRES_PASSWORD:-racestream}@postgres:5432/${POSTGRES_DB:-racestream}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
       KAFKA_TOPIC: race.telemetry.raw

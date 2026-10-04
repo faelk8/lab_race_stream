@@ -1,13 +1,12 @@
 """Verificação das transições de controle sem serviços externos."""
 
-
 import pytest
 from fastapi.testclient import TestClient
 from test_api import FakeRaceRepository, FakeTelemetryHub
 from test_race_service import InMemoryPublisher
 
 from racestream.application.race_worker import RaceWorker
-from racestream.domain.models import RaceConfiguration, RaceSnapshot
+from racestream.domain.models import RaceConfiguration, RaceResult, RaceSnapshot
 from racestream.interfaces.api import create_app
 
 
@@ -18,9 +17,9 @@ class ControlledRepository(FakeRaceRepository):
         """Inicialize um grid reduzido e nenhum comando."""
         super().__init__()
         self.configurations = self.configurations[:2]
-        self.configuration = None
+        self.configuration: RaceConfiguration | None = None
         self.status = "stopped"
-        self.results = ()
+        self.results: tuple[RaceResult, ...] = ()
 
     def request_start(self, configuration: RaceConfiguration) -> RaceSnapshot:
         """Solicite início ou devolva a corrida já ativa."""
@@ -32,6 +31,7 @@ class ControlledRepository(FakeRaceRepository):
     def get_latest_race(self) -> RaceSnapshot:
         """Retorne os metadados da corrida de teste."""
         config = self.configuration
+        assert config is not None
         return RaceSnapshot(
             config.race_id,
             config.circuit_name,
@@ -67,7 +67,7 @@ class ControlledRepository(FakeRaceRepository):
         """Registre uma falha explicitamente."""
         self.status = "failed"
 
-    def finish_race(self, race_id, results) -> None:
+    def finish_race(self, race_id: str, results: tuple[RaceResult, ...]) -> None:
         """Salve a classificação parcial ou final."""
         self.results = results
         self.status = "stopped" if self.status == "stopping" else "finished"
@@ -123,13 +123,17 @@ def test_cancel_pending_and_natural_finish() -> None:
     assert publisher.events[-1].race_status == "finished"
 
 
-def test_failed_initial_publication_releases_claimed_race() -> None:
+def test_failed_initial_publication_releases_claimed_race(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Uma falha depois da reserva pode ser registrada e libera o worker."""
     repository = ControlledRepository()
     publisher = InMemoryPublisher()
     worker = RaceWorker(repository, repository, publisher)
     repository.request_start(RaceConfiguration(race_id="falha"))
-    publisher.publish = lambda event: (_ for _ in ()).throw(RuntimeError("falha"))
+    monkeypatch.setattr(
+        publisher, "publish", lambda event: (_ for _ in ()).throw(RuntimeError("falha"))
+    )
     with pytest.raises(RuntimeError):
         worker.step(0.1)
     worker.fail_active()
