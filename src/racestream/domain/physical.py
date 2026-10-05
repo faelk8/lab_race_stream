@@ -41,6 +41,7 @@ class PhysicalCar:
     peak_g: float = 0.0
     g_valid: bool = True
     finished_at: float | None = None
+    retired_at: float | None = None
     sequence: int = 0
     lane: int = 0
     pace: float = 1.0
@@ -139,9 +140,7 @@ class PhysicalRace:
                         and self.time - self.leader_finished
                         > self.track.finish_timeout_seconds
                     ):
-                        car.status = "retired"
-                        car.speed = 0
-                        self._emit("incident", {"reason": "prazo_de_chegada"}, car)
+                        self._retire(car, "prazo_de_chegada", self.time)
             if all(c.status != "racing" for c in self.cars):
                 self.status = "finished"
                 self._emit(
@@ -324,9 +323,16 @@ class PhysicalRace:
             car.peak_g = max(car.peak_g, hypot(car.g_long, car.g_lat))
         self._crossings(car, previous, proposed, dt)
         if car.status == "racing" and (car.fuel <= 1e-9 or car.pressure >= 40):
-            car.status, car.speed = "retired", 0.0
             car.pit_status = "out_of_fuel" if car.fuel <= 1e-9 else "tire_burst"
-            self._emit("incident", {"reason": car.pit_status}, car)
+            self._retire(car, car.pit_status, self.time + dt)
+
+    def _retire(self, car: PhysicalCar, reason: str, at: float) -> None:
+        """Congele o estado individual sem simular um impacto no abandono."""
+        car.status, car.retired_at = "retired", at
+        car.speed = car.throttle = car.brake = car.g_long = car.g_lat = 0.0
+        car.g_valid = True
+        car.lane = 0
+        self._emit("incident", {"reason": reason}, car, at)
 
     def _service(self, car: PhysicalCar, per_m: float) -> None:
         """Calcule reposição por estratégia, reserva e vazão de abastecimento."""
@@ -452,7 +458,7 @@ class PhysicalRace:
                     "track_progress": progress,
                     "lap_distance_m": progress * self.track.length_m,
                     "race_position": car.position,
-                    "lap": completed + 1,
+                    "lap": completed if car.status == "finished" else completed + 1,
                     "laps_completed": completed,
                     "sector": 1
                     + sum(progress >= v for v in self.track.sector_ends[:2]),
@@ -476,7 +482,19 @@ class PhysicalRace:
                     else "corner"
                     if car.g_lat
                     else "straight",
-                    "current_lap_time_ms": round((self.time - car.lap_start) * 1000),
+                    "current_lap_time_ms": car.last_lap
+                    if car.status == "finished" and car.last_lap is not None
+                    else round(
+                        (
+                            (
+                                car.retired_at
+                                if car.retired_at is not None
+                                else self.time
+                            )
+                            - car.lap_start
+                        )
+                        * 1000
+                    ),
                     "last_lap_time_ms": car.last_lap,
                     "best_lap_time_ms": car.best_lap,
                     "worst_lap_time_ms": car.worst_lap,

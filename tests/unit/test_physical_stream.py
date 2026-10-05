@@ -282,3 +282,61 @@ def test_gap_reference_is_shared_and_monotonic(
                 assert len({c["gap_reference"] for c in output["cars"]}) == 1
                 checked = True
     assert checked
+
+
+def test_finish_does_not_start_a_phantom_lap(
+    short_race: tuple[PhysicalRace, list[dict[str, Any]]],
+) -> None:
+    """A chegada conserva a volta concluída e seu tempo enquanto o grid termina."""
+    _, events = short_race
+    finished = [
+        e for e in events if e["kind"] == "telemetry" and e["car_status"] == "finished"
+    ]
+    assert finished
+    for event in finished:
+        assert event["lap"] == event["laps_completed"] == 2
+        assert event["current_lap_time_ms"] == event["last_lap_time_ms"]
+
+
+@pytest.mark.parametrize("reason", ["out_of_fuel", "tire_burst", "prazo_de_chegada"])
+def test_retired_clock_and_controls_remain_frozen(reason: str) -> None:
+    """Abandono não mantém acelerador/G ativos nem faz o tempo individual crescer."""
+    race = PhysicalRace(
+        RaceConfiguration("abandono"),
+        create_default_car_configurations()[:2],
+        load_track(),
+    )
+    car = race.cars[0]
+    race.advance(1)
+    race.drain_events()
+    if reason == "out_of_fuel":
+        car.fuel = 0
+    elif reason == "tire_burst":
+        car.pressure = 40
+    else:
+        race.leader_finished = race.time - race.track.finish_timeout_seconds
+    race.advance(0.02)
+    incidents = [
+        e
+        for e in race.drain_events()
+        if e["kind"] == "incident" and e["car_id"] == car.configuration.car_id
+    ]
+    assert len(incidents) == 1 and incidents[0]["reason"] == reason
+    assert car.status == "retired"
+    race.snapshot()
+    first = next(
+        e
+        for e in race.drain_events()
+        if e["kind"] == "telemetry" and e["car_id"] == car.configuration.car_id
+    )
+    race.advance(1)
+    race.snapshot()
+    latest = next(
+        e
+        for e in race.drain_events()
+        if e["kind"] == "telemetry" and e["car_id"] == car.configuration.car_id
+    )
+    assert first["current_lap_time_ms"] == latest["current_lap_time_ms"]
+    assert first["distance_m"] == latest["distance_m"]
+    assert latest["speed_kmh"] == latest["throttle"] == latest["brake"] == 0
+    assert latest["g_longitudinal"] == latest["g_lateral"] == 0

@@ -290,3 +290,19 @@ S1/S2 depois de todos os checkpoints.
   preservou a posição original de P01; tabela apresentou P04, S1, P05 e P12, S2,
   P13 nessa ordem; nenhum erro JavaScript.
 - [x] Verificação reutilizou a corrida encerrada; nenhuma nova corrida foi iniciada.
+
+## 15. Melhoria incremental: telemetria após chegada e abandono
+
+Em 05/10/2026, a revisão identificou uma volta adicional fictícia na telemetria
+após a chegada e um cronômetro individual que continuava crescendo após abandono.
+A correção preserva a volta concluída e seu tempo final; carros que abandonam
+congelam o tempo da volta incompleta no instante do incidente. Acelerador, freio,
+velocidade e G instantâneo ficam zerados, sem inventar um impacto físico.
+O relógio global continua avançando enquanto houver participantes ativos.
+
+- [x] Corrigir chegada sem alterar os contratos Avro ou a classificação.
+- [x] Unificar abandono por combustível, pneu e prazo de chegada.
+- [x] Acrescentar regressões para chegada e os três motivos de abandono.
+- [x] Validação: 150 testes de domínio/aplicação aprovados e integração Kafka
+  aprovada após iniciar o broker; total de 151 casos. Ruff/mypy sem erros.
+- [x] Serviços atualizados e recuperação PostgreSQL aprovada.

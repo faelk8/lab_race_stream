@@ -44,3 +44,7 @@ O acompanhamento usa a pista congelada da sessão também no gráfico; mudanças
 posteriores na API de pista não deslocam as parciais históricas. Tabela ordenada
 pela distância física, incluindo S1 e S2 entre checkpoints. Validado no navegador
 com respostas de pista divergentes, sem iniciar outra corrida.
+
+Em 05/10/2026: chegada não inicia uma volta fictícia; abandono congela o
+cronômetro individual e zera comandos e G instantâneo. Foram validados 151
+casos Python no total e recuperação PostgreSQL, sem nova corrida pelo painel.
