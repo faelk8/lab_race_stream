@@ -306,3 +306,15 @@ O relógio global continua avançando enquanto houver participantes ativos.
 - [x] Validação: 150 testes de domínio/aplicação aprovados e integração Kafka
   aprovada após iniciar o broker; total de 151 casos. Ruff/mypy sem erros.
 - [x] Serviços atualizados e recuperação PostgreSQL aprovada.
+
+## 16. Melhoria incremental: ausência de medição de força G
+
+O indicador não representa mais uma medição ausente como um ponto em zero.
+Quando um dos eixos está ausente ou não é finito, a tela informa “Sem medida”.
+Um valor efetivamente medido de zero permanece representado no centro.
+
+- [x] Distinguir ausência de medição e zero físico no indicador acessível.
+- [x] Build TypeScript/Vite e oito testes frontend aprovados.
+- [x] Navegador: ausência total, ausência parcial, zero e valor não nulo aprovados,
+  sem erros JavaScript. O teste aguarda a atualização diferida do React.
+- [x] Verificação reutilizou dados existentes com telemetria controlada, sem nova corrida.

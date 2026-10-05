@@ -28,6 +28,8 @@ export function RaceInsights({ raceId, selectedCarId, selectedTeam, cars, teleme
     ]) : {};
     const summary = selectedCarId ? analytics[selectedCarId] : undefined;
     const event = selectedCarId ? telemetry[selectedCarId] : undefined;
+    const hasGMeasurement = event?.g_lateral != null && event?.g_longitudinal != null
+        && Number.isFinite(event.g_lateral) && Number.isFinite(event.g_longitudinal);
     const participants = selectedTeam ? cars.filter(c => c.team_id === selectedTeam) : cars.filter(c => c.car_id === selectedCarId);
     useEffect(() => {
         const controller = new AbortController();
@@ -68,7 +70,7 @@ export function RaceInsights({ raceId, selectedCarId, selectedTeam, cars, teleme
             </article>;
         })}</div>
         <div className="g-force-panel"><div><h3>FORÇA G · ESTIMATIVA DO SIMULADOR</h3><p>Longitudinal: {event?.g_longitudinal?.toFixed(2) ?? "—"} g · lateral: {event?.g_lateral?.toFixed(2) ?? "—"} g</p><p>Pico na janela: {event?.g_peak?.toFixed(2) ?? "—"} g · atualização de 1 segundo</p></div>
-            <svg viewBox="0 0 100 100" width="100" height="100" role="img" aria-label="Aceleração lateral e longitudinal estimada"><circle cx="50" cy="50" r="42" fill="none" stroke="#465064" /><path d="M8 50H92M50 8V92" stroke="#465064" /><circle cx={50 + Math.max(-4, Math.min(4, event?.g_lateral ?? 0)) * 10} cy={50 - Math.max(-4, Math.min(4, event?.g_longitudinal ?? 0)) * 10} r="5" fill="#61db9b" /></svg>
+            <svg viewBox="0 0 100 100" width="100" height="100" role="img" aria-label={hasGMeasurement ? "Aceleração lateral e longitudinal estimada" : "Força G sem medida disponível"}><circle cx="50" cy="50" r="42" fill="none" stroke="#465064" /><path d="M8 50H92M50 8V92" stroke="#465064" />{hasGMeasurement ? <circle cx={50 + Math.max(-4, Math.min(4, event!.g_lateral!)) * 10} cy={50 - Math.max(-4, Math.min(4, event!.g_longitudinal!)) * 10} r="5" fill="#61db9b" /> : <text x="50" y="72" textAnchor="middle" fill="currentColor" fontSize="11">Sem medida</text>}</svg>
         </div>
         <label className="split-reference">Comparar parciais com <select value={reference} onChange={e => setReference(e.target.value as typeof reference)}><option value="personal">melhor pessoal</option><option value="team">melhor da equipe</option><option value="race">melhor da corrida</option></select></label>
         <p className="split-legend">Roxo: melhor da corrida · verde: melhor pessoal · amarelo: sem melhora · cinza: sem medida válida. Pontos de cronometragem simulados.</p>

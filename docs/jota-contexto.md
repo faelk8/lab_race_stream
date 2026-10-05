@@ -48,3 +48,7 @@ com respostas de pista divergentes, sem iniciar outra corrida.
 Em 05/10/2026: chegada não inicia uma volta fictícia; abandono congela o
 cronômetro individual e zera comandos e G instantâneo. Foram validados 151
 casos Python no total e recuperação PostgreSQL, sem nova corrida pelo painel.
+
+Também em 05/10/2026: indicador de força G diferencia “Sem medida” de zero
+medido. Build, oito testes frontend e quatro condições no navegador aprovados;
+nenhuma corrida nova pelo painel foi necessária para essas duas melhorias.
