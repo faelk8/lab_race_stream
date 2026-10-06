@@ -918,6 +918,7 @@ h1 span {
 .scenario-heading h2 { margin: 0; font-size: 17px; letter-spacing: .08em; }
 .scenario-heading > span { color: #a4b0a8; font-size: 12px; }
 .scenario-weather, .scenario-form { display: flex; align-items: end; gap: 16px; flex-wrap: wrap; margin: 12px 0; }
+.scenario-weather > small { max-width: 300px; color: #a4b0a8; font-size: 11px; }
 .scenario-weather label, .scenario-form label { display: flex; flex-direction: column; gap: 6px; color: #c9d2cb; font-size: 12px; }
 .scenario-weather input:not([type=checkbox]), .scenario-weather select, .scenario-form input, .scenario-form select { min-width: 130px; padding: 8px; border: 1px solid #59665e; border-radius: 4px; background: #151b18; color: #f2f5ef; }
 .scenario-weather .scenario-toggle { flex-direction: row; align-items: center; padding: 8px 0; color: #f2f5ef; }

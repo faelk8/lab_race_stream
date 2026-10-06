@@ -248,6 +248,9 @@ como aplicável à próxima corrida.
 - [x] Aplicar e consultar a migração aditiva no PostgreSQL local.
 - [x] Validar tempos em chuva de intensidade diferente, programação dos 20 carros,
       serviço de troca/abastecimento e telemetria com pneu de chuva.
+- [x] Exibir no painel o detalhe da API para chuva iniciada fora da janela,
+      informar o limite antes da largada e bloquear envio duplicado.
+- [x] Verificar por HTTP que a configuração tardia retorna 422 sem criar corrida.
 - [x] Reconstruir API, simulador e dashboard; consultar OpenAPI saudável e
       confirmar que `wet` é aceito. Não iniciar corrida completa.
 - [x] Registrar evidências de validação e medir metas de latência.

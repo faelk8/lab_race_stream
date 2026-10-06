@@ -6,6 +6,14 @@ não é necessário copiar toda a conversa.
 
 ## Melhoria do painel em andamento
 
+Correção de 06/10/2026: uma configuração de chuva na volta 30 para 20 carros
+era rejeitada corretamente (HTTP 422), mas o painel escondia o motivo com um
+alerta genérico. A largada seguinte foi aceita com chuva desabilitada e terminou
+normalmente. O painel agora mostra o detalhe da API, informa o limite calculado
+junto ao campo e bloqueia cliques duplicados. Verificação HTTP confirmou que a
+tentativa tardia explica a volta 21 e não cria nova corrida. API e dashboard foram
+reconstruídos; a última corrida permanece preservada no histórico.
+
 Pedido de 06/10/2026: no pelotão, mostrar tempo da volta anterior e progresso
 `volta/total`; manter o tempo da última volta ao terminar. O acompanhamento deve
 permitir trocar carro, piloto ou equipe em qualquer momento da prova e o gráfico

@@ -9,7 +9,27 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     });
     if (!response.ok) {
         const detail = await response.text();
-        throw new Error(detail || `HTTP ${response.status}`);
+        let message = detail;
+        try {
+            const payload: unknown = JSON.parse(detail);
+            if (payload && typeof payload === "object" && "detail" in payload) {
+                const validation = payload.detail;
+                if (typeof validation === "string") message = validation;
+                else if (Array.isArray(validation)) {
+                    message = validation
+                        .map((item) =>
+                            item && typeof item === "object" && "msg" in item
+                                ? String(item.msg).replace(/^Value error, /, "")
+                                : "",
+                        )
+                        .filter(Boolean)
+                        .join(" · ");
+                }
+            }
+        } catch {
+            // Respostas que não sejam JSON são exibidas como texto.
+        }
+        throw new Error(message || `HTTP ${response.status}`);
     }
     return response.json() as Promise<T>;
 }

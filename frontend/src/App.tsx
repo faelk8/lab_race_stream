@@ -16,7 +16,7 @@ import {
     Weight,
     Zap,
 } from "lucide-react";
-import { startTransition, useDeferredValue, useEffect, useState } from "react";
+import { startTransition, useDeferredValue, useEffect, useRef, useState } from "react";
 import { getCars, getLatestRace, startRace, stopRace, telemetrySocketUrl, updateCar } from "./api";
 import { RaceInsights } from "./RaceInsights";
 import { InterlagosTrack } from "./InterlagosTrack";
@@ -64,6 +64,7 @@ export function App() {
     const [draft, setDraft] = useState<CarConfiguration | null>(null);
     const [connection, setConnection] = useState<ConnectionState>("connecting");
     const [raceAction, setRaceAction] = useState<"start" | "stop" | null>(null);
+    const raceActionLock = useRef(false);
     const [raceSetup, setRaceSetup] = useState<RaceStartConfiguration>({ rain_enabled: false, rain_start_lap: 1, rain_intensity: 0.5, incidents: [] });
     const [incidentType, setIncidentType] = useState<RaceIncident["incident_type"]>("tire_puncture");
     const [incidentLap, setIncidentLap] = useState(5);
@@ -180,13 +181,17 @@ export function App() {
     const rankedConfigurations = rankCars(participants, telemetry);
 
     async function controlRace(action: "start" | "stop") {
+        if (raceActionLock.current) return;
+        raceActionLock.current = true;
         setRaceAction(action);
         setError(null);
         try {
             setRace(action === "start" ? await startRace(raceSetup) : await stopRace(race!.race_id));
-        } catch {
-            setError(action === "start" ? "Não foi possível iniciar a corrida." : "Não foi possível parar a corrida.");
-        } finally { setRaceAction(null); }
+        } catch (reason) {
+            const fallback = action === "start" ? "Não foi possível iniciar a corrida." : "Não foi possível parar a corrida.";
+            const detail = reason instanceof Error && !(reason instanceof TypeError) ? reason.message : "";
+            setError(detail || fallback);
+        } finally { raceActionLock.current = false; setRaceAction(null); }
     }
 
     async function saveConfiguration(event: React.FormEvent<HTMLFormElement>) {
@@ -266,6 +271,7 @@ export function App() {
                         {raceSetup.rain_enabled && <>
                             <label>Começa na volta <input type="number" min="1" max={Math.max(1, (race?.target_laps ?? 60) - 1 - 2 * (cars.length - 1))} value={raceSetup.rain_start_lap} onChange={(event) => setRaceSetup((current) => ({ ...current, rain_start_lap: Number(event.target.value) }))} /></label>
                             <label>Intensidade <select value={raceSetup.rain_intensity} onChange={(event) => setRaceSetup((current) => ({ ...current, rain_intensity: Number(event.target.value) }))}><option value="0.25">Leve</option><option value="0.5">Moderada</option><option value="1">Forte</option></select></label>
+                            <small>Para {cars.length} carros e {race?.target_laps ?? 60} voltas, inicie até a volta {Math.max(1, (race?.target_laps ?? 60) - 1 - 2 * (cars.length - 1))}.</small>
                         </>}
                     </div>
                     <form className="scenario-form" onSubmit={(event) => { event.preventDefault(); const scenario: RaceIncident = { incident_type: incidentType, lap: incidentLap, car_id: incidentCar, second_car_id: incidentType === "collision" ? incidentSecondCar : "" }; setRaceSetup((current) => ({ ...current, incidents: [...current.incidents, scenario] })); }}>

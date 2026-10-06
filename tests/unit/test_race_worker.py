@@ -200,6 +200,7 @@ def test_api_start_persists_weather_and_incident_scenarios() -> None:
             )
         )
     assert error.value.status_code == 422
+    assert "até a volta 57" in str(error.value.detail)
 
 
 def test_api_accepts_wet_tire_and_rejects_rain_on_last_lap() -> None:

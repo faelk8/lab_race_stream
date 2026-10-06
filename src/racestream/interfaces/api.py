@@ -222,7 +222,9 @@ def create_app(
         if request.rain_enabled and request.rain_start_lap > latest_rain_start:
             raise HTTPException(
                 422,
-                "A chuva começa tarde demais para escalonar a troca de todos os carros",
+                f"Com {len(cars)} carros e {target_laps} voltas, a chuva precisa "
+                f"começar até a volta {latest_rain_start} para escalonar todas "
+                "as trocas de pneus.",
             )
         configuration = RaceConfiguration(
             race_id=f"race-{uuid4().hex[:12]}",
