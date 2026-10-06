@@ -449,7 +449,7 @@ h1 span {
 .leaderboard-columns,
 .leaderboard-row {
     display: grid;
-    grid-template-columns: 26px minmax(100px, 1fr) 45px 72px 76px;
+    grid-template-columns: 26px minmax(100px, 1fr) 48px 82px;
     align-items: center;
     gap: 7px;
 }
@@ -462,11 +462,7 @@ h1 span {
     font: 7px var(--mono);
 }
 
-.leaderboard-columns span:nth-last-child(2), .leaderboard-columns span:nth-last-child(3) { text-align: center; }
-
-.leaderboard-columns span:last-child {
-    text-align: right;
-}
+.leaderboard-columns span:nth-last-child(-n + 2) { text-align: center; }
 
 .leaderboard-list {
     max-height: 580px;
@@ -531,12 +527,6 @@ h1 span {
 }
 
 .last-lap-cell { color: #36463f; text-align: center; font: 9px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
-
-.time-cell {
-    color: #53605b;
-    text-align: right;
-    font: 9px var(--mono);
-}
 
 .empty-list {
     padding: 20px 12px;

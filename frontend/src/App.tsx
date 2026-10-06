@@ -20,7 +20,7 @@ import { startTransition, useDeferredValue, useEffect, useRef, useState } from "
 import { getCars, getLatestRace, startRace, stopRace, telemetrySocketUrl, updateCar } from "./api";
 import { RaceInsights } from "./RaceInsights";
 import { InterlagosTrack } from "./InterlagosTrack";
-import { countryFlag, countryName, formatGap, rankCars, teamName } from "./racePresentation";
+import { countryFlag, countryName, rankCars, teamName } from "./racePresentation";
 import type { AnalyticsEvent, CarAnalytics, CarConfiguration, RaceIncident, RaceSnapshot, RaceStartConfiguration, RaceStateEvent, RaceTelemetry, TireCompound } from "./types";
 
 type ConnectionState = "connecting" | "connected" | "reconnecting";
@@ -51,7 +51,6 @@ export function App() {
     const [analytics, setAnalytics] = useState<Record<string, CarAnalytics>>({});
     const [sessionCars, setSessionCars] = useState<CarConfiguration[]>([]);
     const [sessionTrack, setSessionTrack] = useState<TrackDefinition | null>(null);
-    const [analyticsSnapshot, setAnalyticsSnapshot] = useState(-1);
     const [selectionMode, setSelectionMode] = useState<"car" | "driver" | "team">("car");
     const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
     const [staleCars, setStaleCars] = useState<string[]>([]);
@@ -124,7 +123,6 @@ export function App() {
         const receiveAnalytics = (event: AnalyticsEvent) => {
             if (event.revision <= analysisRevision) return;
             analysisRevision = event.revision;
-            setAnalyticsSnapshot(event.snapshot_id);
             setAnalytics(Object.fromEntries(event.cars.map(car => [car.car_id, car])));
         };
         let stopped = false;
@@ -326,7 +324,7 @@ export function App() {
                             </div>
                             <span className="field-count">{cars.length.toString().padStart(2, "0")} CARROS</span>
                         </div>
-                        <div className="leaderboard-columns"><span>POS</span><span>PILOTO / EQUIPE</span><span>VOLTA</span><span>ÚLTIMA VOLTA</span><span title="Diferença medida em uma passagem comum">DIF. LÍDER</span></div>
+                        <div className="leaderboard-columns"><span>POS</span><span>PILOTO / EQUIPE</span><span>VOLTA</span><span>ÚLTIMA VOLTA</span></div>
                         <div className="leaderboard-list">
                             {rankedConfigurations.map((car, index) => {
                                 const event = telemetry[car.car_id];
@@ -346,7 +344,6 @@ export function App() {
                                         </span>
                                         <span className="lap-cell" title="Volta atual sobre total de voltas">{event ? `${Math.min(event.lap, event.target_laps)}/${event.target_laps}` : `--/${race?.target_laps ?? 60}`}</span>
                                         <span className="last-lap-cell" title="Última volta concluída">{formatLapTime(event?.last_lap_time_ms ?? analytics[car.car_id]?.last_lap_time_ms)}</span>
-                                        <span className="time-cell">{event?.car_status === "retired" ? "FORA" : event?.race_position === 1 ? "LÍDER" : analyticsSnapshot !== event?.snapshot_id ? "—" : (analytics[car.car_id]?.laps_behind ?? 0) > 0 ? `+${analytics[car.car_id].laps_behind} volta(s)` : formatGap(analytics[car.car_id]?.gap_to_leader_ms ?? null)}</span>
                                     </button>
                                 );
                             })}
