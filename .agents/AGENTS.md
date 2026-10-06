@@ -545,7 +545,7 @@ Preferred sequence:
 Before changing code:
 
 1. inspect the repository;
-2. read `AGENTS.md`;
+2. read `.agents/AGENTS.md`;
 3. read the active ExecPlan;
 4. inspect relevant tests;
 5. identify affected components.

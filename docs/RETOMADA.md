@@ -125,8 +125,8 @@ sobre o Jota local, consultar os modelos instalados antes de alterar sua configu
 
 ## Procedimento de retomada
 
-Leia `AGENTS.md`, este arquivo e a última seção do plano. Consulte as preferências
-no Jota conforme `AGENTS.md`. Confirme arquivos e serviços atuais antes de seguir;
+Leia `.agents/AGENTS.md`, este arquivo e a última seção do plano. Consulte as preferências
+no Jota conforme `.agents/AGENTS.md`. Confirme arquivos e serviços atuais antes de seguir;
 um teste aprovado anteriormente não comprova uma alteração posterior.
 
 Execute somente os testes pertinentes. Prefira fixtures de trechos curtos; não

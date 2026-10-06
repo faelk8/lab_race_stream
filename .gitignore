@@ -13,5 +13,8 @@ htmlcov/
 frontend/node_modules/
 frontend/dist/
 .agents
+!.agents/
+.agents/*
+!.agents/AGENTS.md
 .aws
 .codex
