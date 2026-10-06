@@ -3,6 +3,24 @@
 Data: 04/10/2026. Estado: implementação entregue e validada nesta instalação.
 Especificação original e decisões finais: [regras propostas da corrida v2](planejamento/regras-corrida-v2.md).
 
+## Incremento 06/10/2026: nomes curtos dos tópicos e pelotão
+
+Objetivo: simplificar os links Kafka e retirar a diferença ao líder da
+classificação, além de publicar um dicionário de dados com base nos schemas Avro.
+Os dez tópicos usam agora `telemetry`, `validated`, `timing`, `lap_completed`,
+`pitstop`, `incident`, `control`, `state`, `analytics` e `dead_letter`. A versão
+permanece nos contratos. Nenhum tópico histórico é excluído. O plano do incremento
+é validado após testes unitários, build do frontend, configuração Compose e
+verificação do broker local.
+
+- [x] Atualizar catálogo dos eventos, configuração de tópicos do Compose e Spark.
+- [x] Remover `DIF. LÍDER` da interface do pelotão.
+- [x] Criar `docs/dicionario-de-dados.md` e apontá-lo no README.
+- [x] Validar configuração, contratos, frontend e tópicos locais: 24 testes
+  unitários relacionados e Ruff aprovados; build do painel e `docker compose
+  config --quiet` aprovados; broker e endpoint `/api/streaming` confirmaram os
+  dez aliases. Serviços atualizados depois do término da corrida ativa.
+
 ## 1. Objetivo
 
 Refinar o laboratório existente para publicar velocidade e posição de cada carro

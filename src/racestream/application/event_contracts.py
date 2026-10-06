@@ -4,16 +4,16 @@ from math import isfinite
 from typing import Any
 
 TOPICS = {
-    "telemetry": "race.telemetry.raw.v4",
-    "validated": "race.telemetry.validated.v4",
-    "timing": "race.timing.crossed.v1",
-    "lap": "race.lap.completed.v1",
-    "pitstop": "race.pitstop.v1",
-    "incident": "race.incident.v1",
-    "control": "race.control.v1",
-    "state": "race.state.v1",
-    "analytics": "race.analytics.v1",
-    "dead_letter": "race.dead-letter.v1",
+    "telemetry": "telemetry",
+    "validated": "validated",
+    "timing": "timing",
+    "lap": "lap_completed",
+    "pitstop": "pitstop",
+    "incident": "incident",
+    "control": "control",
+    "state": "state",
+    "analytics": "analytics",
+    "dead_letter": "dead_letter",
 }
 SOURCE_KINDS = ("telemetry", "timing", "pitstop", "incident", "control")
 

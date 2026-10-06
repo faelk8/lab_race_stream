@@ -191,16 +191,18 @@ Do not put frontend pixel coordinates into the core telemetry contract.
 
 ## 8. Kafka Rules
 
-Initial topics:
+Tópicos Kafka atuais:
 
-- `race.telemetry.raw`
-- `race.telemetry.validated`
-- `race.lap.completed`
-- `race.pitstop`
-- `race.incident`
-- `race.state`
-- `race.analytics`
-- `race.dead-letter`
+- `telemetry`
+- `validated`
+- `timing`
+- `lap_completed`
+- `pitstop`
+- `incident`
+- `control`
+- `state`
+- `analytics`
+- `dead_letter`
 
 Use `car_id` as key for car-specific topics where ordering is required.
 

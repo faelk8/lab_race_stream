@@ -28,7 +28,7 @@ O restante do sistema não deve depender diretamente de Flink ou Spark.
 O motor de processamento deverá ser substituível através de contratos estáveis de entrada e saída:
 
 ```text
-Kafka telemetry.raw
+Kafka telemetry
         |
         v
 +-----------------------+
@@ -41,7 +41,7 @@ Kafka telemetry.raw
 +-----------+-----------+
             |
             v
-Kafka race.state / analytics / events
+Kafka: tópicos da corrida
 ```
 
 ## Documentos
@@ -96,7 +96,7 @@ Abra os links abaixo no navegador da máquina onde o Docker Compose está execut
 | Schema Registry | [Listar os schemas registrados](http://localhost:8081/subjects) | Consultar os contratos Avro registrados. |
 | Console MinIO | [Ver o arquivo da corrida](http://localhost:19001) | Inspecionar o bucket `racestream` (credenciais locais definidas por `MINIO_ROOT_USER` e `MINIO_ROOT_PASSWORD`). |
 
-No Redpanda Console, abra a seção **Topics**, selecione `race.telemetry.raw.v4` e
+No Redpanda Console, abra a seção **Topics**, selecione `telemetry` e
 acesse **Messages** para inspecionar a telemetria dos carros. Para acompanhar a
 corrida visualmente, use o link do painel acima.
 
@@ -139,7 +139,7 @@ docker compose up -d spark-archive
 O resultado fica em `lap_performance/` e `consumer_parity/` no bucket
 `racestream`. `paridade=true` indica que a contagem, a melhor volta e a pior
 volta calculadas em lote coincidem com o resumo online. A comparação usa os
-eventos `race.lap.completed.v1` e `race.analytics.v1` arquivados pelo mesmo job.
+eventos `lap_completed` e `analytics` arquivados pelo mesmo job.
 O job obtém do Schema Registry os schemas writer de cada ID Avro e usa a versão
 compatível mais recente como schema de leitura, incluindo eventos históricos.
 
@@ -227,13 +227,6 @@ atual, por exemplo `CAR-01 · P1`. No pelotão, cada linha mostra a bandeira do 
 o nome do piloto, a equipe e o carro, em ordem do primeiro ao último colocado.
 Os pilotos iniciais são fictícios; nome e país podem ser alterados no painel.
 
-A coluna **DIF. LÍDER** usa uma passagem cronometrada comum a todos os carros,
-compatível com a classificação do quadro. Enquanto não existe referência,
-mostra `—`. A referência e sua idade aparecem no acompanhamento. Melhor volta
-individual não determina posição de corrida. Quadros parciais conservam a ordem
-anterior e identificam carros atrasados; análises de outro quadro não fornecem
-gaps para a classificação atual.
-
 Selecione carro, piloto ou equipe para ver última, melhor e pior volta, volta
 teórica, ritmo das cinco últimas voltas limpas, intervalos e parciais comparadas
 com a melhor pessoal, da equipe ou da corrida. O histórico permanece disponível
@@ -279,19 +272,25 @@ Todos podem ser consultados em [Kafka / Redpanda Console](http://localhost:8080/
 
 | Tópico | Conteúdo |
 | --- | --- |
-| `race.telemetry.raw.v4` | Snapshot de cada carro a 1 Hz, velocidade, posição, combustível e G. |
-| `race.telemetry.validated.v4` | Telemetria aceita pelo consumer. |
-| `race.timing.crossed.v1` | Passagens nos 15 checkpoints, finais de setor e chegada. |
-| `race.lap.completed.v1` | Voltas consolidadas com os três setores. |
-| `race.pitstop.v1` | Entrada, serviço, combustível adicionado e saída dos boxes. |
-| `race.incident.v1` | Abandono e motivo. |
-| `race.control.v1` | Início/fim/parada, escala, participantes e regras congelados. |
-| `race.state.v1` | Quadros de classificação usados pelo mapa e pelotão. |
-| `race.analytics.v1` | Resumos de voltas, parciais, ritmo e intervalos medidos. |
-| `race.dead-letter.v1` | Eventos rejeitados, motivo e tópico/partição/offset de origem. |
+| [`telemetry`](http://localhost:8080/topics/telemetry) | Snapshot de cada carro a 1 Hz, velocidade, posição, combustível e G. |
+| [`validated`](http://localhost:8080/topics/validated) | Telemetria aceita pelo consumer. |
+| [`timing`](http://localhost:8080/topics/timing) | Passagens nos 15 checkpoints, finais de setor e chegada. |
+| [`lap_completed`](http://localhost:8080/topics/lap_completed) | Voltas consolidadas com os três setores. |
+| [`pitstop`](http://localhost:8080/topics/pitstop) | Entrada, serviço, combustível adicionado e saída dos boxes. |
+| [`incident`](http://localhost:8080/topics/incident) | Abandono e motivo. |
+| [`control`](http://localhost:8080/topics/control) | Início/fim/parada, escala, participantes e regras congelados. |
+| [`state`](http://localhost:8080/topics/state) | Quadros de classificação usados pelo mapa e pelotão. |
+| [`analytics`](http://localhost:8080/topics/analytics) | Resumos de voltas, parciais, ritmo e intervalos medidos. |
+| [`dead_letter`](http://localhost:8080/topics/dead_letter) | Eventos rejeitados, motivo e tópico/partição/offset de origem. |
+
+O dicionário de campos e contratos está em
+[docs/dicionario-de-dados.md](docs/dicionario-de-dados.md). Os nomes dos tópicos
+são curtos; a versão continua nos schemas Avro e nos campos dos eventos. Tópicos
+com nomes antigos, se já existirem no broker, ficam preservados para consulta do
+histórico e não recebem novas publicações.
 
 Os contratos v1/v2/v3 anteriores continuam no repositório; o painel atual usa os
-derivados v4. O tópico legado `race.telemetry.raw` não recebe novas corridas.
+contratos v4. Tópicos anteriores que existirem no broker não recebem novas corridas.
 A retenção dos novos tópicos é de sete dias. As tabelas operacionais de sessões e
 passagens não têm expurgo automático nesta entrega; não substituem o futuro
 armazenamento analítico. Debezium não é necessário para este fluxo direto.

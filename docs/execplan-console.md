@@ -9,8 +9,9 @@ O painel usa a porta 5173, API 8000 e Schema Registry 8081. Não existia Console
 Adicionar somente um serviço Console conectado a `kafka:29092` e ao Registry.
 
 ## Contratos e decisões
-Console v3.12.0, porta local 8080; Kafka e telemetria existentes permanecem iguais.
-Configuração conforme documentação oficial referenciada no README.
+Console v3.12.0, porta local 8080; os nomes dos tópicos seguem o catálogo atual
+descrito no dicionário de dados. Configuração conforme documentação referenciada
+no README.
 
 ## Etapas e validação
 - [x] Conferir portas e documentar links.
@@ -26,4 +27,5 @@ Console e os links correspondentes, preservando os volumes e dados existentes.
 ## Evidências
 Compose válido. Console, painel da corrida, documentação da API e Schema Registry
 responderam HTTP 200. A API do Console respondeu HTTP 200 e listou
-`race.telemetry.raw`. Nenhuma nova simulação foi executada nesta alteração.
+os tópicos históricos disponíveis na ocasião. A nomenclatura foi atualizada
+depois pela ADR 0013.

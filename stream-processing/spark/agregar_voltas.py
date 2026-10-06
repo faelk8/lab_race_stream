@@ -78,7 +78,7 @@ def executar() -> dict[str, int]:
     bucket = os.environ.get("MINIO_BUCKET", "racestream")
     base = f"s3a://{bucket}"
     arquivo = spark.read.parquet(f"{base}/telemetry_raw")
-    voltas_decodificadas = decodificar(arquivo, "race.lap.completed.v1")
+    voltas_decodificadas = decodificar(arquivo, "lap_completed")
     voltas = (
         voltas_decodificadas.select("evento.*")
         .filter(col("valid"))
@@ -91,7 +91,7 @@ def executar() -> dict[str, int]:
         avg("lap_time_ms").alias("media_volta_ms"),
     )
     analytics = (
-        decodificar(arquivo, "race.analytics.v1")
+        decodificar(arquivo, "analytics")
         .select("evento.*")
         .dropDuplicates(["event_id"])
     )

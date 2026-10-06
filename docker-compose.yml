@@ -129,7 +129,7 @@ services:
     entrypoint: ["/bin/bash", "-ec"]
     command:
       - |
-        for topic in race.telemetry.raw race.telemetry.raw.v4 race.telemetry.validated.v4 race.timing.crossed.v1 race.lap.completed.v1 race.pitstop.v1 race.incident.v1 race.control.v1 race.state.v1 race.analytics.v1 race.dead-letter.v1; do
+        for topic in telemetry validated timing lap_completed pitstop incident control state analytics dead_letter; do
           kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic "$$topic" --partitions 6 --replication-factor 1 --config retention.ms=604800000
         done
 
@@ -145,7 +145,7 @@ services:
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      KAFKA_TOPIC: race.telemetry.raw
+      KAFKA_TOPIC: telemetry
       DATABASE_URL: postgresql://${POSTGRES_USER:-racestream}:${POSTGRES_PASSWORD:-racestream}@postgres:5432/${POSTGRES_DB:-racestream}
       RACE_SEED: ${RACE_SEED:-42}
       RACE_TIME_SCALE: ${RACE_TIME_SCALE:-45}
@@ -171,7 +171,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-racestream}:${POSTGRES_PASSWORD:-racestream}@postgres:5432/${POSTGRES_DB:-racestream}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      KAFKA_TOPIC: race.telemetry.raw
+      KAFKA_TOPIC: telemetry
       KAFKA_DASHBOARD_GROUP: racestream-dashboard
       RACE_TIME_SCALE: ${RACE_TIME_SCALE:-45}
       RACE_DURATION_SECONDS: ${RACE_DURATION_SECONDS:-120}
@@ -259,7 +259,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-racestream}:${POSTGRES_PASSWORD:-racestream}@postgres:5432/${POSTGRES_DB:-racestream}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      KAFKA_TOPIC: race.telemetry.raw
+      KAFKA_TOPIC: telemetry
       KAFKA_CONSUMER_GROUP: ${KAFKA_CONSUMER_GROUP:-racestream-local-consumer}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     restart: unless-stopped

@@ -33,17 +33,16 @@ def criar_sessao() -> SparkSession:
 
 
 def main() -> None:
-    """Leia tópicos race.* e mantenha arquivo Parquet com checkpoint S3A."""
+    """Leia tópicos da corrida e mantenha arquivo Parquet com checkpoint S3A."""
     bootstrap = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka:29092")
     topics = os.environ.get(
         "SPARK_KAFKA_TOPICS",
-        "race.telemetry.raw.v4,race.telemetry.validated.v4,race.timing.crossed.v1,"
-        "race.lap.completed.v1,race.pitstop.v1,race.incident.v1,race.control.v1,"
-        "race.state.v1,race.analytics.v1,race.dead-letter.v1",
+        "telemetry,validated,timing,lap_completed,pitstop,incident,control,"
+        "state,analytics,dead_letter",
     )
     bucket = os.environ.get("MINIO_BUCKET", "racestream")
     base_path = f"s3a://{bucket}/telemetry_raw"
-    checkpoint_path = f"s3a://{bucket}/_checkpoints/spark_kafka_archive_v1"
+    checkpoint_path = f"s3a://{bucket}/_checkpoints/spark_kafka_archive_v2"
     spark = criar_sessao()
     kafka = (
         spark.readStream.format("kafka")

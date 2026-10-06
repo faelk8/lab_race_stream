@@ -11,7 +11,7 @@ def main() -> None:
     """Consume telemetry until interrupted by the operator."""
     configure_logging()
     logger = logging.getLogger(__name__)
-    topic = os.environ.get("KAFKA_TOPIC", "race.telemetry.raw")
+    topic = os.environ.get("KAFKA_TOPIC", "telemetry")
     group_id = os.environ.get("KAFKA_CONSUMER_GROUP", "racestream-local-consumer")
     consumer = AvroKafkaConsumer(topic=topic, group_id=group_id)
     logger.info("Telemetry consumer started", extra={"topic": topic})

@@ -42,7 +42,7 @@ Kafka -> Spark -> Parquet no MinIO -> agregados por carro/volta -> comparação
   durante o serviço e composto montado publicado na telemetria.
 - Incidentes: tipo, volta, carro principal e segundo carro opcional para colisão.
 - Agregado Spark: corrida/carro, quantidade de voltas válidas, melhor, pior e
-  média; paridade compara quantidade, melhor e pior com `race.analytics.v1`.
+  média; paridade compara quantidade, melhor e pior com `analytics`.
 - Os schemas Kafka existentes permanecem compatíveis; os agregados são dados
   analíticos no MinIO.
 

@@ -188,21 +188,21 @@ Envelope comum: `event_id`, `event_type`, `schema_version`, `race_id`, `session_
 
 | Evento/tópico lógico | Origem e conteúdo | Chave |
 | --- | --- | --- |
-| `race.telemetry.raw` | Simulador; 1 Hz por carro: velocidade, posição, distância, volta, progresso, setor, marcha, RPM, acelerador, freio, pneus, combustível e estado. G entra quando o modelo físico estiver validado. | `car_id` |
-| `race.timing.crossed` | Cronometragem do simulador; toda passagem por checkpoint, limite de setor e chegada, com instante interpolado. Novo tópico. | `car_id` |
-| `race.telemetry.validated` | Consumer; telemetria validada e metadados de qualidade, sem modificar eventos brutos. | `car_id` |
-| `race.lap.completed` | Consumer; volta consolidada a partir das passagens, com setores e validade. | `car_id` |
-| `race.pitstop` / `race.incident` | Simulador/direção; transições de boxes e fatos da corrida com IDs próprios. | `car_id` quando individual; `race_id` quando coletivo |
-| `race.control` | Controlador; configuração congelada da sessão, participantes, largada, interrupção, bandeiras e encerramento. Novo tópico. | `race_id` |
-| `race.state` | Consumer; quadro coerente de todos os carros, classificação, estados e referência de tempo. | `race_id` |
-| `race.analytics` | Consumer; melhores/piores voltas, parciais, comparações e ritmo por carro/piloto/equipe. | `race_id` para quadro agregado |
-| `race.dead-letter` | Validação; erro explícito, origem, motivo e referência ao evento inválido. | Chave original |
+| `telemetry` | Simulador; 1 Hz por carro: velocidade, posição, distância, volta, progresso, setor, marcha, RPM, acelerador, freio, pneus, combustível e estado. G entra quando o modelo físico estiver validado. | `car_id` |
+| `timing` | Cronometragem do simulador; toda passagem por checkpoint, limite de setor e chegada, com instante interpolado. | `car_id` |
+| `validated` | Consumer; telemetria validada e metadados de qualidade, sem modificar eventos brutos. | `car_id` |
+| `lap_completed` | Consumer; volta consolidada a partir das passagens, com setores e validade. | `car_id` |
+| `pitstop` / `incident` | Simulador/direção; transições de boxes e fatos da corrida com IDs próprios. | `car_id` quando individual; `race_id` quando coletivo |
+| `control` | Controlador; configuração congelada da sessão, participantes, largada, interrupção, bandeiras e encerramento. | `race_id` |
+| `state` | Consumer; quadro coerente de todos os carros, classificação, estados e referência de tempo. | `race_id` |
+| `analytics` | Consumer; melhores/piores voltas, parciais, comparações e ritmo por carro/piloto/equipe. | `race_id` para quadro agregado |
+| `dead_letter` | Validação; erro explícito, origem, motivo e referência ao evento inválido. | Chave original |
 
 Kafka garante ordem dentro de uma partição, não entre tópicos. Correlacionar por
 IDs, sequências e tempo de simulação; nunca depender de o evento de controle
 chegar antes do snapshot ou de a passagem chegar antes da telemetria.
 
-`race.control` congela os metadados da sessão para replay; mudanças de cadastro
+`control` congela os metadados da sessão para replay; mudanças de cadastro
 continuam valendo apenas para corridas seguintes. Consumer pode aguardar uma
 configuração faltante em buffer limitado e deve registrar falha explícita se ela
 não chegar, sem enriquecer uma corrida antiga com o cadastro atual.
@@ -229,7 +229,7 @@ de cada família de contrato. Protobuf permanece alternativa arquitetural.
 
 Trocar tempos estimados por medidos e redefinir o relógio é mudança de semântica,
 não apenas adição de campos. Proposta: família v4 em novos subjects e tópicos físicos
-versionados, por exemplo `race.telemetry.raw.v4`, mantendo o tópico v3 para leitura
+versionados, mantendo o tópico `telemetry` para leitura
 e replay legado. Os nomes da tabela acima são nomes lógicos, resolvidos por
 configuração. Eventos novos começam em v1.
 

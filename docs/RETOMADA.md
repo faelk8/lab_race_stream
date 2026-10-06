@@ -4,6 +4,21 @@ Atualizado em 06/10/2026. Este arquivo é o ponto de entrada após pausa por cr�
 fechamento do chat ou troca de modelo. O repositório e o Jota guardam o estado;
 não é necessário copiar toda a conversa.
 
+## Ajuste do pelotão e nomes Kafka (06/10/2026)
+
+Removida do pelotão a coluna **DIF. LÍDER**. Os tópicos de novas publicações
+foram simplificados para `telemetry`, `validated`, `timing`, `lap_completed`,
+`pitstop`, `incident`, `control`, `state`, `analytics` e `dead_letter`. O README
+liga cada tópico ao Redpanda Console e referencia o novo
+[dicionário de dados](dicionario-de-dados.md). A decisão está registrada na
+[ADR 0013](adr/0013-nomes-curtos-topicos-kafka.md). Tópicos antigos ficam
+preservados para consulta histórica. Broker, Schema Registry, API, consumer,
+simulador, painel e Spark foram atualizados; Spark usa o checkpoint v2, mantendo
+os arquivos anteriores. Testes unitários pertinentes, Ruff, build do painel e
+Compose aprovados. A API lista os aliases e o broker contém os dez novos tópicos.
+Não foi iniciada uma nova corrida para validar esta alteração; uma corrida já
+ativa terminou antes da atualização dos serviços.
+
 ## Melhoria do painel em andamento
 
 Correção de 06/10/2026: uma configuração de chuva na volta 30 para 20 carros
