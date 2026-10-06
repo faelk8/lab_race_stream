@@ -1,5 +1,9 @@
 # ADR 0003: Local Kafka and Schema Registry Topology
 
+> Atualização de 06/10/2026: a topologia local de nó único permanece vigente.
+> O tópico único citado na decisão original foi ampliado para dez tópicos com
+> nomes curtos pela [ADR 0013](0013-nomes-curtos-topicos-kafka.md).
+
 ## Status
 
 Accepted

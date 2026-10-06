@@ -90,7 +90,7 @@ Kafka -> Spark -> Parquet no MinIO -> agregados por carro/volta -> comparação
 - [x] Efeitos físicos determinísticos.
 - [x] Controles desktop para configurar a corrida.
 - [x] Agregado Spark e comparação com consumer.
-- [x] Validação e sincronização da documentação com o Jota.
+- [x] Validação e sincronização da documentação do projeto.
 
 Validação em 06/10/2026: o módulo físico passou com 20 testes e a seleção
 direcionada com 7 testes; Ruff, mypy, build React e `docker compose config --quiet` passaram. A
@@ -113,7 +113,3 @@ ficou bloqueado na inicialização do lifespan nesta instalação; a nova rota f
 validada diretamente com dependências injetadas, sem iniciar serviços externos.
 O POST de configuração inválida foi exercitado pelo HTTP da API local e retornou
 422 sem criar uma corrida.
-O serviço de sincronização do Jota terminou com sucesso e atualizou um contexto.
-As operações de listar/salvar preferência no PostgreSQL do Jota continuam
-retornando `OperationalError`; a preferência de desktop ficou registrada nos
-arquivos do projeto, aguardando a recuperação desse banco.

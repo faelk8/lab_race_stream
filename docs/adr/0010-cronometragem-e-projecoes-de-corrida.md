@@ -76,8 +76,9 @@ estimativa física e só entra depois de corrigir o relógio e a integração do
 - Parciais tardias corrigem análises, inclusive após o último quadro. O histórico
   deduplica por corrida/carro/volta/linha; a janela de gaps conserva três voltas.
   Quadros incompletos aguardam três snapshots/segundos e preservam posições anteriores.
-- O PostgreSQL mantém as projeções operacionais sem expurgo automático nesta fase.
-  Kafka retém sete dias. Não se implementou ainda o histórico analítico externo.
+- O PostgreSQL mantém as projeções operacionais sem expurgo automático. Kafka
+  retém sete dias. A etapa posterior da ADR 0011 implementou o arquivo analítico
+  externo em Parquet no MinIO com Spark.
 - G é horizontal e simulado. Ajustes discretos de tráfego/boxes sem aceleração
   física confiável publicam G ausente, em vez de representar um impacto fictício.
 - Retorno ao modelo antigo exige parar a corrida e restaurar a versão anterior

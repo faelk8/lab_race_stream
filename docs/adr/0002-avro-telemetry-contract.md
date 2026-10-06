@@ -1,5 +1,10 @@
 # ADR 0002: Versioned Avro Telemetry Contract
 
+> Atualização de 06/10/2026: a decisão de usar Avro, Schema Registry e chave por
+> carro permanece válida. O nome `race.telemetry.raw` foi substituído por
+> `telemetry` pela [ADR 0013](0013-nomes-curtos-topicos-kafka.md). O texto abaixo
+> preserva a decisão original como histórico.
+
 ## Status
 
 Accepted

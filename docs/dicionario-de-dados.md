@@ -42,7 +42,7 @@ uma réplica e retenção de sete dias.
 | `control` | `control-stream.avsc` | `race_id` | Estado da sessão, participantes, pista, distância e escala da corrida. |
 | `state` | `state-stream.avsc` | `race_id` | Quadro de estado e classificação dos carros. |
 | `analytics` | `analytics-stream.avsc` | `race_id` | Revisão dos agregados analíticos por carro. |
-| `dead_letter` | `dead_letter-stream.avsc` | chave original | Evento recusado, motivo e localização no tópico de origem. |
+| `dead_letter` | `dead_letter-stream.avsc` | `race_id` | Evento recusado, motivo e localização no tópico de origem. |
 
 ## Campos por contrato
 
@@ -143,7 +143,7 @@ O arquivador Spark guarda envelopes Kafka em Parquet no MinIO, em
 analítico produz `lap_performance/` (agregados de voltas válidas por corrida e
 carro) e `consumer_parity/` (comparação dos agregados Spark com o consumer). As
 configurações e projeções operacionais ficam no PostgreSQL; as tabelas e colunas
-relacionais são definidas pelas migrações SQL em `migrations/`.
+relacionais são definidas pelos scripts SQL em `postgres/initdb/`.
 
 ## Alterações de nomes
 

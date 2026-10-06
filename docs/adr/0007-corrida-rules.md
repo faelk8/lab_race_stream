@@ -3,6 +3,10 @@
 ## Status
 Aceita; estratégia C atualizada com terceira parada por solicitação de Rafael.
 
+> Atualização de 06/10/2026: a limitação histórica sobre não representar o
+> percurso dos boxes foi superada pela simulação física da ADR 0010. O caminho
+> atual modela entrada, serviço e saída com limite de 60 km/h.
+
 ## Contexto
 `corrida.md` substitui os perfis de massa e velocidade anteriores e especifica
 estratégias, pilotos, pneus, boxes e poucas ultrapassagens.

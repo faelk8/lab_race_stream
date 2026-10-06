@@ -1,6 +1,6 @@
 # Plano de execução: Spark, PostgreSQL e MinIO na corrida
 
-Data: 06/10/2026. Estado: em implementação incremental.
+Data: 06/10/2026. Estado: implementação entregue e validada nesta instalação.
 
 ## 1. Objetivo
 
@@ -22,12 +22,12 @@ etapa. Iceberg, Debezium, cluster distribuído e migração da projeção online
 para incrementos posteriores. Outras melhorias de realismo serão planejadas
 como incrementos separados após estabilizar persistência e processamento.
 
-## 3. Estado atual
+## 3. Estado anterior ao plano
 
-Kafka retém eventos por sete dias. PostgreSQL guarda metadados, resultados,
-passagens, voltas, projeções e outbox. Não existe MinIO nem implementação Spark.
-A telemetria Avro é publicada em tópicos versionados e consumida pelo serviço
-Python.
+Antes desta entrega, Kafka retinha eventos por sete dias e PostgreSQL guardava
+metadados, resultados, passagens, voltas, projeções e outbox. Ainda não existiam
+MinIO nem implementação Spark. As seções de progresso e validação registram o
+estado entregue ao final do plano.
 
 ## 4. Arquitetura alvo
 
@@ -44,7 +44,9 @@ local; endpoint S3 e caminho de checkpoint também são configuráveis.
 
 ## 5. Contratos
 
-- Fonte: tópicos `race.*` com envelopes Kafka Avro já existentes; sem mudar schemas.
+- Fonte atual: `telemetry`, `validated`, `timing`, `lap_completed`, `pitstop`,
+  `incident`, `control`, `state`, `analytics` e `dead_letter`, com envelopes
+  Kafka Avro. A mudança posterior de nomes está registrada na ADR 0013.
 - Arquivo `telemetry_raw`: timestamp Kafka, tópico, partição, offset, chave e valor binário.
 - Particionamento Parquet por tópico e data UTC do timestamp Kafka.
 - Checkpoint dedicado ao consumidor de arquivo; offset inicial configurável apenas
@@ -132,7 +134,7 @@ corrida/carro e encontrou paridade em todos.
 - [x] Validar leitura de 7.960 registros em 8 tópicos, sem offsets duplicados;
       o fluxo continua recebendo mensagens, então a contagem é uma amostra temporal.
 - [x] Confirmar leitura do checkpoint e continuidade após reinício do serviço.
-- [x] Atualizar README, retomada, plano mestre, ADR e contexto do Jota.
+- [x] Atualizar README, retomada, plano mestre e ADR.
 - [x] Criar agregado Spark de voltas e comparação com o analytics do consumer.
 - [x] Verificar schemas writer por ID do Schema Registry para eventos históricos.
 - [x] Confirmar 80/80 pares corrida/carro coincidentes no MinIO.

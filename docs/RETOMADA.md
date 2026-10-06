@@ -1,8 +1,8 @@
 # Retomada do RaceStream
 
 Atualizado em 06/10/2026. Este arquivo é o ponto de entrada após pausa por crédito,
-fechamento do chat ou troca de modelo. O repositório e o Jota guardam o estado;
-não é necessário copiar toda a conversa.
+fechamento do chat ou troca de modelo. O repositório e seus planos guardam o
+estado; não é necessário copiar toda a conversa.
 
 ## Auditoria da arquitetura e atualização do README (06/10/2026)
 
@@ -22,10 +22,10 @@ diferença entre stack local executável e possibilidades futuras, sem listar o
 motor de processamento removido.
 
 O menu interno do README segue: 1 Objetivo (1.1 problema); 2 Princípios (2.1
-ferramentas e motivos); 3 Executar corrida (3.1 iniciar serviços e corrida, 3.2
-finalizar, 3.3 telemetria); 4 Resultados; 5 Como analisar; 6 Simulação (6.1
-configuração); 7 implementação; 8 testes; 9 organização; 10 documentação. Não há
-seção de links de acesso a serviços. A decisão de adotar Spark como único motor
+tecnologias); 3 Executar corrida (3.1 iniciar serviços e corrida, 3.2 finalizar,
+3.3 telemetria); 4 Resultados; 5 Como analisar; 6 Simulação (6.1 configuração);
+7 implementação; 8 documentação. Os acessos ficam na documentação técnica, sem
+uma seção de links de serviços no README. A decisão de adotar Spark como único motor
 distribuído está registrada na ADR 0014. Nenhuma corrida foi iniciada para essa
 atualização documental.
 
@@ -34,7 +34,7 @@ atualização documental.
 Removida do pelotão a coluna **DIF. LÍDER**. Os tópicos de novas publicações
 foram simplificados para `telemetry`, `validated`, `timing`, `lap_completed`,
 `pitstop`, `incident`, `control`, `state`, `analytics` e `dead_letter`. O README
-liga cada tópico ao Redpanda Console e referencia o novo
+referencia o
 [dicionário de dados](dicionario-de-dados.md). A decisão está registrada na
 [ADR 0013](adr/0013-nomes-curtos-topicos-kafka.md). Tópicos antigos ficam
 preservados para consulta histórica. Broker, Schema Registry, API, consumer,
@@ -44,11 +44,6 @@ Compose aprovados. A API lista os aliases e o broker contém os dez novos tópic
 Os links individuais dos dez tópicos no Redpanda Console responderam HTTP 200.
 Não foi iniciada uma nova corrida para validar esta alteração; uma corrida já
 ativa terminou antes da atualização dos serviços.
-
-O serviço de sincronização do Jota concluiu com `Result=success` e
-`ExecMainStatus=0`. A leitura e a gravação da preferência de idioma no PostgreSQL
-do Jota continuam indisponíveis (`OperationalError`); nenhuma preferência foi
-declarada como persistida.
 
 ## Melhoria do painel em andamento
 
@@ -127,14 +122,6 @@ Próximos incrementos: desaceleração contínua até a vaga, bandeiras e
 neutralização, penalidades, além de testes de recuperação/paridade com fixtures
 curtas. Chuva e incidentes determinísticos configuráveis já foram entregues.
 Consulte o ExecPlan específico antes de continuar.
-Há uma alteração preexistente em `.env.example`; não sobrescrever nem incluir
-em commit sem verificar sua origem.
-
-Para economizar créditos no Codex, considerar `gpt-6-luna` no seletor de modelos,
-se disponível na conta, em tarefas pequenas com critérios claros e testes.
-A [documentação oficial](https://learn.chatgpt.com/docs/models) recomenda Luna
-para tarefas delimitadas. O modelo deste chat não foi trocado. Se o pedido for
-sobre o Jota local, consultar os modelos instalados antes de alterar sua configuração.
 
 ## Onde consultar
 
@@ -143,27 +130,20 @@ sobre o Jota local, consultar os modelos instalados antes de alterar sua configu
 - [ExecPlan de cenários configuráveis e análises Spark](execplan-corrida-interativa.md).
 - [ADR 0011 de persistência e Spark](adr/0011-spark-postgresql-minio.md).
 - [Decisões técnicas e limites](adr/0010-cronometragem-e-projecoes-de-corrida.md).
-- [Contexto compartilhado com Jota](jota-contexto.md).
+- [Índice da documentação técnica](index.md).
 - [Evidências anteriores](validation/refinamento-v4.json).
 - `git log --oneline -12`: commits efetivamente registrados.
 - `git status --short`: alterações ainda não commitadas.
 
 ## Procedimento de retomada
 
-Leia `.agents/AGENTS.md`, este arquivo e a última seção do plano. Consulte as preferências
-no Jota conforme `.agents/AGENTS.md`. Confirme arquivos e serviços atuais antes de seguir;
-um teste aprovado anteriormente não comprova uma alteração posterior.
+Leia `.agents/AGENTS.md`, este arquivo e a última seção do plano. Confirme arquivos
+e serviços atuais antes de seguir; um teste aprovado anteriormente não comprova
+uma alteração posterior.
 
 Execute somente os testes pertinentes. Prefira fixtures de trechos curtos; não
 rode corridas completas repetidamente. Faça um commit para cada melhoria validada.
 Não declare push ou troca de modelo sem confirmação efetiva dessas operações.
 
 Ao terminar uma etapa, atualize trabalho atual, evidências e pendências aqui e no
-plano, então execute `systemctl --user start jota-racestream-sync.service`.
-O timer do Jota também indexa os arquivos a cada dois minutos com a sessão ativa.
-A gravação em arquivos preserva o trabalho mesmo se o Jota estiver indisponível.
-Nesta sessão, o PostgreSQL do Jota retornou `OperationalError` tanto para leitura
-quanto para gravação de preferências. As notas do projeto foram atualizadas; a
-preferência de página desktop ainda precisa ser persistida quando o banco voltar.
-O serviço de sincronização do Jota foi executado com sucesso e atualizou um
-contexto do projeto.
+plano. A gravação em arquivos versionados preserva o contexto para retomada.

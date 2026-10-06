@@ -298,8 +298,6 @@ como aplicável à próxima corrida.
   terceira parada com reserva e desconto do combustível existente.
 - As execuções curtas foram repetidas somente para corrigir o atraso do consumer.
   Não foi feito levantamento estatístico por múltiplas sementes.
-- Jota: API local e timer de indexação de dois minutos ativos; contexto do projeto
-  registrado na base de conhecimento e código/documentação indexados no PostgreSQL.
 
 ## 12. Limites e próximos incrementos
 
@@ -386,7 +384,7 @@ Também manter um ponto de retomada persistente para interrupções por crédito
 - [x] Verificar carro parado durante serviço, tempo de abastecimento e troca de pneus.
 - [x] Comprovar a perda de posição sem reclassificação artificial no retorno.
 - [x] Criar `docs/RETOMADA.md` com trabalho atual, pendências e procedimento de retomada.
-- [x] Validar, registrar commits e sincronizar Jota.
+- [x] Validar, registrar commits e sincronizar a documentação do projeto.
 
 Validação de 06/10/2026: 152 testes Python incluindo Kafka, Ruff, mypy e
 recuperação PostgreSQL aprovados. Serviços reconstruídos, sem nova corrida
@@ -406,10 +404,11 @@ continua alimentando a API; substituir seu processamento exige paridade futura.
 - [x] Validar leitura de 7.960 registros em oito tópicos e zero offsets duplicados.
 - [x] Reiniciar Spark a partir do checkpoint; PostgreSQL e API permaneceram ativos.
 - [x] Documentar portas locais e estado em `docs/RETOMADA.md`.
-- [ ] Criar tabelas refinadas e agregados analíticos no Spark.
-- [ ] Comparar resultados Spark com projeções do consumer antes de qualquer substituição.
+- [x] Criar agregados analíticos de voltas no Spark e gravá-los em Parquet.
+- [x] Comparar resultados Spark com projeções do consumer; a validação registrada
+      encontrou 80/80 pares coincidentes. O consumer permanece no caminho online.
 - [ ] Continuar melhorias físicas da corrida: desaceleração contínua nos boxes,
-      bandeiras/neutralização, chuva e penalidades.
+      bandeiras/neutralização e penalidades. Chuva configurável já foi entregue.
 
 Detalhes: [ExecPlan Spark/PostgreSQL/MinIO](execplan-spark-postgresql-minio.md)
 e [ADR 0011](adr/0011-spark-postgresql-minio.md).
