@@ -4,6 +4,21 @@ Atualizado em 06/10/2026. Este arquivo é o ponto de entrada após pausa por cr�
 fechamento do chat ou troca de modelo. O repositório e o Jota guardam o estado;
 não é necessário copiar toda a conversa.
 
+## Melhoria do painel em andamento
+
+Pedido de 06/10/2026: no pelotão, mostrar tempo da volta anterior e progresso
+`volta/total`; manter o tempo da última volta ao terminar. O acompanhamento deve
+permitir trocar carro, piloto ou equipe em qualquer momento da prova e o gráfico
+de parciais deve atualizar com os dados recebidos e permitir inspeção interativa.
+
+Implementado no painel: coluna de última volta no pelotão, progresso como
+`atual/total`, gráfico com pontos acessíveis por teclado e hover mostrando parcial,
+volta, tempo e referência. O gráfico é montado das análises recebidas ao vivo e
+aparece a partir da primeira parcial. Controles de acompanhamento permanecem
+disponíveis durante a prova. Validação local: testes do frontend e build TypeScript/
+Vite aprovados. A inspeção visual durante uma corrida curta continua pendente;
+nenhuma corrida foi iniciada para esta alteração.
+
 ## Trabalho atual
 
 **Melhorias entregues em 06/10/2026:** o painel mantém página de desktop, com

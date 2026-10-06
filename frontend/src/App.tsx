@@ -320,7 +320,7 @@ export function App() {
                             </div>
                             <span className="field-count">{cars.length.toString().padStart(2, "0")} CARROS</span>
                         </div>
-                        <div className="leaderboard-columns"><span>POS</span><span>PILOTO / EQUIPE</span><span>VOLTA</span><span title="Diferença medida em uma passagem comum">DIF. LÍDER</span></div>
+                        <div className="leaderboard-columns"><span>POS</span><span>PILOTO / EQUIPE</span><span>VOLTA</span><span>ÚLTIMA VOLTA</span><span title="Diferença medida em uma passagem comum">DIF. LÍDER</span></div>
                         <div className="leaderboard-list">
                             {rankedConfigurations.map((car, index) => {
                                 const event = telemetry[car.car_id];
@@ -338,7 +338,8 @@ export function App() {
                                             <span className="driver-identity"><span className="country-flag" role="img" aria-label={`País: ${countryName(car.driver_country_code)}`} title={countryName(car.driver_country_code)}>{countryFlag(car.driver_country_code)}</span><strong>{event?.driver_name || car.driver_name || car.driver_id}</strong></span>
                                             <small>{teamName(car.team_id)} · {car.car_id}</small>
                                         </span>
-                                        <span className="lap-cell">{event ? Math.min(event.lap, event.target_laps).toString().padStart(2, "0") : "--"}</span>
+                                        <span className="lap-cell" title="Volta atual sobre total de voltas">{event ? `${Math.min(event.lap, event.target_laps)}/${event.target_laps}` : `--/${race?.target_laps ?? 60}`}</span>
+                                        <span className="last-lap-cell" title="Última volta concluída">{formatLapTime(event?.last_lap_time_ms ?? analytics[car.car_id]?.last_lap_time_ms)}</span>
                                         <span className="time-cell">{event?.car_status === "retired" ? "FORA" : event?.race_position === 1 ? "LÍDER" : analyticsSnapshot !== event?.snapshot_id ? "—" : (analytics[car.car_id]?.laps_behind ?? 0) > 0 ? `+${analytics[car.car_id].laps_behind} volta(s)` : formatGap(analytics[car.car_id]?.gap_to_leader_ms ?? null)}</span>
                                     </button>
                                 );

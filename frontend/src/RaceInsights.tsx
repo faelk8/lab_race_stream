@@ -21,6 +21,7 @@ export function RaceInsights({ raceId, selectedCarId, selectedTeam, cars, teleme
     const [error, setError] = useState(false);
     const [reference, setReference] = useState<"personal" | "team" | "race">("personal");
     const [defaultTrack, setDefaultTrack] = useState<TrackDefinition | null>(null);
+    const [activeSplit, setActiveSplit] = useState<number | null>(null);
     const track = trackDefinition ?? defaultTrack;
     const pointPositions: Record<string, number> = track ? Object.fromEntries([
         ...track.checkpoints.map((p, i) => [`P${String(i + 1).padStart(2, "0")}`, p]),
@@ -74,14 +75,28 @@ export function RaceInsights({ raceId, selectedCarId, selectedTeam, cars, teleme
         </div>
         <label className="split-reference">Comparar parciais com <select value={reference} onChange={e => setReference(e.target.value as typeof reference)}><option value="personal">melhor pessoal</option><option value="team">melhor da equipe</option><option value="race">melhor da corrida</option></select></label>
         <p className="split-legend">Roxo: melhor da corrida · verde: melhor pessoal · amarelo: sem melhora · cinza: sem medida válida. Pontos de cronometragem simulados.</p>
-        {chart.length > 1 && <figure className="split-chart"><figcaption>Parciais por posição na pista · atual em verde, referência em roxo</figcaption>
+        {chart.length > 0 && <figure className="split-chart"><figcaption>Parciais por posição na pista · atual em verde, referência em roxo</figcaption>
             <svg viewBox="0 0 640 180" role="img" aria-label="Comparação dos tempos de trecho na mesma posição da pista">
                 <path d="M45 15V150H625" fill="none" stroke="#6e7d91" />
                 <text x="5" y="20" fill="currentColor" fontSize="12">{(chartMaximum / 1000).toFixed(1)} s</text>
                 <text x="45" y="170" fill="currentColor" fontSize="12">0%</text><text x="580" y="170" fill="currentColor" fontSize="12">100%</text>
-                <polyline fill="none" stroke="#6de8a1" strokeWidth="2" points={chart.map(p => `${45 + p.x * 570},${150 - p.current / chartMaximum * 130}`).join(" ")} />
-                <polyline fill="none" stroke="#d099ff" strokeWidth="2" points={chart.filter(p => p.best != null).map(p => `${45 + p.x * 570},${150 - p.best! / chartMaximum * 130}`).join(" ")} />
-            </svg><small>Passagens medidas; linhas apenas ligam os pontos. A tabela identifica a volta de cada parcial.</small>
+                {chart.length > 1 && <polyline fill="none" stroke="#6de8a1" strokeWidth="2" points={chart.map(p => `${45 + p.x * 570},${150 - p.current / chartMaximum * 130}`).join(" ")} />}
+                {chart.filter(p => p.best != null).length > 1 && <polyline fill="none" stroke="#d099ff" strokeWidth="2" points={chart.filter(p => p.best != null).map(p => `${45 + p.x * 570},${150 - p.best! / chartMaximum * 130}`).join(" ")} />}
+                {chart.map((point, index) => {
+                    const split = summary?.splits.find(item => item.valid && pointPositions[item.checkpoint_id] === point.x);
+                    if (!split) return null;
+                    const x = 45 + point.x * 570;
+                    const y = 150 - point.current / chartMaximum * 130;
+                    const focused = activeSplit === index;
+                    return <g key={`${split.checkpoint_id}-${split.lap}`} className="split-point" tabIndex={0} role="button"
+                        aria-label={`${split.checkpoint_id}, volta ${split.lap}, trecho ${(point.current / 1000).toFixed(3)} segundos${point.best == null ? "" : `, referência ${(point.best / 1000).toFixed(3)} segundos`}`}
+                        onFocus={() => setActiveSplit(index)} onBlur={() => setActiveSplit(null)} onMouseEnter={() => setActiveSplit(index)} onMouseLeave={() => setActiveSplit(null)}>
+                        <circle cx={x} cy={y} r={focused ? 6 : 4} fill="#6de8a1" stroke="#101721" strokeWidth="2" />
+                        <circle cx={x} cy={y} r="11" fill="transparent" />
+                        {focused && <g className="split-tooltip" pointerEvents="none"><rect x={Math.min(520, Math.max(46, x - 66))} y={Math.max(18, y - 43)} width="132" height="34" rx="4" /><text x={Math.min(586, Math.max(112, x))} y={Math.max(31, y - 28)} textAnchor="middle">{split.checkpoint_id} · V{split.lap} · {(point.current / 1000).toFixed(3)} s</text><text x={Math.min(586, Math.max(112, x))} y={Math.max(44, y - 14)} textAnchor="middle">Ref. {point.best == null ? "—" : `${(point.best / 1000).toFixed(3)} s`}</text></g>}
+                    </g>;
+                })}
+            </svg><small>Passe o mouse ou use Tab para ver volta e tempos de cada passagem. O gráfico acompanha as atualizações recebidas durante a corrida.</small>
         </figure>}
         <div className="insights-table-wrap"><table className="insights-table"><thead><tr><th>Ponto</th><th>Volta</th><th>Trecho</th><th>Acumulado</th><th>Referência</th><th>Diferença</th><th>Resultado</th></tr></thead><tbody>{orderedSplits.map(split => {
             const best = reference === "personal" ? split.best_personal_ms : reference === "team" ? split.best_team_ms : split.best_race_ms;

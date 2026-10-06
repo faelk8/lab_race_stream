@@ -449,7 +449,7 @@ h1 span {
 .leaderboard-columns,
 .leaderboard-row {
     display: grid;
-    grid-template-columns: 26px minmax(110px, 1fr) 30px 76px;
+    grid-template-columns: 26px minmax(100px, 1fr) 45px 72px 76px;
     align-items: center;
     gap: 7px;
 }
@@ -461,6 +461,8 @@ h1 span {
     background: #f2f3ee;
     font: 7px var(--mono);
 }
+
+.leaderboard-columns span:nth-last-child(2), .leaderboard-columns span:nth-last-child(3) { text-align: center; }
 
 .leaderboard-columns span:last-child {
     text-align: right;
@@ -527,6 +529,8 @@ h1 span {
     text-align: center;
     font: 10px var(--mono);
 }
+
+.last-lap-cell { color: #36463f; text-align: center; font: 9px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .time-cell {
     color: #53605b;
@@ -889,6 +893,8 @@ h1 span {
 
 .console-link { color: #8ec5ff; white-space: nowrap; font-size: 12px; font-weight: 700; }
 .race-follow { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0; font-size: 12px; }
+.race-follow label { color: #39463f; font-weight: 700; }
+.race-follow select:focus-visible, .split-reference select:focus-visible { outline: 2px solid #61db9b; outline-offset: 2px; }
 .race-follow select, .split-reference select { background: #17202d; border: 1px solid #455166; color: #f1f5fa; border-radius: 5px; padding: 8px; max-width: 100%; }
 .race-follow span { color: #596665; }
 .insights-panel { color: #edf2f8; margin-top: 24px; padding: 20px; background: #101721; border: 1px solid #293241; border-radius: 10px; min-width: 0; }
@@ -919,3 +925,7 @@ h1 span {
 .split-chart { margin: 20px 0; padding: 12px; background: #182130; border-radius: 8px; }
 .split-chart svg { display: block; width: 100%; max-height: 230px; }
 .split-chart figcaption, .split-chart small { font-size: 12px; color: #c4cddd; }
+.split-point { cursor: crosshair; outline: none; }
+.split-point:focus-visible circle:first-of-type { stroke: #fff; stroke-width: 2.5; }
+.split-tooltip rect { fill: #263348; stroke: #91a7c2; }
+.split-tooltip text { fill: #fff; font: 10px var(--mono); }

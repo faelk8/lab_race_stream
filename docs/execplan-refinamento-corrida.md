@@ -218,6 +218,23 @@ quando suas fixtures e serviços forem implementados. Os novos testes e evidênc
 - [x] Implementar etapa 4.
 - [x] Implementar etapa 5.
 - [x] Implementar etapa 6 e abrir entregas posteriores de realismo.
+
+### Ajuste de apresentação ao vivo — pelotão e acompanhamento (06/10/2026)
+
+- [x] Mostrar no pelotão a volta como `atual/total` e o tempo da última volta
+      concluída; a volta final permanece visível após o encerramento.
+- [x] Tornar cada parcial do gráfico focável por teclado e explorável com mouse,
+      apresentando ponto, volta, tempo medido e referência.
+- [x] Manter o gráfico derivado das análises recebidas pelo WebSocket e exibi-lo
+      já a partir da primeira parcial disponível.
+- [x] Preservar seleção de carro/piloto/equipe durante a corrida e deixar o foco
+      visível nos controles de acompanhamento.
+- [ ] Validar visualmente a interação em navegador durante corrida curta; a
+      validação automatizada cobre build e utilitários, sem iniciar prova longa.
+
+Escopo: atualização de apresentação React; sem mudança de contratos Kafka,
+persistência ou simulador. A configuração física de carro continua identificada
+como aplicável à próxima corrida.
 - [x] Registrar evidências de validação e medir metas de latência.
 
 ## 11. Evidências de entrega em 04/10/2026
