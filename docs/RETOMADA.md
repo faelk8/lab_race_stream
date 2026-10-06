@@ -4,6 +4,31 @@ Atualizado em 06/10/2026. Este arquivo é o ponto de entrada após pausa por cr�
 fechamento do chat ou troca de modelo. O repositório e o Jota guardam o estado;
 não é necessário copiar toda a conversa.
 
+## Auditoria da arquitetura e atualização do README (06/10/2026)
+
+O usuário solicitou usar apenas Spark, registrar com clareza o que está e o que
+não está implementado, reorganizar o menu do README e remover sua seção de links
+de acesso. A verificação do Compose encontrou API, dashboard, Kafka, Schema
+Registry, PostgreSQL, MinIO, consumer, simulador e `spark-archive` ativos; as
+verificações de saúde configuradas estavam saudáveis.
+
+Situação confirmada no código: PostgreSQL é o único banco relacional. MinIO é
+object storage, não outro banco relacional. Spark Structured Streaming arquiva
+os tópicos Kafka em Parquet e o job Spark batch calcula agregados e paridade. O
+consumer Python ainda realiza validação e projeções online. A implementação não
+inclui Protobuf, ClickHouse, Iceberg, Debezium, Kubernetes, OpenTelemetry,
+Prometheus, Grafana ou GitHub Actions/CI/CD. O README agora apresenta essa
+diferença entre stack local executável e possibilidades futuras, sem listar o
+motor de processamento removido.
+
+O menu interno do README segue: 1 Objetivo (1.1 problema); 2 Princípios (2.1
+ferramentas e motivos); 3 Executar corrida (3.1 iniciar serviços e corrida, 3.2
+finalizar, 3.3 telemetria); 4 Resultados; 5 Como analisar; 6 Simulação (6.1
+configuração); 7 implementação; 8 testes; 9 organização; 10 documentação. Não há
+seção de links de acesso a serviços. A decisão de adotar Spark como único motor
+distribuído está registrada na ADR 0014. Nenhuma corrida foi iniciada para essa
+atualização documental.
+
 ## Ajuste do pelotão e nomes Kafka (06/10/2026)
 
 Removida do pelotão a coluna **DIF. LÍDER**. Os tópicos de novas publicações

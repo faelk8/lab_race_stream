@@ -6,6 +6,12 @@ Implementada em 04/10/2026. Substitui, para novas corridas, os tempos estimados
 e o consumo de telemetria bruta pelo painel descritos nas ADRs anteriores.
 Os contratos antigos permanecem disponíveis para testes e leitura de legado.
 
+## Atualização de decisão
+
+Em 06/10/2026, a seleção do motor foi definida na ADR 0014: Spark é o único
+motor distribuído adotado. O consumer Python continua responsável pelas
+projeções online; Spark arquiva eventos e calcula agregados batch.
+
 ## Contexto
 
 O laboratório já publica telemetria e mostra a corrida. Os tempos atuais são
@@ -17,7 +23,7 @@ cronometradas, comparações por piloto/equipe e G derivado de um modelo coerent
 
 1. Separar integração física, publicação de snapshots a 1 Hz real e eventos imediatos de passagem.
 2. Publicar diretamente do simulador ao Kafka, mantendo Avro e Schema Registry. Não adicionar Debezium ao caminho da telemetria.
-3. Introduzir um consumer Python de validação/cronometragem com transformações independentes de Kafka e futuras implementações Flink/Spark.
+3. Introduzir um consumer Python de validação/cronometragem com transformações independentes de Kafka e motor distribuído escolhido em etapa própria.
 4. Consolidar estado, voltas e parciais no backend. Publicar derivados e fornecer snapshot inicial + WebSocket versionado ao painel.
 5. Confirmar offsets após processamento durável; usar deduplicação e outbox PostgreSQL para os derivados. Essa decisão não garante entrega exatamente uma vez do produtor; sua política de falha deve ser explícita.
 6. Versionar a mudança semântica de tempos e relógio numa nova família de contratos/tópicos. Preservar leitura de v3 como legado e fazer o corte entre corridas.
@@ -27,7 +33,7 @@ cronometradas, comparações por piloto/equipe e G derivado de um modelo coerent
 
 - Calcular tudo no navegador: rejeitada para cronometragem, pois perde histórico na reconexão e pode divergir entre clientes.
 - Colocar dados dos carros no PostgreSQL e usar CDC para transportá-los: etapa desnecessária para uma fonte que já produz eventos.
-- Migrar imediatamente para Flink/Spark: adiado até existirem contratos e fixtures de comportamento estáveis.
+- Migrar imediatamente para um motor distribuído: adiado até existirem contratos e fixtures de comportamento estáveis.
 - Apenas adicionar campos ao Avro v3: insuficiente para comunicar a mudança de significado dos tempos existentes.
 
 ## Consequências

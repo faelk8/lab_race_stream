@@ -36,9 +36,10 @@ Inclui domínio, contratos Avro, produtores, consumer de projeções, PostgreSQL
 existente, API/WebSocket, frontend e observabilidade mínima. Preserva controles
 manuais, IDs, grid, estratégias e terceira parada de C.
 
-Não inclui instalar novos motores de streaming nesta entrega, CDC, Kubernetes,
-serviços pagos ou dados externos ao vivo. Flink/Spark continuam alternativas
-futuras, apoiadas nos contratos e fixtures produzidos aqui.
+Não inclui CDC, Kubernetes, serviços pagos ou dados externos ao vivo. Spark é o
+único motor de processamento distribuído escolhido: Structured Streaming arquiva
+eventos Kafka e jobs batch calculam agregados; o consumer Python mantém as
+projeções online.
 
 ## 3. Estado atual verificado no código
 
@@ -309,10 +310,11 @@ penalidades e carga vertical permanecem fora desta entrega, conforme o escopo.
 O modelo ainda conserva o teto de ultrapassagens e pressão de pneus do laboratório.
 Simulações não substituem dados oficiais de pista ou fisiologia do piloto.
 
-Flink, ClickHouse, Iceberg, CDC e retenção automática do histórico operacional
-não foram adicionados nesta fase. Spark agora arquiva telemetria bruta no MinIO;
-agregados Spark continuam pendentes. Testes de caos exaustivos e carga contínua
-ficam para etapa posterior; os testes cobrem os caminhos de recuperação descritos acima.
+ClickHouse, Iceberg, CDC e retenção automática do histórico operacional não
+foram adicionados. Spark arquiva telemetria bruta no MinIO e calcula agregados
+batch de voltas e paridade com o consumer. Testes de caos exaustivos e carga
+contínua ficam para etapa posterior; os testes cobrem os caminhos de recuperação
+descritos acima.
 
 ## 13. Melhoria incremental: validação da pista
 

@@ -10,31 +10,21 @@ The project must demonstrate realistic engineering practices while remaining rep
 
 ## 2. Main Architecture
 
-Expected evolution:
+Arquitetura executada localmente:
 
 ```text
-Race Simulator
-    -> Kafka
-    -> Schema Registry
-    -> Stream Processing Engine
-         -> Apache Flink
-            OR
-         -> Spark Structured Streaming / PySpark
-    -> Kafka derived topics
-    -> FastAPI
-    -> WebSocket
-    -> React dashboard
+Fluxo ao vivo
+Simulador -> Kafka + Schema Registry -> consumer Python -> PostgreSQL
+                                      -> Kafka derivado -> FastAPI/WebSocket -> React
 
-Historical/event data
-    -> ClickHouse
-    -> MinIO/S3
-    -> Apache Iceberg
-
-Operational relational data
-    -> PostgreSQL
-    -> Debezium CDC
-    -> Kafka
+Fluxo histórico e analítico
+Kafka -> Spark Structured Streaming -> Parquet no MinIO -> agregações Spark batch
 ```
+
+Spark é o único motor de processamento distribuído adotado. O consumer Python
+continua responsável pelas projeções online. ClickHouse, Iceberg, Debezium,
+Kubernetes e observabilidade completa são possibilidades futuras, não serviços
+presentes na stack atual.
 
 ## 3. Engineering Principles
 
@@ -88,27 +78,24 @@ The local environment must not require a cloud account.
 - Apache Kafka
 - Schema Registry
 - Avro as default event serialization
-- Protobuf as supported alternative
+- Protobuf como alternativa futura, ainda não implementada
 
-### Stream Processing
+### Processamento de streams
 
-The system must support two alternative engines:
+Apache Spark Structured Streaming/PySpark é o único motor distribuído adotado.
+O consumer Python mantém as projeções online da corrida. Spark arquiva o fluxo
+Kafka e executa agregações batch; compare seus resultados com o consumer.
 
-- Apache Flink
-- Apache Spark Structured Streaming / PySpark
+### Armazenamento de dados
 
-The rest of the architecture must not be tightly coupled to either engine.
+- PostgreSQL: único banco relacional atualmente configurado; guarda metadados e estado operacional.
+- MinIO/S3: armazenamento de objetos atualmente usado para Parquet e checkpoints Spark.
+- ClickHouse: ainda não instalado ou configurado.
+- Apache Iceberg: ainda não instalado ou configurado.
 
-### Data Stores
+### Captura de alterações
 
-- PostgreSQL: operational/configuration metadata
-- ClickHouse: low-latency analytical telemetry queries
-- MinIO/S3: object storage
-- Apache Iceberg: analytical lakehouse tables
-
-### CDC
-
-- Debezium
+- Debezium não está configurado. Os eventos da corrida são publicados diretamente pelo simulador no Kafka.
 
 ### Frontend
 
@@ -216,7 +203,7 @@ Every event schema must be versioned.
 
 Default format: Avro.
 
-Protobuf must remain an alternative supported strategy.
+Protobuf não está implementado. Só deve ser adicionado após decisão documentada sobre contrato, compatibilidade e migração; Avro é o formato atualmente utilizado.
 
 Compatibility mode should initially be backward compatible unless a documented ADR changes that decision.
 
@@ -243,37 +230,19 @@ AvroEventSerializer
 ProtobufEventSerializer
 ```
 
-## 11. Stream Processing Engine Abstraction
+## 11. Processamento com Spark
 
-Flink and Spark are execution engines, not domain dependencies.
+Apache Spark Structured Streaming/PySpark é o único motor distribuído do projeto.
+Ele lê os contratos Kafka existentes e arquiva envelopes em Parquet no MinIO. Jobs
+batch do Spark calculam agregados e os comparam com as projeções do consumer Python.
 
-They must consume compatible input contracts and publish compatible output contracts.
+A projeção da corrida ao vivo continua no consumer Python e PostgreSQL. Cálculos de
+domínio devem permanecer testáveis sem dependência direta das APIs do Spark sempre
+que isso não exigir abstrações desnecessárias.
 
-Core transformations must be specified independently from the implementation engine whenever possible.
-
-Examples:
-
-- lap completion;
-- moving speed averages;
-- fuel consumption metrics;
-- pit stop state transitions;
-- ranking snapshots;
-- race state snapshots;
-- event-time windows;
-- late-event handling.
-
-Create separate implementation directories, for example:
-
-```text
-stream-processing/
-    contracts/
-    flink/
-    spark/
-```
-
-Do not try to create a fake universal API that hides all engine-specific capabilities.
-
-Shared behavior belongs in contracts and tests, not in an over-generalized runtime abstraction.
+Os contratos de eventos ficam em `schemas/` e suas verificações em `tests/`. Os jobs
+Spark ficam em `stream-processing/spark/`. Não introduza outro motor sem atualizar
+o plano e as decisões do projeto.
 
 ## 12. Event Time
 
@@ -287,7 +256,7 @@ Define:
 - replay behavior;
 - duplicate handling.
 
-Engine-specific implementations must document differences between Flink and Spark.
+Documente regras de tempo de evento, tolerância a atraso, watermark, replay e deduplicação para o uso de Spark.
 
 ## 13. CDC
 
@@ -348,7 +317,7 @@ Iceberg:
 - replay and batch analysis;
 - schema evolution;
 - partition evolution;
-- Spark/Flink interoperability.
+- interoperabilidade entre jobs batch e streaming do Spark.
 
 Kafka is not the long-term analytical database.
 
@@ -419,15 +388,11 @@ Important domain calculations requiring unit tests:
 - track progress;
 - race position.
 
-## 19. Stream Engine Parity
+## 19. Paridade entre Spark e consumer
 
-When both Flink and Spark implementations exist, maintain a shared fixture dataset.
-
-The same input fixture should be processed by both implementations.
-
-For transformations intended to be semantically equivalent, compare normalized outputs.
-
-Differences caused by engine semantics must be documented.
+Mantenha fixtures determinísticas para comparar os agregados batch do Spark com
+as análises publicadas pelo consumer Python. Compare saídas normalizadas para as
+mesmas corridas e carros, e documente diferenças semânticas quando existirem.
 
 ## 20. Configuration
 
@@ -515,30 +480,20 @@ ExecPlans must include:
 - decisions;
 - progress.
 
-## 27. Implementation Sequence
+## 27. Etapas atuais e evolução
 
-Preferred sequence:
+Capacidades que já compõem a stack local:
 
-1. simulator domain;
-2. telemetry event contract;
-3. Kafka;
-4. Schema Registry + Avro;
-5. simple consumer;
-6. FastAPI/WebSocket;
-7. frontend track;
-8. stream contracts;
-9. Flink implementation;
-10. Spark Structured Streaming implementation;
-11. PostgreSQL;
-12. Debezium CDC;
-13. ClickHouse;
-14. MinIO/S3;
-15. Iceberg;
-16. observability;
-17. Docker Compose stabilization;
-18. Kubernetes;
-19. CI/CD;
-20. load/resilience testing.
+1. simulador de 20 carros e regras da corrida;
+2. Kafka, Schema Registry e contratos Avro;
+3. consumer Python para validação e projeções online;
+4. FastAPI, WebSocket e dashboard React;
+5. PostgreSQL para estado operacional e resultados;
+6. Spark Structured Streaming e jobs batch com arquivo em MinIO.
+
+As próximas fases dependem de ExecPlan e critérios de validação próprios. ClickHouse,
+Iceberg, CDC quando houver fonte que exija captura de alterações, observabilidade,
+Kubernetes e CI/CD ainda não fazem parte da stack executada localmente.
 
 ## 28. Codex Working Rules
 

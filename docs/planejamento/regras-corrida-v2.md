@@ -174,10 +174,12 @@ Debezium é destinado à captura de alterações em bancos e poderá ser avaliad
 somente se atualizações externas de cadastros precisarem virar eventos. Referência:
 [documentação oficial do Debezium](https://debezium.io/documentation/reference/stable/index.html).
 
-Primeira entrega com consumer Python e transformações testáveis independentes
-de infraestrutura. Flink e Spark ficam como implementações futuras dos mesmos
-contratos. Não instalar ambos nem introduzir ClickHouse/Iceberg/Kubernetes para
-entregar a cronometragem inicial.
+O consumer Python valida eventos e mantém as projeções da corrida ao vivo.
+Spark Structured Streaming arquiva os tópicos no MinIO, e um job Spark batch
+calcula agregados de voltas e compara seus resultados com o consumer. Spark é o
+único motor distribuído adotado; as transformações de domínio permanecem
+testáveis sem dependência direta do runtime. ClickHouse, Iceberg e Kubernetes
+continuam fora da stack local atual.
 
 ### 7.1 Contratos propostos
 
