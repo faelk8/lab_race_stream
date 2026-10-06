@@ -35,7 +35,7 @@ class CarConfigurationRequest(BaseModel):
     car_weight_kg: float = Field(ge=450.0, le=1_000.0)
     driver_weight_kg: float = Field(ge=45.0, le=150.0)
     top_speed_kmh: float = Field(ge=250.0, le=380.0)
-    tire_compound: Literal["soft", "medium", "hard"]
+    tire_compound: Literal["soft", "medium", "hard", "wet"]
     team_id: str = Field(default="TEAM-A-01", min_length=1, max_length=64)
     team_category: Literal["A", "B", "C"] = "A"
     driver_height_m: float = Field(default=1.75, ge=1.60, le=1.90)
@@ -77,6 +77,19 @@ class RaceStartRequest(BaseModel):
     rain_start_lap: int = Field(default=1, ge=1, le=1000)
     rain_intensity: float = Field(default=0.5, ge=0.1, le=1.0)
     incidents: list[IncidentRequest] = Field(default_factory=list, max_length=20)
+
+    @model_validator(mode="after")
+    def validate_rain_window(self) -> "RaceStartRequest":
+        """Exija ao menos uma volta de prova depois do início da chuva.
+
+        :return: Solicitação validada.
+        :raises ValueError: Se a chuva estiver configurada somente para a chegada.
+        """
+        if self.rain_enabled and self.rain_start_lap >= int(
+            os.environ.get("RACE_TARGET_LAPS", str(TARGET_LAPS))
+        ):
+            raise ValueError("A chuva deve começar antes da última volta")
+        return self
 
 
 def create_app(
@@ -196,6 +209,7 @@ def create_app(
         request = request or RaceStartRequest()
         cars = {item.car_id for item in race_repository.list_car_configurations()}
         target_laps = int(os.environ.get("RACE_TARGET_LAPS", str(TARGET_LAPS)))
+        latest_rain_start = target_laps - 1 - 2 * (len(cars) - 1)
         for incident in request.incidents:
             if incident.lap > target_laps or incident.car_id not in cars:
                 raise HTTPException(
@@ -203,8 +217,13 @@ def create_app(
                 )
             if incident.second_car_id not in cars | {""}:
                 raise HTTPException(422, "O incidente referencia um carro desconhecido")
-        if request.rain_enabled and request.rain_start_lap > target_laps:
-            raise HTTPException(422, "A chuva começa depois do fim da corrida")
+        if request.rain_enabled and request.rain_start_lap >= target_laps:
+            raise HTTPException(422, "A chuva deve começar antes da última volta")
+        if request.rain_enabled and request.rain_start_lap > latest_rain_start:
+            raise HTTPException(
+                422,
+                "A chuva começa tarde demais para escalonar a troca de todos os carros",
+            )
         configuration = RaceConfiguration(
             race_id=f"race-{uuid4().hex[:12]}",
             duration_seconds=float(

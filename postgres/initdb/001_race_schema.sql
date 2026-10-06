@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS cars (
     car_weight_kg DOUBLE PRECISION NOT NULL CHECK (car_weight_kg BETWEEN 450 AND 1000),
     driver_weight_kg DOUBLE PRECISION NOT NULL CHECK (driver_weight_kg BETWEEN 45 AND 150),
     top_speed_kmh DOUBLE PRECISION NOT NULL CHECK (top_speed_kmh BETWEEN 250 AND 380),
-    tire_compound TEXT NOT NULL CHECK (tire_compound IN ('soft', 'medium', 'hard')),
+    tire_compound TEXT NOT NULL CHECK (tire_compound IN ('soft', 'medium', 'hard', 'wet')),
     team_id TEXT NOT NULL DEFAULT 'TEAM-A-01',
     team_category TEXT NOT NULL DEFAULT 'A' CHECK (team_category IN ('A', 'B', 'C')),
     driver_height_m DOUBLE PRECISION NOT NULL DEFAULT 1.75 CHECK (driver_height_m BETWEEN 1.60 AND 1.90),

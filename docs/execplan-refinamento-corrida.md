@@ -235,6 +235,21 @@ quando suas fixtures e serviços forem implementados. Os novos testes e evidênc
 Escopo: atualização de apresentação React; sem mudança de contratos Kafka,
 persistência ou simulador. A configuração física de carro continua identificada
 como aplicável à próxima corrida.
+
+### Chuva, pneus de chuva e abastecimento (06/10/2026)
+
+- [x] Intensidade de chuva reduz velocidade/aderência, afetando voltas medidas.
+- [x] Disponibilizar composto de chuva no setup e na telemetria.
+- [x] Escalonar paradas individuais determinísticas de 2 a 6 voltas e rejeitar
+      início de chuva tardio demais para parar todo o grid antes da chegada.
+- [x] Trocar composto, reiniciar idade/pressão e abastecer até o tanque na parada
+      de chuva, incluindo o tempo de serviço pela vazão dos boxes.
+- [x] Atualizar contrato de setup, PostgreSQL, painel e documentação.
+- [x] Aplicar e consultar a migração aditiva no PostgreSQL local.
+- [x] Validar tempos em chuva de intensidade diferente, programação dos 20 carros,
+      serviço de troca/abastecimento e telemetria com pneu de chuva.
+- [x] Reconstruir API, simulador e dashboard; consultar OpenAPI saudável e
+      confirmar que `wet` é aceito. Não iniciar corrida completa.
 - [x] Registrar evidências de validação e medir metas de latência.
 
 ## 11. Evidências de entrega em 04/10/2026

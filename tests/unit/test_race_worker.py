@@ -1,6 +1,7 @@
 """Verificação das transições de controle sem serviços externos."""
 
 import pytest
+from fastapi import HTTPException
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from test_api import FakeRaceRepository, FakeTelemetryHub
@@ -8,7 +9,12 @@ from test_race_service import InMemoryPublisher
 
 from racestream.application.race_worker import RaceWorker
 from racestream.domain.models import RaceConfiguration, RaceResult, RaceSnapshot
-from racestream.interfaces.api import IncidentRequest, RaceStartRequest, create_app
+from racestream.interfaces.api import (
+    CarConfigurationRequest,
+    IncidentRequest,
+    RaceStartRequest,
+    create_app,
+)
 
 
 class ControlledRepository(FakeRaceRepository):
@@ -185,3 +191,26 @@ def test_api_start_persists_weather_and_incident_scenarios() -> None:
     assert repository.configuration.rain_start_lap == 3
     assert repository.configuration.rain_intensity == 0.75
     assert repository.configuration.incidents[0].incident_type == "tire_puncture"
+    with pytest.raises(HTTPException) as error:
+        endpoint(
+            RaceStartRequest(
+                rain_enabled=True,
+                rain_start_lap=58,
+                rain_intensity=0.5,
+            )
+        )
+    assert error.value.status_code == 422
+
+
+def test_api_accepts_wet_tire_and_rejects_rain_on_last_lap() -> None:
+    """O setup aceita composto molhado e a chuva precisa permitir a parada."""
+    setup = CarConfigurationRequest(
+        driver_id="DRV-01",
+        car_weight_kg=830,
+        driver_weight_kg=76,
+        top_speed_kmh=340,
+        tire_compound="wet",
+    )
+    assert setup.tire_compound == "wet"
+    with pytest.raises(ValueError, match="antes da última volta"):
+        RaceStartRequest(rain_enabled=True, rain_start_lap=60)

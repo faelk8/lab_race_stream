@@ -33,7 +33,12 @@ class Track:
     fuel_tanks_per_reference: float
     grid_spacing_m: float
     tire_grip_factors: dict[str, float] = field(
-        default_factory=lambda: {"soft": 1.01, "medium": 1.0, "hard": 0.99}
+        default_factory=lambda: {
+            "soft": 1.01,
+            "medium": 1.0,
+            "hard": 0.99,
+            "wet": 0.98,
+        }
     )
 
     def __post_init__(self) -> None:
@@ -90,12 +95,12 @@ class Track:
                     "Curvas devem ser ordenadas, sem sobreposição e com raio não nulo"
                 )
             previous_end = end
-        if set(self.tire_grip_factors) != {"soft", "medium", "hard"} or not all(
+        if set(self.tire_grip_factors) != {"soft", "medium", "hard", "wet"} or not all(
             self._finite(value) and value > 0
             for value in self.tire_grip_factors.values()
         ):
             raise ValueError(
-                "Informe aderência finita e positiva para os três compostos"
+                "Informe aderência finita e positiva para os quatro compostos"
             )
 
     @staticmethod

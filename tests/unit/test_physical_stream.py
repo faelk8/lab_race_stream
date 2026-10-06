@@ -163,6 +163,104 @@ def test_third_stop_adds_only_remaining_plus_reserve() -> None:
     assert car.fuel == pytest.approx((60 - 55.94 + 1) * track.length_m * per_m)
 
 
+def test_rain_stop_schedule_staggers_every_car_by_two_to_six_laps() -> None:
+    """Agende todos os carros com espaçamento reproduzível na janela de chuva."""
+    race = PhysicalRace(
+        RaceConfiguration(
+            "estrategia-chuva", target_laps=60, rain_enabled=True, rain_start_lap=1
+        ),
+        create_default_car_configurations(),
+        load_track(),
+        seed=71,
+    )
+    schedule = [car.wet_stop_lap for car in race.cars]
+    ordered_stops = sorted(set(schedule))
+    assert len(schedule) == 20
+    assert len(ordered_stops) == 20
+    assert all(lap is not None and 1 <= lap < 60 for lap in schedule)
+    assert all(
+        2 <= right - left <= 6
+        for left, right in zip(ordered_stops, ordered_stops[1:], strict=False)
+    )
+    assert schedule == race._rain_stop_schedule(20, 71)
+    with pytest.raises(ValueError, match="tarde demais"):
+        PhysicalRace(
+            RaceConfiguration(
+                "chuva-tardia", target_laps=60, rain_enabled=True, rain_start_lap=22
+            ),
+            create_default_car_configurations(),
+            load_track(),
+        )
+
+
+def test_rain_intensity_increases_lap_time_with_wet_tires() -> None:
+    """Chuva mais intensa reduz ritmo mesmo com composto de chuva montado."""
+    profile = replace(
+        create_default_car_configurations()[0], tire_compound=type(
+            create_default_car_configurations()[0].tire_compound
+        ).WET
+    )
+
+    def first_lap_time(intensity: float) -> int:
+        race = PhysicalRace(
+            RaceConfiguration(
+                f"chuva-{intensity}",
+                target_laps=2,
+                rain_enabled=True,
+                rain_start_lap=1,
+                rain_intensity=intensity,
+            ),
+            (profile,),
+            load_track(),
+        )
+        for _ in range(120):
+            race.advance(1)
+            if race.cars[0].last_lap is not None:
+                break
+        assert race.cars[0].pit_stops == 0
+        return race.cars[0].last_lap or 0
+
+    assert first_lap_time(1.0) > first_lap_time(0.25)
+
+
+def test_rain_tire_stop_changes_compound_and_refuels() -> None:
+    """A parada escalonada monta pneus de chuva e aproveita para abastecer."""
+    race = PhysicalRace(
+        RaceConfiguration(
+            "troca-pneu-chuva",
+            target_laps=8,
+            rain_enabled=True,
+            rain_start_lap=1,
+            rain_intensity=0.8,
+        ),
+        create_default_car_configurations()[:1],
+        load_track(),
+    )
+    car = race.cars[0]
+    stop_events: list[dict[str, Any]] = []
+    wet_snapshot_seen = False
+    for _ in range(180):
+        race.advance(1)
+        race.snapshot()
+        events = race.drain_events()
+        stop_events.extend(event for event in events if event["kind"] == "pitstop")
+        for event in events:
+            if event["kind"] == "telemetry" and event["tire_compound"] == "wet":
+                validate_event(event)
+                wet_snapshot_seen = True
+        if car.active_tire == "wet":
+            break
+    assert car.active_tire == "wet"
+    assert car.fuel > 100
+    assert wet_snapshot_seen
+    assert any(
+        event.get("phase") == "service_finished"
+        and event.get("tire_compound") == "wet"
+        and event.get("fuel_added_kg", 0) > 0
+        for event in stop_events
+    )
+
+
 class CapturePublisher:
     """Capture eventos publicados sem executar Kafka."""
 

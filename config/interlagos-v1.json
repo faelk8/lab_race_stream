@@ -122,6 +122,7 @@
   "tire_grip_factors": {
     "soft": 1.01,
     "medium": 1.0,
-    "hard": 0.99
+    "hard": 0.99,
+    "wet": 0.98
   }
 }

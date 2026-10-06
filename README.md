@@ -76,6 +76,13 @@ O painel é uma página desktop (largura mínima de 1.100 px). Antes da largada,
 configure chuva (volta inicial e intensidade) e incidentes: furo de pneu agenda
 uma parada emergencial para troca; colisão retira os dois carros envolvidos.
 Os eventos são reproduzíveis e ocorrem na metade da volta selecionada.
+Na chuva, maior intensidade reduz a velocidade e a aderência, aumentando os
+tempos medidos de volta. Os carros trocam para pneus de chuva em paradas
+escalonadas por intervalos de 2 a 6 voltas; abastecem até o tanque junto com a
+troca. Para o grid padrão de 20 carros e 60 voltas, configure a chuva até a volta
+21 para permitir todas as paradas individuais com esse espaçamento. O composto
+montado aparece na telemetria. Escolha
+“Chuva” no setup para iniciar a prova já com esse composto.
 
 ### Links de acesso
 

@@ -1,4 +1,4 @@
-export type TireCompound = "soft" | "medium" | "hard";
+export type TireCompound = "soft" | "medium" | "hard" | "wet";
 
 export interface TrackDefinition {
     map_start_offset: number;

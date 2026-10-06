@@ -53,8 +53,18 @@ def test_invalid_physical_parameter_is_rejected(field: str, value: Any) -> None:
         ({"corners": [[0.1, 0.2, 0]]}, "raio não nulo"),
         ({"corners": [[0.1, 0.3, 50], [0.2, 0.4, -50]]}, "sobreposição"),
         ({"corners": [[0.1, 0.2, float("inf")]]}, "finitos"),
-        ({"tire_grip_factors": {"soft": 1.01}}, "três compostos"),
-        ({"tire_grip_factors": {"soft": 0, "medium": 1, "hard": 0.99}}, "aderência"),
+        ({"tire_grip_factors": {"soft": 1.01}}, "quatro compostos"),
+        (
+            {
+                "tire_grip_factors": {
+                    "soft": 0,
+                    "medium": 1,
+                    "hard": 0.99,
+                    "wet": 0.98,
+                }
+            },
+            "aderência",
+        ),
     ],
 )
 def test_invalid_geometry_and_rules_fail_early(

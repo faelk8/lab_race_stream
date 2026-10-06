@@ -17,6 +17,9 @@ class PhysicalCar:
     configuration: CarConfiguration
     distance: float
     fuel: float
+    active_tire: str = "medium"
+    wet_stop_lap: int | None = None
+    target_tire: str | None = None
     speed: float = 0.0
     position: int = 0
     lap_start: float = 0.0
@@ -77,9 +80,18 @@ class PhysicalRace:
         self.events: list[dict[str, Any]] = []
         if (
             configuration.rain_enabled
-            and configuration.rain_start_lap > configuration.target_laps
+            and configuration.rain_start_lap >= configuration.target_laps
         ):
-            raise ValueError("A chuva deve começar antes do fim da corrida")
+            raise ValueError("A chuva deve começar antes da última volta")
+        last_rain_stop_lap = configuration.target_laps - 1
+        latest_start_lap = last_rain_stop_lap - 2 * (len(profiles) - 1)
+        if (
+            configuration.rain_enabled
+            and configuration.rain_start_lap > latest_start_lap
+        ):
+            raise ValueError(
+                "A chuva começa tarde demais para escalonar a troca de todos os carros"
+            )
         car_ids = {profile.car_id for profile in profiles}
         for incident in configuration.incidents:
             if incident.lap > configuration.target_laps:
@@ -88,11 +100,14 @@ class PhysicalRace:
                 incident.second_car_id and incident.second_car_id not in car_ids
             ):
                 raise ValueError("O incidente referencia um carro inexistente")
+        rain_stop_laps = self._rain_stop_schedule(len(profiles), seed)
         self.cars = [
             PhysicalCar(
                 p,
                 -i * track.grid_spacing_m,
                 track.tank_capacity_kg * (1.0 if p.strategy == "A" else 0.5),
+                active_tire=p.tire_compound.value,
+                wet_stop_lap=rain_stop_laps[i],
                 position=i + 1,
                 pace=Random(seed + i).uniform(0.97, 1.0),
             )
@@ -107,6 +122,43 @@ class PhysicalRace:
                 "track": asdict(track),
             },
         )
+
+    def _rain_stop_schedule(self, car_count: int, seed: int) -> list[int | None]:
+        """Distribua paradas por pneus de chuva em intervalos de duas a seis voltas.
+
+        :param car_count: Quantidade de carros inscritos.
+        :param seed: Semente determinística da corrida.
+        :return: Volta-alvo por carro, na ordem dos perfis recebidos.
+        """
+        if not self.configuration.rain_enabled:
+            return [None] * car_count
+        first_lap = self.configuration.rain_start_lap
+        last_lap = self.configuration.target_laps - 1
+        slot_count = car_count
+        laps = [first_lap]
+        rng = Random(seed ^ 0x5A17)
+        while len(laps) < slot_count:
+            laps.append(laps[-1] + rng.randint(2, 6))
+        while laps[-1] > last_lap:
+            candidates = [
+                index
+                for index in range(1, len(laps))
+                if laps[index] - laps[index - 1] > 2
+            ]
+            if not candidates:
+                laps = [first_lap + 2 * index for index in range(slot_count)]
+                break
+            index = candidates[-1]
+            for later in range(index, len(laps)):
+                laps[later] -= 1
+        if laps[-1] > last_lap:
+            laps = [first_lap + 2 * index for index in range(slot_count)]
+        order = list(range(car_count))
+        rng.shuffle(order)
+        schedule: list[int | None] = [None] * car_count
+        for index, car_index in enumerate(order):
+            schedule[car_index] = laps[index]
+        return schedule
 
     def _emit(
         self,
@@ -184,6 +236,9 @@ class PhysicalRace:
             car.pit_remaining -= dt
             if car.pit_remaining <= 0:
                 car.fuel = min(track.tank_capacity_kg, car.fuel + car.pit_added)
+                if car.target_tire is not None:
+                    car.active_tire = car.target_tire
+                    car.target_tire = None
                 if car.pit_stops == 1 or car.tire_change_pending:
                     car.tire_age, car.pressure = 0.0, 38.0
                     car.tire_change_pending = False
@@ -194,6 +249,7 @@ class PhysicalRace:
                         "phase": "service_finished",
                         "stop_number": car.pit_stops,
                         "fuel_added_kg": car.pit_added,
+                        "tire_compound": car.active_tire,
                     },
                     car,
                 )
@@ -229,15 +285,28 @@ class PhysicalRace:
             >= self.configuration.rain_start_lap
         )
         rain_factor = self.configuration.rain_intensity if rain_active else 0.0
+        current_lap = floor(previous / track.length_m) + 1
+        if (
+            rain_active
+            and car.wet_stop_lap is not None
+            and current_lap >= car.wet_stop_lap
+            and car.active_tire != "wet"
+        ):
+            car.tire_change_pending = True
+            car.target_tire = "wet"
+            car.pit_requested = True
         top = (
-            car.configuration.top_speed_kmh / 3.6 * car.pace * (1 - 0.12 * rain_factor)
+            car.configuration.top_speed_kmh
+            / 3.6
+            * car.pace
+            * (1 - (0.05 if car.active_tire == "wet" else 0.12) * rain_factor)
         )
         top /= 1 + (car.fuel + car.configuration.driver_weight_kg - 56) * 0.00008
         target = track.speed_limit(
             progress,
             top,
-            track.tire_grip_factors[car.configuration.tire_compound.value]
-            * (1 - 0.25 * rain_factor),
+            track.tire_grip_factors[car.active_tire]
+            * (1 - (0.07 if car.active_tire == "wet" else 0.25) * rain_factor),
         )
         if car.pit_status == "pit_lane":
             target = min(target, track.pit_speed_kmh / 3.6)
@@ -410,7 +479,11 @@ class PhysicalRace:
         strategy = car.configuration.strategy
         target = self.track.tank_capacity_kg
         if car.tire_change_pending:
-            target = car.fuel
+            target = (
+                self.track.tank_capacity_kg
+                if car.target_tire == "wet"
+                else car.fuel
+            )
         if not car.tire_change_pending and strategy == "B" and car.pit_stops == 2:
             target = remaining
         if not car.tire_change_pending and strategy == "C":
@@ -429,6 +502,7 @@ class PhysicalRace:
                 "phase": "service_started",
                 "stop_number": car.pit_stops,
                 "fuel_added_kg": car.pit_added,
+                "tire_compound": car.target_tire or car.active_tire,
             },
             car,
         )
@@ -537,7 +611,7 @@ class PhysicalRace:
                     "rpm": 1000 + round(car.speed * 3.6 % 42 / 42 * 5000),
                     "throttle": car.throttle,
                     "brake": car.brake,
-                    "tire_compound": c.tire_compound.value,
+                    "tire_compound": car.active_tire,
                     "tire_age_laps": floor(car.tire_age),
                     "tire_pressure_psi": car.pressure,
                     "pit_status": car.pit_status,
@@ -611,7 +685,7 @@ class PhysicalRace:
                 c.configuration.car_weight_kg,
                 c.configuration.driver_weight_kg,
                 c.configuration.top_speed_kmh,
-                c.configuration.tire_compound,
+                type(c.configuration.tire_compound)(c.active_tire),
             )
             for c in sorted(self.cars, key=lambda car: car.position)
         )

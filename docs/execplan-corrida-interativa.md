@@ -11,9 +11,10 @@ no Spark com os resumos produzidos pelo consumer online.
 ## 2. Escopo
 
 Inclui API, PostgreSQL, simulador, painel desktop, Spark e documentação. Chuva
-reduz aderência e velocidade; furo de pneu agenda troca emergencial; colisão
-programada retira os carros envolvidos. Penalidades e neutralização ficam como
-etapas seguintes. A prova segue local e reproduzível.
+reduz aderência e velocidade conforme intensidade; todos os carros recebem uma
+parada escalonada para montar pneus de chuva e abastecer. Furo de pneu agenda
+troca emergencial; colisão programada retira os carros envolvidos. Penalidades
+e neutralização ficam como etapas seguintes. A prova segue local e reproduzível.
 
 ## 3. Estado atual
 
@@ -34,7 +35,11 @@ Kafka -> Spark -> Parquet no MinIO -> agregados por carro/volta -> comparação
 
 - Cenários são JSON persistido junto à corrida e copiado para a configuração do
   worker ao reservar a largada.
-- Chuva: ativa/desativa, volta inicial e intensidade entre 0,1 e 1.
+- Chuva: ativa/desativa, volta inicial e intensidade entre 0,1 e 1; a maior
+  intensidade aumenta os tempos medidos de volta.
+- Pneus de chuva: parada individual escalonada a cada 2–6 voltas; chuva iniciada
+  tarde demais é rejeitada para preservar espaço até a chegada. Tanque completado
+  durante o serviço e composto montado publicado na telemetria.
 - Incidentes: tipo, volta, carro principal e segundo carro opcional para colisão.
 - Agregado Spark: corrida/carro, quantidade de voltas válidas, melhor, pior e
   média; paridade compara quantidade, melhor e pior com `race.analytics.v1`.
@@ -52,6 +57,8 @@ Kafka -> Spark -> Parquet no MinIO -> agregados por carro/volta -> comparação
 ## 7. Testes e validação
 
 - Testes unitários determinísticos de chuva, furo e colisão.
+- Comparação do tempo de volta com intensidades diferentes e teste curto de
+  troca para pneu de chuva com abastecimento.
 - Teste API dos cenários e persistência/recuperação quando PostgreSQL local estiver
   disponível.
 - Verificação de sintaxe Spark e execução sobre arquivo Kafka real.
@@ -71,6 +78,9 @@ Kafka -> Spark -> Parquet no MinIO -> agregados por carro/volta -> comparação
 - Configuração de incidentes é explícita e reproduzível, sem aleatoriedade oculta.
 - Colisão programada gera abandono dos dois carros no ponto configurado.
 - Pneu furado força uma visita aos boxes e reinicia idade/pressão dos pneus.
+- Pneus de chuva são montados em paradas distribuídas deterministicamente; a
+  API rejeita início tardio que não permita manter cada parada a 2–6 voltas da
+  anterior e da chegada; com 20 carros e 60 voltas, chuva inicia até a volta 21.
 - O layout permanece página desktop; larguras menores podem exigir rolagem.
 
 ## 10. Progresso

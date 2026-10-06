@@ -8,7 +8,7 @@ COPY pyproject.toml ./
 COPY src ./src
 COPY schemas ./schemas
 COPY config ./config
-COPY postgres/initdb/002_corrida_rules.sql postgres/initdb/003_driver_identity.sql postgres/initdb/004_race_control.sql postgres/initdb/005_stream_projections.sql postgres/initdb/006_race_scenarios.sql ./postgres/initdb/
+COPY postgres/initdb/002_corrida_rules.sql postgres/initdb/003_driver_identity.sql postgres/initdb/004_race_control.sql postgres/initdb/005_stream_projections.sql postgres/initdb/006_race_scenarios.sql postgres/initdb/007_pneu_chuva.sql ./postgres/initdb/
 RUN pip install --no-cache-dir .
 
 CMD ["python", "-m", "racestream.interfaces.producer"]

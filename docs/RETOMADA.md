@@ -21,12 +21,28 @@ nenhuma corrida foi iniciada para esta alteração.
 
 ## Trabalho atual
 
+**Chuva e troca gradual para pneus molhados (06/10/2026):** intensidade agora
+reduz velocidade máxima e aderência dos pneus secos (e afeta também o ritmo com
+pneu de chuva), aumentando o tempo físico medido por volta. O setup aceita
+composto `wet`. Com chuva, todos os carros recebem paradas reproduzíveis para
+trocar para esse composto e completar o tanque, com intervalo de 2 a 6 voltas.
+No grid padrão de 20 carros e 60 voltas, a chuva precisa começar até a volta 21;
+a API e o simulador rejeitam início tardio que impeça as paradas individuais.
+Telemetria e resultado carregam o composto montado. A migração 007
+foi aplicada ao PostgreSQL local. Testes curtos confirmaram sequência, aumento do
+tempo de volta com maior intensidade, troca, abastecimento e telemetria molhada.
+Serviços API, simulador e dashboard foram reconstruídos; a API saudável publica
+`wet` entre os compostos aceitos. Não iniciei corrida completa.
+
 **Melhorias entregues em 06/10/2026:** o painel mantém página de desktop, com
 largura mínima de 1.100 px. Antes da largada, permite configurar chuva (volta de
 início e intensidade), furos de pneu e colisões por carro e volta. A chuva reduz
-aderência e velocidade; o furo agenda parada emergencial apenas para troca de
-pneus; a colisão programada retira os dois carros na metade da volta escolhida.
-Os cenários ficam em PostgreSQL e acompanham a configuração reservada pelo worker.
+aderência e velocidade; os carros trocam pneus de chuva em paradas escalonadas
+de 2 a 6 voltas e aproveitam para completar o tanque. A intensidade afeta o tempo
+medido das voltas e a telemetria identifica o composto montado. O furo agenda
+parada emergencial apenas para troca de pneus; a colisão programada retira os dois
+carros na metade da volta escolhida. Os cenários ficam em PostgreSQL e acompanham
+a configuração reservada pelo worker.
 
 O job `stream-processing/spark/agregar_voltas.py` gera agregados de voltas
 válidas e compara quantidade, melhor e pior volta com o último analytics do

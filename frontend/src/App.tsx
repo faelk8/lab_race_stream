@@ -43,7 +43,7 @@ function formatLapTime(milliseconds: number | null | undefined): string {
 }
 
 function tireLabel(compound: TireCompound): string {
-    return { soft: "MACIO", medium: "MÉDIO", hard: "DURO" }[compound];
+    return { soft: "MACIO", medium: "MÉDIO", hard: "DURO", wet: "CHUVA" }[compound];
 }
 
 export function App() {
@@ -260,11 +260,11 @@ export function App() {
                     Condições atuais: {race.rain_enabled ? `chuva ${race.rain_intensity >= 0.75 ? "forte" : race.rain_intensity <= 0.25 ? "leve" : "moderada"} a partir da volta ${race.rain_start_lap}` : "pista seca"} · {race.incidents.length} incidente(s) programado(s)
                 </p>}
                 {!activeRace && <section className="race-scenario-panel" aria-label="Configuração de clima e incidentes">
-                    <div className="scenario-heading"><div><p className="eyebrow">PRÓXIMA LARGADA</p><h2>CONFIGURAR A CORRIDA</h2></div><span>Os eventos são determinísticos e acontecem na volta escolhida.</span></div>
+                    <div className="scenario-heading"><div><p className="eyebrow">PRÓXIMA LARGADA</p><h2>CONFIGURAR A CORRIDA</h2></div><span>A chuva reduz velocidade e aderência. Todos os carros fazem uma parada individual, espaçada por 2 a 6 voltas, para pneus e combustível.</span></div>
                     <div className="scenario-weather">
                         <label className="scenario-toggle"><input type="checkbox" checked={raceSetup.rain_enabled} onChange={(event) => setRaceSetup((current) => ({ ...current, rain_enabled: event.target.checked }))} /> Chuva durante a prova</label>
                         {raceSetup.rain_enabled && <>
-                            <label>Começa na volta <input type="number" min="1" max={race?.target_laps ?? 60} value={raceSetup.rain_start_lap} onChange={(event) => setRaceSetup((current) => ({ ...current, rain_start_lap: Number(event.target.value) }))} /></label>
+                            <label>Começa na volta <input type="number" min="1" max={Math.max(1, (race?.target_laps ?? 60) - 1 - 2 * (cars.length - 1))} value={raceSetup.rain_start_lap} onChange={(event) => setRaceSetup((current) => ({ ...current, rain_start_lap: Number(event.target.value) }))} /></label>
                             <label>Intensidade <select value={raceSetup.rain_intensity} onChange={(event) => setRaceSetup((current) => ({ ...current, rain_intensity: Number(event.target.value) }))}><option value="0.25">Leve</option><option value="0.5">Moderada</option><option value="1">Forte</option></select></label>
                         </>}
                     </div>
@@ -439,11 +439,11 @@ export function App() {
                             </div>
                             <fieldset className="tire-selector">
                                 <legend>COMPOSTO DE PNEU</legend>
-                                {(["soft", "medium", "hard"] as const).map((compound) => (
+                                {(["soft", "medium", "hard", "wet"] as const).map((compound) => (
                                     <label className={`tire-option tire-${compound}${draft?.tire_compound === compound ? " active" : ""}`} key={compound}>
                                         <input type="radio" name="tire" value={compound} checked={draft?.tire_compound === compound} onChange={() => setDraft((current) => current ? { ...current, tire_compound: compound } : current)} />
                                         <span>{tireLabel(compound)}</span>
-                                        <small>{compound === "soft" ? "ADERÊNCIA +1%" : compound === "hard" ? "ADERÊNCIA −1%" : "BASE"}</small>
+                                        <small>{compound === "soft" ? "ADERÊNCIA +1%" : compound === "hard" ? "ADERÊNCIA −1%" : compound === "wet" ? "PISTA MOLHADA" : "BASE"}</small>
                                     </label>
                                 ))}
                             </fieldset>

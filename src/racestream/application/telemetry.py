@@ -34,7 +34,7 @@ class TelemetryPayload(BaseModel):
     race_position: int = Field(ge=1)
     throttle: float = Field(ge=0.0, le=1.0)
     brake: float = Field(ge=0.0, le=1.0)
-    tire_compound: Literal["soft", "medium", "hard"]
+    tire_compound: Literal["soft", "medium", "hard", "wet"]
     tire_age_laps: int = Field(ge=0)
     pit_status: Literal["on_track", "pit_lane", "in_pit", "out_of_fuel", "tire_burst"]
     driving_phase: Literal["straight", "braking", "corner"]

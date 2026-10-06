@@ -8,6 +8,7 @@ TIRE_LAP_DELTA_MS = {
     "soft": -250,
     "medium": 0,
     "hard": 300,
+    "wet": 0,
 }
 
 
@@ -17,6 +18,7 @@ class TireCompound(StrEnum):
     SOFT = "soft"
     MEDIUM = "medium"
     HARD = "hard"
+    WET = "wet"
 
 
 @dataclass(frozen=True)
