@@ -19,7 +19,8 @@ verificação do broker local.
 - [x] Validar configuração, contratos, frontend e tópicos locais: 24 testes
   unitários relacionados e Ruff aprovados; build do painel e `docker compose
   config --quiet` aprovados; broker e endpoint `/api/streaming` confirmaram os
-  dez aliases. Serviços atualizados depois do término da corrida ativa.
+  dez aliases. Os dez links diretos do Redpanda Console retornaram HTTP 200.
+  Serviços atualizados depois do término da corrida ativa.
 
 ## 1. Objetivo
 

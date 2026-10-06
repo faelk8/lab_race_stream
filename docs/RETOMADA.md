@@ -16,8 +16,14 @@ preservados para consulta histórica. Broker, Schema Registry, API, consumer,
 simulador, painel e Spark foram atualizados; Spark usa o checkpoint v2, mantendo
 os arquivos anteriores. Testes unitários pertinentes, Ruff, build do painel e
 Compose aprovados. A API lista os aliases e o broker contém os dez novos tópicos.
+Os links individuais dos dez tópicos no Redpanda Console responderam HTTP 200.
 Não foi iniciada uma nova corrida para validar esta alteração; uma corrida já
 ativa terminou antes da atualização dos serviços.
+
+O serviço de sincronização do Jota concluiu com `Result=success` e
+`ExecMainStatus=0`. A leitura e a gravação da preferência de idioma no PostgreSQL
+do Jota continuam indisponíveis (`OperationalError`); nenhuma preferência foi
+declarada como persistida.
 
 ## Melhoria do painel em andamento
 
