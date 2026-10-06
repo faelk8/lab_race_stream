@@ -14,7 +14,8 @@ Construir uma plataforma orientada a eventos capaz de:
 - expor estado em tempo real via FastAPI + WebSocket;
 - mostrar carros em movimento em uma pista no frontend;
 - persistir histórico analítico em ClickHouse;
-- manter dados brutos e curados em MinIO/S3 usando Apache Iceberg;
+- arquivar telemetria bruta em Parquet no MinIO/S3;
+- preparar dados curados em Apache Iceberg em uma etapa futura;
 - suportar CDC com Debezium;
 - executar inicialmente com Docker Compose e depois Kubernetes;
 - aplicar observabilidade com OpenTelemetry, Prometheus e Grafana;
@@ -56,6 +57,8 @@ Kafka race.state / analytics / events
 
 ## Executar a corrida
 
+Plano da integração analítica: [Spark, PostgreSQL e MinIO](docs/execplan-spark-postgresql-minio.md); decisão arquitetural em [ADR 0011](docs/adr/0011-spark-postgresql-minio.md).
+
 Pré-requisitos: Docker com Compose. A instalação Python local é necessária apenas para executar testes e ferramentas de desenvolvimento.
 
 ```bash
@@ -64,7 +67,7 @@ python3 -m venv .venv
 docker compose up --build
 ```
 
-O Compose inicia PostgreSQL, Kafka, Schema Registry, Redpanda Console, API, dashboard, simulador e consumer. O simulador aguarda o botão **Iniciar corrida** no painel. A prova termina pela passagem na chegada após 60 voltas do líder; os demais encerram na passagem seguinte. A física usa passos de 20 ms, com reprodução acelerada em 45 vezes por padrão. Cada carro publica um snapshot Avro por segundo real, além dos eventos de passagem. A duração real depende do ritmo e dos boxes; não há encerramento artificial aos 120 segundos.
+O Compose inicia PostgreSQL, Kafka, Schema Registry, Redpanda Console, MinIO, Spark, API, dashboard, simulador e consumer. O simulador aguarda o botão **Iniciar corrida** no painel. A prova termina pela passagem na chegada após 60 voltas do líder; os demais encerram na passagem seguinte. A física usa passos de 20 ms, com reprodução acelerada em 45 vezes por padrão. Cada carro publica um snapshot Avro por segundo real, além dos eventos de passagem. A duração real depende do ritmo e dos boxes; não há encerramento artificial aos 120 segundos.
 
 ### Links de acesso
 
@@ -76,6 +79,7 @@ Abra os links abaixo no navegador da máquina onde o Docker Compose está execut
 | Redpanda Console | [Acessar o Kafka](http://localhost:8080) | Consultar tópicos, mensagens, partições, grupos de consumidores e schemas. |
 | Documentação da API | [Abrir a documentação OpenAPI](http://localhost:8000/docs) | Consultar e testar os endpoints da API. |
 | Schema Registry | [Listar os schemas registrados](http://localhost:8081/subjects) | Consultar os contratos Avro registrados. |
+| Console MinIO | [Ver o arquivo da corrida](http://localhost:19001) | Inspecionar o bucket `racestream` (credenciais locais definidas por `MINIO_ROOT_USER` e `MINIO_ROOT_PASSWORD`). |
 
 No Redpanda Console, abra a seção **Topics**, selecione `race.telemetry.raw.v4` e
 acesse **Messages** para inspecionar a telemetria dos carros. Para acompanhar a
@@ -93,7 +97,21 @@ A configuração do Console segue a
 [documentação oficial do Redpanda](https://docs.redpanda.com/streaming/current/console/config/configure-console/).
 
 
-PostgreSQL fica somente na rede interna do Compose para não conflitar com bancos já instalados no host. A API e o runner salvam configurações, corridas e resultados. O consumer mantém passagens, voltas, projeções e uma outbox operacional; a telemetria bruta permanece no Kafka.
+PostgreSQL fica somente na rede interna do Compose para não conflitar com bancos já instalados no host. A API e o runner salvam configurações, corridas e resultados. O consumer mantém passagens, voltas, projeções e uma outbox operacional. O Spark Structured Streaming arquiva em Parquet no MinIO os envelopes Avro originais recebidos do Kafka, com tópico, partição, offset, chave, cabeçalhos e horário. O checkpoint do Spark também fica no MinIO para retomar após reinício. Spark usa inicialmente os offsets ainda retidos no Kafka, processa até 1.000 eventos por micro-lote de 30 segundos e pode ser pausado com `docker compose stop spark-archive`.
+
+O arquivo analítico usa o bucket `racestream`, nos caminhos `telemetry_raw/` e
+`_checkpoints/spark_kafka_archive_v1/`. O checkpoint preserva offsets entre
+reinícios. Para acompanhar o processador:
+
+```bash
+docker compose logs -f spark-archive
+```
+
+MinIO está publicado apenas em `localhost:19000` (S3) e `localhost:19001`
+(Console). As credenciais locais padrão são `racestream` e
+`racestream-local-only`; substitua por `MINIO_ROOT_USER` e
+`MINIO_ROOT_PASSWORD` no ambiente local. PostgreSQL mantém estado operacional,
+configurações, resultados e projeções. MinIO mantém telemetria histórica bruta.
 
 Para acompanhar apenas o consumer em outro terminal:
 
@@ -101,7 +119,7 @@ Para acompanhar apenas o consumer em outro terminal:
 docker compose logs -f consumer
 ```
 
-O Schema Registry fica disponível em `http://localhost:8081`; o Kafka para clientes locais em `localhost:9092`. Os tópicos usam seis partições. Fatos de um carro usam `car_id`; controle, estado e análises agregadas usam `race_id`.
+O Schema Registry fica disponível em `http://localhost:8081`; o Kafka para clientes locais em `localhost:9092`. Os tópicos usam seis partições. Fatos de um carro usam `car_id`; controle, estado e análises agregadas usam `race_id`. O Spark lê os tópicos versionados e mantém os envelopes Kafka originais em Parquet no MinIO.
 
 Para validar o código:
 
@@ -115,7 +133,7 @@ npm --prefix frontend ci
 npm --prefix frontend run build
 ```
 
-O teste Kafka requer os serviços ativos. Encerre com `Ctrl+C` no terminal do Compose ou execute `docker compose down`; os dados de Kafka e PostgreSQL são mantidos nos volumes. `docker compose down -v` remove esses dados.
+O teste Kafka requer os serviços ativos. Encerre com `Ctrl+C` no terminal do Compose ou execute `docker compose down`; os dados de Kafka, PostgreSQL e MinIO são mantidos nos volumes. `docker compose down -v` remove esses dados. O primeiro build do MinIO compila as versões fonte fixadas pelo projeto; o Spark baixa seus conectores Kafka e S3A no primeiro início.
 
 ## Simulação e setup
 
@@ -127,7 +145,7 @@ O simulador reduz velocidade e marcha ao se aproximar das zonas de curva, manté
 
 Caches locais do Brave/JetBrains e artefatos `frontend/node_modules`/`frontend/dist` são ignorados pelo Git.
 
-Flink, Spark, ClickHouse, Iceberg, CDC e Kubernetes continuam fora desta fase.
+Spark já arquiva o fluxo bruto no MinIO. Flink, Iceberg, ClickHouse, CDC e Kubernetes continuam em etapas futuras.
 
 ### Regras atualizadas de corrida
 

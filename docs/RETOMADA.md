@@ -15,9 +15,19 @@ PostgreSQL aprovados. Um trecho de dois carros comprovou limite, duração,
 troca de pneus e perda de posição; não foi iniciada nova corrida pelo painel.
 API, simulador e consumidor foram reconstruídos; dependências estão saudáveis.
 
-Próxima retomada: consultar o plano antes de escolher outra melhoria. Ainda cabe
-refinar a desaceleração até a vaga de serviço, hoje representada por parada
-discreta; esse instante não é apresentado como uma medida válida de impacto.
+Também foi entregue a primeira etapa de Spark/PostgreSQL/MinIO: Spark 4.0.1
+arquiva envelopes Kafka em Parquet no bucket `racestream`; PostgreSQL mantém
+configurações, estado, resultados e projeções. A leitura de validação encontrou 7.960 registros em 8 tópicos, sem offsets
+duplicados; a contagem cresce enquanto chegam eventos. O reinício reutilizou
+o checkpoint S3A.
+O MinIO local usa as portas 19000 (S3) e 19001 (Console), pois a porta 9000 já
+estava ocupada. MinIO Community foi compilado das tags fonte fixadas devido à
+retirada das imagens públicas.
+
+Próximos incrementos: transformar o arquivo em tabelas analíticas refinadas,
+comparar agregados Spark com as projeções do consumer atual e depois tratar
+realismo adicional (desaceleração contínua até a vaga, bandeiras/neutralização,
+chuva e penalidades). Consulte o ExecPlan específico antes de continuar.
 Há uma alteração preexistente em `.env.example`; não sobrescrever nem incluir
 em commit sem verificar sua origem.
 
@@ -30,6 +40,8 @@ sobre o Jota local, consultar os modelos instalados antes de alterar sua configu
 ## Onde consultar
 
 - [Plano e histórico de melhorias](execplan-refinamento-corrida.md).
+- [ExecPlan Spark, PostgreSQL e MinIO](execplan-spark-postgresql-minio.md).
+- [ADR 0011 de persistência e Spark](adr/0011-spark-postgresql-minio.md).
 - [Decisões técnicas e limites](adr/0010-cronometragem-e-projecoes-de-corrida.md).
 - [Contexto compartilhado com Jota](jota-contexto.md).
 - [Evidências anteriores](validation/refinamento-v4.json).

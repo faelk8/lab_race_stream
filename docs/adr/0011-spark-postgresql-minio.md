@@ -27,8 +27,9 @@ até haver provas de paridade para uma eventual substituição.
 - Dados de cadastro e estado transacional não são duplicados no objeto Parquet.
 - Spark aumenta consumo de memória; o perfil local limita paralelismo e permite
   desligar a ingestão quando não for necessária.
-- MinIO Community foi arquivado em 2026; a integração usa API S3 para permitir
-  substituição futura sem alterar contratos de evento.
+- MinIO Community foi arquivado em 2026 e as imagens/binários públicos foram
+  removidos. A imagem local compila tags fonte fixadas, sob AGPLv3. A integração usa API S3
+  para permitir substituição futura sem alterar contratos de evento.
 - Iceberg e tabelas refinadas ficam para etapa própria após validação do arquivo.
 
 ## Alternativas consideradas

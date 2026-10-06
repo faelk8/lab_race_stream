@@ -14,6 +14,45 @@ services:
       timeout: 5s
       retries: 12
 
+  minio:
+    build:
+      context: ./integrations/minio
+      args:
+        RELEASE: RELEASE.2025-10-15T17-29-55Z
+    ports:
+      - "127.0.0.1:19000:9000"
+      - "127.0.0.1:19001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-racestream}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-racestream-local-only}
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9000/minio/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  minio-init:
+    build:
+      context: ./integrations/minio
+      args:
+        RELEASE: RELEASE.2025-10-15T17-29-55Z
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD";
+        until mc mb --ignore-existing local/$$MINIO_BUCKET; do sleep 2; done
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-racestream}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-racestream-local-only}
+      MINIO_BUCKET: ${MINIO_BUCKET:-racestream}
+      MC_CONFIG_DIR: /tmp/mc-config
+    restart: "no"
+
   kafka:
     image: confluentinc/cp-kafka:7.7.1
     hostname: kafka
@@ -163,6 +202,46 @@ services:
       VITE_KAFKA_CONSOLE_URL: ${VITE_KAFKA_CONSOLE_URL:-http://localhost:8080}
     restart: unless-stopped
 
+  spark-archive:
+    image: apache/spark:4.0.1-python3
+    entrypoint: ["/opt/spark/bin/spark-submit"]
+    command:
+      - --master
+      - local[1]
+      - --driver-memory
+      - 512m
+      - --conf
+      - spark.sql.shuffle.partitions=2
+      - --conf
+      - spark.jars.ivy=/opt/spark/work-dir/.ivy2
+      - --packages
+      - org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.1,org.apache.hadoop:hadoop-aws:3.4.1
+      - /opt/racestream/arquivo_telemetria.py
+    depends_on:
+      kafka:
+        condition: service_healthy
+      topic-init:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_BUCKET: ${MINIO_BUCKET:-racestream}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-racestream}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-racestream-local-only}
+      SPARK_STARTING_OFFSETS: ${SPARK_STARTING_OFFSETS:-earliest}
+      SPARK_MAX_OFFSETS_PER_TRIGGER: ${SPARK_MAX_OFFSETS_PER_TRIGGER:-1000}
+      SPARK_TRIGGER_INTERVAL: ${SPARK_TRIGGER_INTERVAL:-30 seconds}
+      SPARK_LOG_LEVEL: WARN
+      HOME: /tmp
+    volumes:
+      - ./stream-processing/spark:/opt/racestream:ro
+      - spark-work:/opt/spark/work-dir
+    mem_limit: 1200m
+    cpus: 1.0
+    restart: unless-stopped
+
   consumer:
     build: .
     command: ["python", "-m", "racestream.interfaces.stream_processor"]
@@ -185,3 +264,5 @@ services:
 volumes:
   kafka-data:
   postgres-data:
+  minio-data:
+  spark-work:

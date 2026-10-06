@@ -82,12 +82,29 @@ local; endpoint S3 e caminho de checkpoint também são configuráveis.
 - Micro-lotes pequenos podem gerar arquivos pequenos; trigger configurável e
   compactação analítica ficam para fase seguinte.
 - Spark consome mais RAM que o consumer atual; serviço terá execução local e
-  limites reduzidos, além de poder ser desativado por perfil Compose.
-- MinIO Community teve seu repositório arquivado em 2026. Fixar uma versão
-  disponível e registrar a limitação; manter o endpoint S3 como fronteira facilita
-  troca futura por outro armazenamento compatível.
+  limites reduzidos, podendo ser pausado com `docker compose stop spark-archive`.
+- MinIO Community teve seu repositório arquivado em 2026. A imagem local compila
+  tags fonte fixadas; manter o endpoint S3 como fronteira facilita troca futura.
+- O uso e redistribuição do MinIO seguem a licença AGPLv3 e exigem avaliação
+  apropriada para distribuição fora deste laboratório local.
 
-## 9. Decisões
+## 9. Comandos de validação
+
+```bash
+docker compose config --quiet
+.venv/bin/ruff check src tests stream-processing/spark
+.venv/bin/mypy src tests
+# Execute com Kafka e MinIO ativos; pausa o arquivador para respeitar o limite de memória.
+docker compose stop spark-archive
+docker compose run --rm --no-deps spark-archive --master 'local[1]' --driver-memory 512m --conf spark.jars.ivy=/opt/spark/work-dir/.ivy2 --packages org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.1,org.apache.hadoop:hadoop-aws:3.4.1 /opt/racestream/validar_arquivo.py
+docker compose up -d spark-archive
+```
+
+- O fluxo Kafka conserva eventos por sete dias. Se Spark ficar parado além dessa
+  retenção, o checkpoint antigo poderá referir offsets removidos; `failOnDataLoss`
+  encerra a consulta para exigir recuperação explícita, em vez de esconder a lacuna.
+
+## 10. Decisões
 
 - PostgreSQL não receberá cada amostra de alta frequência; armazena estado
   operacional e resultados. MinIO guarda o fluxo bruto completo.
@@ -95,14 +112,27 @@ local; endpoint S3 e caminho de checkpoint também são configuráveis.
   sem impor o Schema Registry aos consumidores analíticos já no primeiro passo.
 - O Spark roda ao lado do consumer atual; substituir a projeção exige testes de
   paridade, replay e recuperação próprios.
-- Versão inicial de Spark: 4.0.1, com conector Kafka 4.0.1 e S3A alinhado ao
-  Hadoop da imagem; confirmar dependências na construção da imagem.
+- Versão inicial de Spark: 4.0.1, com conector Kafka 4.0.1 e S3A 3.4.1,
+  confirmados com a imagem oficial `apache/spark:4.0.1-python3`.
+- MinIO compilado das tags upstream `RELEASE.2025-10-15T17-29-55Z` e
+  `RELEASE.2025-08-13T08-35-41Z` para o cliente `mc`, pois as imagens públicas
+  foram removidas; compilação de fonte é o caminho atualmente indicado pelo projeto.
 
-## 10. Progresso
+## 11. Progresso
 
 - [x] Inspecionar serviços, contratos e plano vigente.
-- [ ] Registrar ADR e plano versionado.
-- [ ] Subir MinIO e criar bucket persistente.
-- [ ] Implementar ingestão Spark Kafka para Parquet com checkpoint.
-- [ ] Validar integração e reinício.
-- [ ] Atualizar README, retomada e Jota.
+- [x] Registrar ADR e plano versionado.
+- [x] Subir MinIO (porta S3 19000, Console 19001) e criar bucket persistente.
+- [x] Implementar ingestão Spark Kafka para Parquet com checkpoint em S3A.
+- [x] Validar leitura de 7.960 registros em 8 tópicos, sem offsets duplicados;
+      o fluxo continua recebendo mensagens, então a contagem é uma amostra temporal.
+- [x] Confirmar leitura do checkpoint e continuidade após reinício do serviço.
+- [x] Atualizar README, retomada, plano mestre, ADR e contexto do Jota.
+
+
+Validação de 06/10/2026: imagem oficial Spark 4.0.1 com Hadoop 3.4.1; MinIO
+compilado das tags upstream fixadas e saudável; bucket `racestream` criado; job
+Kafka→Parquet ativo. A validação leu 3.980 registros inicialmente e 7.960
+depois do avanço do fluxo, em 8 tópicos e sem offsets duplicados. API, PostgreSQL,
+Kafka e consumer ficaram ativos; Spark reiniciou usando o checkpoint S3A. Ruff,
+mypy e `docker compose config --quiet` aprovados.

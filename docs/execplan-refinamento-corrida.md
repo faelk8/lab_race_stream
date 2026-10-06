@@ -255,9 +255,10 @@ penalidades e carga vertical permanecem fora desta entrega, conforme o escopo.
 O modelo ainda conserva o teto de ultrapassagens e pressão de pneus do laboratório.
 Simulações não substituem dados oficiais de pista ou fisiologia do piloto.
 
-Flink/Spark, ClickHouse, Iceberg, CDC e retenção automática do histórico operacional
-não foram adicionados. Testes de caos exaustivos e carga contínua ficam para etapa
-posterior; os testes realizados cobrem os caminhos de recuperação descritos acima.
+Flink, ClickHouse, Iceberg, CDC e retenção automática do histórico operacional
+não foram adicionados nesta fase. Spark agora arquiva telemetria bruta no MinIO;
+agregados Spark continuam pendentes. Testes de caos exaustivos e carga contínua
+ficam para etapa posterior; os testes cobrem os caminhos de recuperação descritos acima.
 
 ## 13. Melhoria incremental: validação da pista
 
@@ -334,3 +335,25 @@ Também manter um ponto de retomada persistente para interrupções por crédito
 Validação de 06/10/2026: 152 testes Python incluindo Kafka, Ruff, mypy e
 recuperação PostgreSQL aprovados. Serviços reconstruídos, sem nova corrida
 pelo painel. Cenário curto de dois carros confirma o retorno em P2.
+
+
+## 18. Arquivo histórico com Spark, PostgreSQL e MinIO
+
+PostgreSQL mantém dados operacionais, configurações, resultados e projeções.
+Spark Structured Streaming 4.0.1 lê os tópicos de corrida e arquiva envelopes
+Avro originais em Parquet no MinIO, junto com timestamp, tópico, chave, cabeçalhos,
+partição e offset Kafka. O checkpoint usa S3A no mesmo bucket. O consumer Python
+continua alimentando a API; substituir seu processamento exige paridade futura.
+
+- [x] Persistir MinIO em volume Compose e criar bucket privado `racestream`.
+- [x] Arquivar tópicos Kafka em Parquet com limite local de 1 CPU e heap de 512 MiB.
+- [x] Validar leitura de 7.960 registros em oito tópicos e zero offsets duplicados.
+- [x] Reiniciar Spark a partir do checkpoint; PostgreSQL e API permaneceram ativos.
+- [x] Documentar portas locais e estado em `docs/RETOMADA.md`.
+- [ ] Criar tabelas refinadas e agregados analíticos no Spark.
+- [ ] Comparar resultados Spark com projeções do consumer antes de qualquer substituição.
+- [ ] Continuar melhorias físicas da corrida: desaceleração contínua nos boxes,
+      bandeiras/neutralização, chuva e penalidades.
+
+Detalhes: [ExecPlan Spark/PostgreSQL/MinIO](execplan-spark-postgresql-minio.md)
+e [ADR 0011](adr/0011-spark-postgresql-minio.md).

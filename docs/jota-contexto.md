@@ -61,3 +61,12 @@ O ponto de retomada após pausa ou falta de créditos é docs/RETOMADA.md.
 
 Validação de 06/10: 152 testes Python incluindo Kafka, Ruff, mypy e recuperação
 PostgreSQL aprovados. Serviços locais reconstruídos, sem iniciar outra corrida.
+
+
+Em 06/10/2026, Spark Structured Streaming 4.0.1 lê tópicos Kafka e arquiva
+mensagens Avro originais em Parquet no MinIO, com offsets e checkpoint S3A.
+Validação leu 7.960 registros em 8 tópicos sem offsets duplicados; reinício
+retomou do checkpoint.
+PostgreSQL continua autoridade operacional para configurações, corridas,
+resultados e projeções. A API e o consumer seguem online sem substituição.
+Console MinIO: http://localhost:19001; S3: http://localhost:19000. Plano: docs/execplan-spark-postgresql-minio.md.
