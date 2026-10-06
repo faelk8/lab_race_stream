@@ -52,3 +52,12 @@ casos Python no total e recuperação PostgreSQL, sem nova corrida pelo painel.
 Também em 05/10/2026: indicador de força G diferencia “Sem medida” de zero
 medido. Build, oito testes frontend e quatro condições no navegador aprovados;
 nenhuma corrida nova pelo painel foi necessária para essas duas melhorias.
+
+Em 06/10/2026: configuração interlagos-lab-v2 limita os boxes a 60 km/h,
+da entrada à saída. Frenagem antecipada considera o subpasso físico; durante
+serviço parado os comandos e G instantâneo ficam zerados. Teste curto com dois
+carros cobre duração, combustível, pneus e retorno em segunda posição.
+O ponto de retomada após pausa ou falta de créditos é docs/RETOMADA.md.
+
+Validação de 06/10: 152 testes Python incluindo Kafka, Ruff, mypy e recuperação
+PostgreSQL aprovados. Serviços locais reconstruídos, sem iniciar outra corrida.

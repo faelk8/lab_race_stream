@@ -155,6 +155,12 @@ def test_third_stop_adds_only_remaining_plus_reserve() -> None:
     assert car.pit_added == pytest.approx(
         (60 - 55.94 + 1) * track.length_m * per_m - 12
     )
+    car.tire_age = 7.0
+    while car.pit_status == "in_pit":
+        race.advance(track.physics_step_seconds)
+    assert car.pit_status == "pit_lane"
+    assert car.tire_age == 7.0
+    assert car.fuel == pytest.approx((60 - 55.94 + 1) * track.length_m * per_m)
 
 
 class CapturePublisher:
@@ -340,3 +346,56 @@ def test_retired_clock_and_controls_remain_frozen(reason: str) -> None:
     assert first["distance_m"] == latest["distance_m"]
     assert latest["speed_kmh"] == latest["throttle"] == latest["brake"] == 0
     assert latest["g_longitudinal"] == latest["g_lateral"] == 0
+
+
+def test_pit_lane_limit_service_and_position_loss() -> None:
+    """Respeite 60 km/h nos boxes, serviço parado e perda real de posição."""
+    track = load_track()
+    profiles = create_default_car_configurations()[:2]
+    race = PhysicalRace(
+        RaceConfiguration("boxes-60"),
+        (replace(profiles[0], strategy="B"), profiles[1]),
+        track,
+    )
+    car, rival = race.cars
+    car.distance = 0.82 * track.length_m
+    car.speed, car.fuel, car.tire_age = 70.0, 10.0, 8.0
+    rival.distance = car.distance - 30
+    rival.speed, rival.fuel = 70.0, 100.0
+    entered = False
+    serviced = False
+    service_start = 0.0
+    service_duration = 0.0
+    stopped_distance = 0.0
+    fuel_before = 0.0
+    for _ in range(4000):
+        before = car.pit_status
+        race.advance(track.physics_step_seconds)
+        if car.pit_status != "on_track" or before != "on_track":
+            assert car.speed * 3.6 <= 60.0 + 1e-8
+        if before == "on_track" and car.pit_status == "pit_lane":
+            entered = True
+        if before == "pit_lane" and car.pit_status == "in_pit":
+            service_start = race.time
+            service_duration = car.pit_remaining
+            stopped_distance, fuel_before = car.distance, car.fuel
+            assert service_duration >= car.configuration.pit_service_seconds
+            assert service_duration >= car.pit_added / track.refuel_kg_per_second
+        if before == "in_pit":
+            assert car.distance == stopped_distance
+            assert car.speed == car.throttle == car.g_long == car.g_lat == 0
+            if car.pit_status == "in_pit":
+                assert car.fuel == fuel_before
+                assert car.tire_age >= 8
+            else:
+                serviced = True
+                assert race.time - service_start >= service_duration - 1e-8
+                assert car.fuel > fuel_before
+                assert car.tire_age == 0
+        if entered and car.pit_status == "on_track":
+            assert serviced
+            assert car.position == 2
+            assert rival.distance > car.distance
+            break
+    else:
+        pytest.fail("O carro não completou a passagem pelos boxes em 80 segundos")

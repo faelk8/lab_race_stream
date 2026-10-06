@@ -138,7 +138,7 @@ O tanque comporta 110 kg. O novo consumo nominal é de 218,9 kg por 60 voltas
 (1,99 tanque): a redução de 0,5% permite a estratégia A de uma parada antes da
 metade da prova. Com exatamente 220 kg, essa combinação não tinha autonomia.
 O serviço leva o maior valor entre os 3–6 segundos configurados e o tempo de
-abastecimento a 12 kg/s, além do trânsito dos boxes limitado a 80 km/h.
+abastecimento a 12 kg/s, além do trânsito dos boxes limitado a 60 km/h.
 
 A telemetria v3 acrescenta pressão dos pneus, número de paradas e faixa de
 ultrapassagem, com defaults compatíveis com eventos Avro v1/v2.
@@ -279,3 +279,6 @@ Atualização manual: `systemctl --user start jota-racestream-sync.service`.
 Para desativar a periodicidade: `systemctl --user disable --now jota-racestream-sync.timer`.
 Falhas ficam no journal e são repetidas; a API pode levar alguns segundos para
 ficar disponível na primeira inicialização.
+
+Para continuar após uma pausa, consulte o [registro de retomada](docs/RETOMADA.md),
+com o estado atual, pendências e links para o plano de melhorias.

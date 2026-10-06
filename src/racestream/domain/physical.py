@@ -161,6 +161,8 @@ class PhysicalRace:
         previous = car.distance
         progress = (previous / track.length_m) % 1
         if car.pit_status == "in_pit":
+            car.speed = car.throttle = car.brake = car.g_long = car.g_lat = 0.0
+            car.g_valid = True
             car.pit_remaining -= dt
             if car.pit_remaining <= 0:
                 car.fuel = min(track.tank_capacity_kg, car.fuel + car.pit_added)
@@ -214,7 +216,10 @@ class PhysicalRace:
         elif car.pit_requested:
             target = min(
                 target,
-                ((track.pit_speed_kmh / 3.6) ** 2 + 2 * track.braking_m_s2 * next_entry)
+                (
+                    (track.pit_speed_kmh / 3.6) ** 2
+                    + 2 * track.braking_m_s2 * max(0.0, next_entry - car.speed * dt)
+                )
                 ** 0.5,
             )
         old_speed = car.speed

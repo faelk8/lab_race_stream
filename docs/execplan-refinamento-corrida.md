@@ -318,3 +318,19 @@ Um valor efetivamente medido de zero permanece representado no centro.
 - [x] Navegador: ausência total, ausência parcial, zero e valor não nulo aprovados,
   sem erros JavaScript. O teste aguarda a atualização diferida do React.
 - [x] Verificação reutilizou dados existentes com telemetria controlada, sem nova corrida.
+
+## 17. Pit stop a 60 km/h e retomada persistente
+
+Pedido de 06/10/2026: respeitar 60 km/h da entrada à saída dos boxes, contabilizar
+abastecimento/troca de pneus e permitir mudança de posição durante a passagem.
+Também manter um ponto de retomada persistente para interrupções por crédito.
+
+- [x] Configurar 60 km/h e verificar as fronteiras de entrada/saída.
+- [x] Verificar carro parado durante serviço, tempo de abastecimento e troca de pneus.
+- [x] Comprovar a perda de posição sem reclassificação artificial no retorno.
+- [x] Criar `docs/RETOMADA.md` com trabalho atual, pendências e procedimento de retomada.
+- [x] Validar, registrar commits e sincronizar Jota.
+
+Validação de 06/10/2026: 152 testes Python incluindo Kafka, Ruff, mypy e
+recuperação PostgreSQL aprovados. Serviços reconstruídos, sem nova corrida
+pelo painel. Cenário curto de dois carros confirma o retorno em P2.

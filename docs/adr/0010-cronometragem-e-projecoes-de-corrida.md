@@ -76,3 +76,15 @@ estimativa física e só entra depois de corrigir o relógio e a integração do
   física confiável publicam G ausente, em vez de representar um impacto fictício.
 - Retorno ao modelo antigo exige parar a corrida e restaurar a versão anterior
   do código/Compose. Não existe seletor automático v3/v4 nem remoção de históricos.
+
+### Revisão de 06/10/2026: boxes
+
+Por solicitação de Rafael, o limite passa a 60 km/h da entrada até a saída.
+A revisão da pista é `interlagos-lab-v2`; sessões anteriores preservam sua
+configuração congelada. O nome do arquivo JSON mantém a versão do formato.
+O serviço ocupa tempo físico: maior duração entre serviço configurado e
+abastecimento a 12 kg/s, considerando operações simultâneas. Os pneus são
+substituídos na primeira parada; a terceira de C permanece somente abastecimento.
+A classificação usa a distância percorrida, inclusive durante a parada, de modo
+que o retorno pode acontecer em uma posição inferior. Os eventos de pit stop
+permitem medir os intervalos entre entrada, início/fim do serviço e saída.

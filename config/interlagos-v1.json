@@ -1,6 +1,6 @@
 {
   "track_id": "interlagos",
-  "version": "interlagos-lab-v1",
+  "version": "interlagos-lab-v2",
   "length_m": 4309.0,
   "description": "Geometria aproximada para o laboratório; marcadores e raios não são medições oficiais.",
   "map_start_offset": 0.94,
@@ -106,7 +106,7 @@
   "pit_entry": 0.86,
   "pit_box": 0.94,
   "pit_exit": 0.03,
-  "pit_speed_kmh": 80.0,
+  "pit_speed_kmh": 60.0,
   "pit_path_ratio": 0.9,
   "physics_step_seconds": 0.02,
   "acceleration_m_s2": 8.0,
