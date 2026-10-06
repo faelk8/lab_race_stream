@@ -21,7 +21,7 @@ import { getCars, getLatestRace, startRace, stopRace, telemetrySocketUrl, update
 import { RaceInsights } from "./RaceInsights";
 import { InterlagosTrack } from "./InterlagosTrack";
 import { countryFlag, countryName, formatGap, rankCars, teamName } from "./racePresentation";
-import type { AnalyticsEvent, CarAnalytics, CarConfiguration, RaceSnapshot, RaceStateEvent, RaceTelemetry, TireCompound } from "./types";
+import type { AnalyticsEvent, CarAnalytics, CarConfiguration, RaceIncident, RaceSnapshot, RaceStartConfiguration, RaceStateEvent, RaceTelemetry, TireCompound } from "./types";
 
 type ConnectionState = "connecting" | "connected" | "reconnecting";
 
@@ -64,6 +64,11 @@ export function App() {
     const [draft, setDraft] = useState<CarConfiguration | null>(null);
     const [connection, setConnection] = useState<ConnectionState>("connecting");
     const [raceAction, setRaceAction] = useState<"start" | "stop" | null>(null);
+    const [raceSetup, setRaceSetup] = useState<RaceStartConfiguration>({ rain_enabled: false, rain_start_lap: 1, rain_intensity: 0.5, incidents: [] });
+    const [incidentType, setIncidentType] = useState<RaceIncident["incident_type"]>("tire_puncture");
+    const [incidentLap, setIncidentLap] = useState(5);
+    const [incidentCar, setIncidentCar] = useState("CAR-01");
+    const [incidentSecondCar, setIncidentSecondCar] = useState("CAR-02");
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -178,7 +183,7 @@ export function App() {
         setRaceAction(action);
         setError(null);
         try {
-            setRace(action === "start" ? await startRace() : await stopRace(race!.race_id));
+            setRace(action === "start" ? await startRace(raceSetup) : await stopRace(race!.race_id));
         } catch {
             setError(action === "start" ? "Não foi possível iniciar a corrida." : "Não foi possível parar a corrida.");
         } finally { setRaceAction(null); }
@@ -251,6 +256,27 @@ export function App() {
                     <button id="stop-race" className="stop-race" disabled={!race || !["queued", "running"].includes(currentStatus) || raceAction !== null} onClick={() => void controlRace("stop")}><Square size={16} />{raceAction === "stop" ? "Parando..." : "Parar corrida"}</button>
                     <span>Parar encerra a prova atual. Iniciar cria uma nova corrida.</span>
                 </section>
+                {activeRace && race && <p className="race-conditions" aria-live="polite">
+                    Condições atuais: {race.rain_enabled ? `chuva ${race.rain_intensity >= 0.75 ? "forte" : race.rain_intensity <= 0.25 ? "leve" : "moderada"} a partir da volta ${race.rain_start_lap}` : "pista seca"} · {race.incidents.length} incidente(s) programado(s)
+                </p>}
+                {!activeRace && <section className="race-scenario-panel" aria-label="Configuração de clima e incidentes">
+                    <div className="scenario-heading"><div><p className="eyebrow">PRÓXIMA LARGADA</p><h2>CONFIGURAR A CORRIDA</h2></div><span>Os eventos são determinísticos e acontecem na volta escolhida.</span></div>
+                    <div className="scenario-weather">
+                        <label className="scenario-toggle"><input type="checkbox" checked={raceSetup.rain_enabled} onChange={(event) => setRaceSetup((current) => ({ ...current, rain_enabled: event.target.checked }))} /> Chuva durante a prova</label>
+                        {raceSetup.rain_enabled && <>
+                            <label>Começa na volta <input type="number" min="1" max={race?.target_laps ?? 60} value={raceSetup.rain_start_lap} onChange={(event) => setRaceSetup((current) => ({ ...current, rain_start_lap: Number(event.target.value) }))} /></label>
+                            <label>Intensidade <select value={raceSetup.rain_intensity} onChange={(event) => setRaceSetup((current) => ({ ...current, rain_intensity: Number(event.target.value) }))}><option value="0.25">Leve</option><option value="0.5">Moderada</option><option value="1">Forte</option></select></label>
+                        </>}
+                    </div>
+                    <form className="scenario-form" onSubmit={(event) => { event.preventDefault(); const scenario: RaceIncident = { incident_type: incidentType, lap: incidentLap, car_id: incidentCar, second_car_id: incidentType === "collision" ? incidentSecondCar : "" }; setRaceSetup((current) => ({ ...current, incidents: [...current.incidents, scenario] })); }}>
+                        <label>Evento <select value={incidentType} onChange={(event) => setIncidentType(event.target.value as RaceIncident["incident_type"])}><option value="tire_puncture">Furo de pneu · parada emergencial</option><option value="collision">Colisão · abandono dos envolvidos</option></select></label>
+                        <label>Volta <input type="number" min="1" max={race?.target_laps ?? 60} value={incidentLap} onChange={(event) => setIncidentLap(Number(event.target.value))} required /></label>
+                        <label>Carro {incidentType === "collision" ? "1" : "afetado"}<select value={incidentCar} onChange={(event) => setIncidentCar(event.target.value)}>{cars.map((car) => <option key={car.car_id} value={car.car_id}>{car.car_id} · {car.driver_name}</option>)}</select></label>
+                        {incidentType === "collision" && <label>Carro 2<select value={incidentSecondCar} onChange={(event) => setIncidentSecondCar(event.target.value)}>{cars.filter((car) => car.car_id !== incidentCar).map((car) => <option key={car.car_id} value={car.car_id}>{car.car_id} · {car.driver_name}</option>)}</select></label>}
+                        <button type="submit" disabled={!cars.length}>Adicionar evento</button>
+                    </form>
+                    {raceSetup.incidents.length > 0 && <ul className="scenario-list">{raceSetup.incidents.map((scenario, index) => <li key={`${scenario.incident_type}-${scenario.lap}-${scenario.car_id}-${index}`}><span>Volta {scenario.lap} · {scenario.incident_type === "collision" ? `Colisão ${scenario.car_id} / ${scenario.second_car_id}` : `Furo em ${scenario.car_id}`}</span><button type="button" aria-label="Remover evento" onClick={() => setRaceSetup((current) => ({ ...current, incidents: current.incidents.filter((_, itemIndex) => itemIndex !== index) }))}>Remover</button></li>)}</ul>}
+                </section>}
                 <section className="race-follow" aria-label="Selecionar acompanhamento">
                     <label>Acompanhar por <select value={selectionMode} onChange={e => { setSelectionMode(e.target.value as typeof selectionMode); setSelectedTeam(null); }}><option value="car">Carro</option><option value="driver">Piloto</option><option value="team">Equipe</option></select></label>
                     {selectionMode === "team" ? <select aria-label="Equipe acompanhada" value={selectedTeam ?? ""} onChange={e => { setSelectedTeam(e.target.value); setSelectedCarId(participants.find(c => c.team_id === e.target.value)?.car_id ?? null); }}><option value="">Selecione a equipe</option>{[...new Set(participants.map(c => c.team_id))].map(id => <option key={id} value={id}>{teamName(id)}</option>)}</select> : <select aria-label="Participante acompanhado" value={selectedCarId ?? ""} onChange={e => setSelectedCarId(e.target.value)}>{participants.map(c => <option key={c.car_id} value={c.car_id}>{selectionMode === "driver" ? c.driver_name : c.car_id} · {teamName(c.team_id)}</option>)}</select>}

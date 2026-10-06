@@ -31,6 +31,8 @@ class PhysicalCar:
     pit_remaining: float = 0.0
     pit_added: float = 0.0
     pit_requested: bool = False
+    tire_change_pending: bool = False
+    applied_incidents: set[int] = field(default_factory=set)
     pit_lap: bool = False
     tire_age: float = 0.0
     pressure: float = 38.0
@@ -73,6 +75,19 @@ class PhysicalRace:
         self.overtakes = 0
         self.leader_finished: float | None = None
         self.events: list[dict[str, Any]] = []
+        if (
+            configuration.rain_enabled
+            and configuration.rain_start_lap > configuration.target_laps
+        ):
+            raise ValueError("A chuva deve começar antes do fim da corrida")
+        car_ids = {profile.car_id for profile in profiles}
+        for incident in configuration.incidents:
+            if incident.lap > configuration.target_laps:
+                raise ValueError("A volta do incidente excede o total da corrida")
+            if incident.car_id not in car_ids or (
+                incident.second_car_id and incident.second_car_id not in car_ids
+            ):
+                raise ValueError("O incidente referencia um carro inexistente")
         self.cars = [
             PhysicalCar(
                 p,
@@ -160,14 +175,18 @@ class PhysicalRace:
         track = self.track
         previous = car.distance
         progress = (previous / track.length_m) % 1
+        self._apply_scenarios(car, previous, progress)
+        if car.status != "racing":
+            return
         if car.pit_status == "in_pit":
             car.speed = car.throttle = car.brake = car.g_long = car.g_lat = 0.0
             car.g_valid = True
             car.pit_remaining -= dt
             if car.pit_remaining <= 0:
                 car.fuel = min(track.tank_capacity_kg, car.fuel + car.pit_added)
-                if car.pit_stops == 1:
+                if car.pit_stops == 1 or car.tire_change_pending:
                     car.tire_age, car.pressure = 0.0, 38.0
+                    car.tire_change_pending = False
                 car.pit_status = "pit_lane"
                 self._emit(
                     "pitstop",
@@ -202,14 +221,23 @@ class PhysicalRace:
             + (per_m * track.length_m if car.configuration.strategy == "C" else 0)
         )
         maximum = {"A": 1, "B": 2, "C": 3}[car.configuration.strategy]
-        if car.pit_stops >= maximum:
+        if car.pit_stops >= maximum and not car.tire_change_pending:
             car.pit_requested = False
-        top = car.configuration.top_speed_kmh / 3.6 * car.pace
+        rain_active = (
+            self.configuration.rain_enabled
+            and floor(previous / track.length_m) + 1
+            >= self.configuration.rain_start_lap
+        )
+        rain_factor = self.configuration.rain_intensity if rain_active else 0.0
+        top = (
+            car.configuration.top_speed_kmh / 3.6 * car.pace * (1 - 0.12 * rain_factor)
+        )
         top /= 1 + (car.fuel + car.configuration.driver_weight_kg - 56) * 0.00008
         target = track.speed_limit(
             progress,
             top,
-            track.tire_grip_factors[car.configuration.tire_compound.value],
+            track.tire_grip_factors[car.configuration.tire_compound.value]
+            * (1 - 0.25 * rain_factor),
         )
         if car.pit_status == "pit_lane":
             target = min(target, track.pit_speed_kmh / 3.6)
@@ -339,6 +367,37 @@ class PhysicalRace:
         car.lane = 0
         self._emit("incident", {"reason": reason}, car, at)
 
+    def _apply_scenarios(
+        self, car: PhysicalCar, distance: float, progress: float
+    ) -> None:
+        """Aplique incidentes programados ao alcançar a metade da volta."""
+        lap = floor(distance / self.track.length_m) + 1
+        if progress < 0.5:
+            return
+        for index, incident in enumerate(self.configuration.incidents):
+            if index in car.applied_incidents or incident.lap != lap:
+                continue
+            if (
+                incident.incident_type == "tire_puncture"
+                and incident.car_id == car.configuration.car_id
+            ):
+                car.applied_incidents.add(index)
+                car.tire_change_pending = True
+                car.pit_requested = True
+                self._emit("incident", {"reason": "tire_puncture"}, car)
+            elif incident.incident_type == "collision" and car.configuration.car_id in (
+                incident.car_id,
+                incident.second_car_id,
+            ):
+                involved = {incident.car_id, incident.second_car_id}
+                for participant in self.cars:
+                    if (
+                        participant.configuration.car_id in involved
+                        and participant.status == "racing"
+                    ):
+                        participant.applied_incidents.add(index)
+                        self._retire(participant, "collision", self.time)
+
     def _service(self, car: PhysicalCar, per_m: float) -> None:
         """Calcule reposição por estratégia, reserva e vazão de abastecimento."""
         car.pit_stops += 1
@@ -350,9 +409,11 @@ class PhysicalRace:
         )
         strategy = car.configuration.strategy
         target = self.track.tank_capacity_kg
-        if strategy == "B" and car.pit_stops == 2:
+        if car.tire_change_pending:
+            target = car.fuel
+        if not car.tire_change_pending and strategy == "B" and car.pit_stops == 2:
             target = remaining
-        if strategy == "C":
+        if not car.tire_change_pending and strategy == "C":
             target = self.track.tank_capacity_kg * (0.5 if car.pit_stops == 1 else 1.0)
             if car.pit_stops == 3:
                 target = remaining + per_m * self.track.length_m

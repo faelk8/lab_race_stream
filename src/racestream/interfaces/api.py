@@ -10,11 +10,16 @@ from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from racestream.application.event_contracts import TOPICS
 from racestream.application.ports import RaceControl, RaceRepository
-from racestream.domain.models import CarConfiguration, RaceConfiguration, TireCompound
+from racestream.domain.models import (
+    CarConfiguration,
+    RaceConfiguration,
+    RaceIncident,
+    TireCompound,
+)
 from racestream.domain.simulator import RACE_DURATION_SECONDS, TARGET_LAPS
 from racestream.infrastructure.postgres_repository import PostgresRaceRepository
 from racestream.infrastructure.projection_store import ProjectionStore
@@ -39,6 +44,39 @@ class CarConfigurationRequest(BaseModel):
     car_length_m: float = Field(default=3.0, ge=3.0, le=3.0)
     driver_name: str = Field(default="", max_length=100)
     driver_country_code: str = Field(default="", pattern=r"^([A-Z]{2})?$")
+
+
+class IncidentRequest(BaseModel):
+    """Incidente configurado para ocorrer em uma volta específica."""
+
+    incident_type: Literal["tire_puncture", "collision"]
+    lap: int = Field(ge=1, le=1000)
+    car_id: str = Field(min_length=1, max_length=64)
+    second_car_id: str = Field(default="", max_length=64)
+
+    @model_validator(mode="after")
+    def validate_collision(self) -> "IncidentRequest":
+        """Exija dois carros distintos para uma colisão programada.
+
+        :return: A solicitação validada.
+        :raises ValueError: Se os carros configurados forem inválidos.
+        """
+        if self.incident_type == "collision" and (
+            not self.second_car_id or self.second_car_id == self.car_id
+        ):
+            raise ValueError("Uma colisão exige dois carros diferentes")
+        if self.incident_type == "tire_puncture" and self.second_car_id:
+            raise ValueError("Furo de pneu aceita somente um carro")
+        return self
+
+
+class RaceStartRequest(BaseModel):
+    """Condições de clima e incidentes planejados para a próxima largada."""
+
+    rain_enabled: bool = False
+    rain_start_lap: int = Field(default=1, ge=1, le=1000)
+    rain_intensity: float = Field(default=0.5, ge=0.1, le=1.0)
+    incidents: list[IncidentRequest] = Field(default_factory=list, max_length=20)
 
 
 def create_app(
@@ -147,17 +185,38 @@ def create_app(
         return {**asdict(saved), "tire_compound": saved.tire_compound.value}
 
     @app.post("/api/races/start")
-    def start_race() -> dict[str, object]:
+    def start_race(
+        request: RaceStartRequest | None = None,
+    ) -> dict[str, object]:
         """Solicite uma nova corrida ou retorne a corrida ativa existente.
 
+        :param request: Cenários de clima e incidentes da próxima prova.
         :return: Estado persistido da corrida solicitada.
         """
+        request = request or RaceStartRequest()
+        cars = {item.car_id for item in race_repository.list_car_configurations()}
+        target_laps = int(os.environ.get("RACE_TARGET_LAPS", str(TARGET_LAPS)))
+        for incident in request.incidents:
+            if incident.lap > target_laps or incident.car_id not in cars:
+                raise HTTPException(
+                    422, "A volta ou o carro do incidente são inválidos"
+                )
+            if incident.second_car_id not in cars | {""}:
+                raise HTTPException(422, "O incidente referencia um carro desconhecido")
+        if request.rain_enabled and request.rain_start_lap > target_laps:
+            raise HTTPException(422, "A chuva começa depois do fim da corrida")
         configuration = RaceConfiguration(
             race_id=f"race-{uuid4().hex[:12]}",
             duration_seconds=float(
                 os.environ.get("RACE_DURATION_SECONDS", str(RACE_DURATION_SECONDS))
             ),
             target_laps=int(os.environ.get("RACE_TARGET_LAPS", str(TARGET_LAPS))),
+            rain_enabled=request.rain_enabled,
+            rain_start_lap=request.rain_start_lap,
+            rain_intensity=request.rain_intensity,
+            incidents=tuple(
+                RaceIncident(**item.model_dump()) for item in request.incidents
+            ),
         )
         return asdict(control.request_start(configuration))
 

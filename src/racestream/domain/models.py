@@ -56,19 +56,39 @@ class RaceRules:
 
 
 @dataclass(frozen=True)
+class RaceIncident:
+    """Incidente determinístico configurado para uma volta da prova.
+
+    :param incident_type: Tipo de incidente programado.
+    :param lap: Volta em que o incidente acontece.
+    :param car_id: Primeiro carro envolvido.
+    :param second_car_id: Segundo carro, usado em colisões.
+    """
+
+    incident_type: str
+    lap: int
+    car_id: str
+    second_car_id: str = ""
+
+
+@dataclass(frozen=True)
 class RaceConfiguration:
-    """Timing and circuit rules for one race."""
+    """Regras, clima e incidentes configurados para uma prova."""
 
     race_id: str
     duration_seconds: float = 120.0
     target_laps: int = 60
     track_length_m: float = 4_309.0
     circuit_name: str = "Autódromo José Carlos Pace"
+    rain_enabled: bool = False
+    rain_start_lap: int = 1
+    rain_intensity: float = 0.5
+    incidents: tuple[RaceIncident, ...] = ()
 
 
 @dataclass(frozen=True)
 class RaceSnapshot:
-    """Persisted lifecycle summary of a race."""
+    """Resumo persistido do ciclo de vida e cenários de uma prova."""
 
     race_id: str
     circuit_name: str
@@ -77,6 +97,10 @@ class RaceSnapshot:
     status: str
     started_at: str
     finished_at: str | None
+    rain_enabled: bool = False
+    rain_start_lap: int = 1
+    rain_intensity: float = 0.5
+    incidents: tuple[RaceIncident, ...] = ()
 
 
 @dataclass(frozen=True)

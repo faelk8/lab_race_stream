@@ -5,10 +5,12 @@ from typing import Any, cast
 
 import psycopg
 from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
 
 from racestream.domain.models import (
     CarConfiguration,
     RaceConfiguration,
+    RaceIncident,
     RaceResult,
     RaceSnapshot,
     TireCompound,
@@ -37,6 +39,7 @@ class PostgresRaceRepository:
                     "003_driver_identity.sql",
                     "004_race_control.sql",
                     "005_stream_projections.sql",
+                    "006_race_scenarios.sql",
                 ):
                     cursor.execute(Path("postgres/initdb", migration).read_text())
                 cursor.executemany(
@@ -181,7 +184,8 @@ class PostgresRaceRepository:
             row = connection.execute(
                 """
                 SELECT race_id, circuit_name, duration_seconds, target_laps,
-                       status, started_at::text, finished_at::text
+                       status, started_at::text, finished_at::text,
+                       rain_enabled, rain_start_lap, rain_intensity, incidents
                 FROM races
                 ORDER BY started_at DESC
                 LIMIT 1
@@ -197,6 +201,10 @@ class PostgresRaceRepository:
             status=row["status"],
             started_at=row["started_at"],
             finished_at=row["finished_at"],
+            rain_enabled=bool(row["rain_enabled"]),
+            rain_start_lap=int(row["rain_start_lap"]),
+            rain_intensity=float(row["rain_intensity"]),
+            incidents=tuple(RaceIncident(**item) for item in row["incidents"]),
         )
 
     def request_start(self, configuration: RaceConfiguration) -> RaceSnapshot:
@@ -215,14 +223,20 @@ class PostgresRaceRepository:
                 row = connection.execute(
                     """INSERT INTO races (
                     race_id, circuit_name, track_length_m, duration_seconds,
-                    target_laps, status, controlled
-                    ) VALUES (%s, %s, %s, %s, %s, 'queued', true) RETURNING *""",
+                    target_laps, status, controlled, rain_enabled, rain_start_lap,
+                    rain_intensity, incidents
+                    ) VALUES (%s, %s, %s, %s, %s, 'queued', true, %s, %s, %s, %s)
+                    RETURNING *""",
                     (
                         configuration.race_id,
                         configuration.circuit_name,
                         configuration.track_length_m,
                         configuration.duration_seconds,
                         configuration.target_laps,
+                        configuration.rain_enabled,
+                        configuration.rain_start_lap,
+                        configuration.rain_intensity,
+                        Jsonb([item.__dict__ for item in configuration.incidents]),
                     ),
                 ).fetchone()
         assert row is not None
@@ -270,6 +284,10 @@ class PostgresRaceRepository:
             duration_seconds=float(row["duration_seconds"]),
             target_laps=int(row["target_laps"]),
             track_length_m=float(row["track_length_m"]),
+            rain_enabled=bool(row["rain_enabled"]),
+            rain_start_lap=int(row["rain_start_lap"]),
+            rain_intensity=float(row["rain_intensity"]),
+            incidents=tuple(RaceIncident(**item) for item in row["incidents"]),
         )
 
     def get_race_status(self, race_id: str) -> str:
@@ -319,6 +337,10 @@ class PostgresRaceRepository:
             status=str(row["status"]),
             started_at=str(row["started_at"]),
             finished_at=str(row["finished_at"]) if row["finished_at"] else None,
+            rain_enabled=bool(row["rain_enabled"]),
+            rain_start_lap=int(row["rain_start_lap"]),
+            rain_intensity=float(row["rain_intensity"]),
+            incidents=tuple(RaceIncident(**item) for item in row["incidents"]),
         )
 
     def _connect(self) -> psycopg.Connection[dict[str, Any]]:

@@ -1,13 +1,14 @@
 """Verificação das transições de controle sem serviços externos."""
 
 import pytest
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from test_api import FakeRaceRepository, FakeTelemetryHub
 from test_race_service import InMemoryPublisher
 
 from racestream.application.race_worker import RaceWorker
 from racestream.domain.models import RaceConfiguration, RaceResult, RaceSnapshot
-from racestream.interfaces.api import create_app
+from racestream.interfaces.api import IncidentRequest, RaceStartRequest, create_app
 
 
 class ControlledRepository(FakeRaceRepository):
@@ -152,3 +153,35 @@ def test_api_start_is_idempotent_and_stop_reports_missing_race() -> None:
         stopped = client.post(f"/api/races/{first.json()['race_id']}/stop")
         assert stopped.json()["status"] == "stopped"
         assert client.post("/api/races/inexistente/stop").status_code == 404
+
+
+def test_api_start_persists_weather_and_incident_scenarios() -> None:
+    """A API valida e encaminha os cenários configurados para a largada."""
+    repository = ControlledRepository()
+
+    app = create_app(repository, FakeTelemetryHub(), repository)
+    endpoint = next(
+        route.endpoint
+        for route in app.routes
+        if isinstance(route, APIRoute) and route.path == "/api/races/start"
+    )
+    endpoint(
+        RaceStartRequest(
+            rain_enabled=True,
+            rain_start_lap=3,
+            rain_intensity=0.75,
+            incidents=[
+                IncidentRequest(
+                    incident_type="tire_puncture",
+                    lap=4,
+                    car_id=repository.configurations[0].car_id,
+                )
+            ],
+        )
+    )
+
+    assert repository.configuration is not None
+    assert repository.configuration.rain_enabled
+    assert repository.configuration.rain_start_lap == 3
+    assert repository.configuration.rain_intensity == 0.75
+    assert repository.configuration.incidents[0].incident_type == "tire_puncture"

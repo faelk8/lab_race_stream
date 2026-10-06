@@ -74,6 +74,24 @@ export interface RaceSnapshot {
     status: "queued" | "running" | "stopping" | "stopped" | "finished" | "failed";
     started_at: string;
     finished_at: string | null;
+    rain_enabled: boolean;
+    rain_start_lap: number;
+    rain_intensity: number;
+    incidents: RaceIncident[];
+}
+
+export interface RaceIncident {
+    incident_type: "tire_puncture" | "collision";
+    lap: number;
+    car_id: string;
+    second_car_id: string;
+}
+
+export interface RaceStartConfiguration {
+    rain_enabled: boolean;
+    rain_start_lap: number;
+    rain_intensity: number;
+    incidents: RaceIncident[];
 }
 export interface Split {
     checkpoint_id: string;

@@ -14,7 +14,7 @@ from test_race_worker import ControlledRepository
 from racestream.application.event_contracts import validate_event
 from racestream.application.physical_worker import PhysicalWorker
 from racestream.application.projection import apply_event, initial_projection
-from racestream.domain.models import RaceConfiguration
+from racestream.domain.models import RaceConfiguration, RaceIncident
 from racestream.domain.physical import PhysicalRace
 from racestream.domain.simulator import create_default_car_configurations
 from racestream.infrastructure.track_config import load_track
@@ -399,3 +399,87 @@ def test_pit_lane_limit_service_and_position_loss() -> None:
             break
     else:
         pytest.fail("O carro não completou a passagem pelos boxes em 80 segundos")
+
+
+def test_puncture_scenario_requests_emergency_tire_change() -> None:
+    """Furo configurado gera incidente e agenda uma parada emergencial."""
+    profile = create_default_car_configurations()[0]
+    race = PhysicalRace(
+        RaceConfiguration(
+            "furo-planejado",
+            target_laps=4,
+            incidents=(RaceIncident("tire_puncture", 1, profile.car_id),),
+        ),
+        (profile,),
+        load_track(),
+    )
+    car = race.cars[0]
+    car.distance = race.track.length_m * 0.5
+
+    race._apply_scenarios(car, car.distance, 0.5)
+
+    assert car.pit_requested and car.tire_change_pending
+    assert any(
+        event["kind"] == "incident" and event["reason"] == "tire_puncture"
+        for event in race.events
+    )
+    car.fuel = 90.0
+    per_m = (
+        race.track.tank_capacity_kg
+        * race.track.fuel_tanks_per_reference
+        / (race.track.fuel_reference_laps * race.track.length_m)
+    )
+    race._service(car, per_m)
+    assert car.pit_added == 0.0
+    race._advance_car(car, car.pit_remaining + 0.1)
+    assert car.pit_status == "pit_lane"
+    assert car.tire_age == 0.0 and car.pressure == 38.0
+    assert not car.tire_change_pending
+
+
+def test_collision_scenario_retires_both_configured_cars() -> None:
+    """Colisão programada registra abandono de ambos os participantes."""
+    profiles = create_default_car_configurations()[:2]
+    incident = RaceIncident("collision", 1, profiles[0].car_id, profiles[1].car_id)
+    race = PhysicalRace(
+        RaceConfiguration("colisao-planejada", target_laps=4, incidents=(incident,)),
+        profiles,
+        load_track(),
+    )
+    car = race.cars[0]
+    car.distance = race.track.length_m * 0.5
+
+    race._apply_scenarios(car, car.distance, 0.5)
+
+    assert all(item.status == "retired" for item in race.cars)
+    assert [
+        event["reason"] for event in race.events if event["kind"] == "incident"
+    ] == [
+        "collision",
+        "collision",
+    ]
+
+
+def test_rain_reduces_speed_on_the_configured_lap() -> None:
+    """Chuva ativa reduz o limite de velocidade frente à mesma pista seca."""
+    profile = create_default_car_configurations()[0]
+    dry = PhysicalRace(
+        RaceConfiguration("pista-seca", target_laps=4), (profile,), load_track()
+    )
+    wet = PhysicalRace(
+        RaceConfiguration(
+            "pista-molhada",
+            target_laps=4,
+            rain_enabled=True,
+            rain_start_lap=1,
+            rain_intensity=1.0,
+        ),
+        (profile,),
+        load_track(),
+    )
+    for race in (dry, wet):
+        race.cars[0].distance = race.track.length_m * 0.05
+        race.cars[0].speed = 44.0
+        race._advance_car(race.cars[0], 0.01)
+
+    assert wet.cars[0].speed < dry.cars[0].speed

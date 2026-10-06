@@ -21,7 +21,7 @@
 }
 
 body {
-    min-width: 360px;
+    min-width: 1100px;
     min-height: 100vh;
     margin: 0;
     background-color: var(--paper);
@@ -869,116 +869,6 @@ h1 span {
     }
 }
 
-@media (max-width: 720px) {
-    .topbar {
-        height: 54px;
-        padding: 0 14px;
-    }
-
-    .brand-name {
-        font-size: 17px;
-    }
-
-    .brand-track,
-    .brand-divider,
-    .race-id {
-        display: none;
-    }
-
-    .topbar-meta {
-        gap: 0;
-    }
-
-    .dashboard {
-        padding: 17px 12px 10px;
-    }
-
-    .race-heading {
-        gap: 14px;
-        margin-bottom: 13px;
-    }
-
-    h1 {
-        max-width: 100%;
-        font-size: 27px;
-    }
-
-    .race-metrics {
-        display: grid;
-        grid-template-columns: 1.15fr 1fr 1fr;
-        width: 100%;
-    }
-
-    .metric-cell {
-        min-width: 0;
-        gap: 6px;
-        padding: 8px 7px;
-    }
-
-    .metric-cell svg {
-        width: 14px;
-    }
-
-    .metric-cell span {
-        font-size: 6px;
-    }
-
-    .metric-cell strong {
-        font-size: 12px;
-    }
-
-    .race-clock strong {
-        font-size: 18px;
-    }
-
-    .status-cell strong {
-        font-size: 10px;
-    }
-
-    .dashboard-grid {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 10px;
-    }
-
-    .track-panel {
-        grid-row: auto;
-    }
-
-    .track-stage {
-        min-height: 0;
-        height: min(112vw, 480px);
-    }
-
-    .interlagos-svg {
-        width: min(100%, 440px);
-        height: 100%;
-        max-height: 470px;
-    }
-
-    .track-footer {
-        font-size: 7px;
-    }
-
-    .leaderboard-list {
-        max-height: 355px;
-    }
-
-    .leaderboard-row {
-        min-height: 34px;
-    }
-
-    .car-panel {
-        margin-bottom: 4px;
-    }
-
-    .dashboard-footer {
-        align-items: flex-start;
-        flex-direction: column;
-        justify-content: center;
-        gap: 6px;
-        padding: 8px 0;
-    }
-}
 /* Identificação dos carros e pilotos. */
 .driver-identity { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .driver-identity strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -995,6 +885,7 @@ h1 span {
 .race-controls .stop-race { border-color: #ef7777; background: #3e2026; color: #ffbbbb; }
 .race-controls button:disabled { opacity: .4; cursor: not-allowed; }
 .race-controls span { color: #9ba5b6; font-size: 12px; }
+.race-conditions { margin: -10px 0 18px; color: #52665b; font-size: 12px; font-weight: 600; }
 
 .console-link { color: #8ec5ff; white-space: nowrap; font-size: 12px; font-weight: 700; }
 .race-follow { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0; font-size: 12px; }
@@ -1014,7 +905,17 @@ h1 span {
 .insights-table th, .insights-table td { padding: 10px; border-bottom: 1px solid #293241; }
 .split-purple th { color: #d099ff; }.split-green th { color: #6de8a1; }.split-yellow th { color: #ffe182; }.split-gray th { color: #a0a6b2; }
 .insights-panel summary { cursor: pointer; }
-@media(max-width: 600px) { .topbar-meta { flex-wrap: wrap; } .insights-panel { padding: 12px; } .race-follow select { width: 100%; } }
+.race-scenario-panel { margin: 14px 0 20px; padding: 18px 20px; border: 1px solid #39443e; border-radius: 8px; background: #202723; color: #edf2e9; }
+.scenario-heading { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 16px; }
+.scenario-heading h2 { margin: 0; font-size: 17px; letter-spacing: .08em; }
+.scenario-heading > span { color: #a4b0a8; font-size: 12px; }
+.scenario-weather, .scenario-form { display: flex; align-items: end; gap: 16px; flex-wrap: wrap; margin: 12px 0; }
+.scenario-weather label, .scenario-form label { display: flex; flex-direction: column; gap: 6px; color: #c9d2cb; font-size: 12px; }
+.scenario-weather input:not([type=checkbox]), .scenario-weather select, .scenario-form input, .scenario-form select { min-width: 130px; padding: 8px; border: 1px solid #59665e; border-radius: 4px; background: #151b18; color: #f2f5ef; }
+.scenario-weather .scenario-toggle { flex-direction: row; align-items: center; padding: 8px 0; color: #f2f5ef; }
+.scenario-form button, .scenario-list button { padding: 8px 12px; border: 1px solid #48cf94; border-radius: 5px; background: #143c2d; color: #b5f7d7; cursor: pointer; }
+.scenario-list { display: flex; flex-direction: column; gap: 6px; margin: 12px 0 0; padding: 0; list-style: none; }
+.scenario-list li { display: flex; align-items: center; justify-content: space-between; max-width: 680px; color: #d9e0da; font-size: 12px; }
 .split-chart { margin: 20px 0; padding: 12px; background: #182130; border-radius: 8px; }
 .split-chart svg { display: block; width: 100%; max-height: 230px; }
 .split-chart figcaption, .split-chart small { font-size: 12px; color: #c4cddd; }
