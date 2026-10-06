@@ -62,8 +62,9 @@ local; endpoint S3 e caminho de checkpoint também são configuráveis.
 5. Validar início, reinício com checkpoint, leitura Parquet e isolamento dos dados
    operacionais no PostgreSQL com uma pequena fixture, sem prova completa.
 6. Documentar acessos, dados gravados, configuração, retomada e limitações.
-7. Próximos incrementos: decodificação/tabelas refinadas, agregados Spark,
-   comparação de comportamento com o consumer atual e melhorias de realismo.
+7. Entrega seguinte: decodificar versões Avro registradas, agregar desempenho
+   por carro e comparar com o analytics do consumer; melhorias de realismo ficam
+   registradas no [plano interativo](execplan-corrida-interativa.md).
 
 ## 7. Testes e validação
 
@@ -100,6 +101,10 @@ docker compose run --rm --no-deps spark-archive --master 'local[1]' --driver-mem
 docker compose up -d spark-archive
 ```
 
+O agregado de voltas e a paridade com o consumer são executados conforme os
+comandos do README. A execução validada em 06/10/2026 comparou 80 pares
+corrida/carro e encontrou paridade em todos.
+
 - O fluxo Kafka conserva eventos por sete dias. Se Spark ficar parado além dessa
   retenção, o checkpoint antigo poderá referir offsets removidos; `failOnDataLoss`
   encerra a consulta para exigir recuperação explícita, em vez de esconder a lacuna.
@@ -128,6 +133,9 @@ docker compose up -d spark-archive
       o fluxo continua recebendo mensagens, então a contagem é uma amostra temporal.
 - [x] Confirmar leitura do checkpoint e continuidade após reinício do serviço.
 - [x] Atualizar README, retomada, plano mestre, ADR e contexto do Jota.
+- [x] Criar agregado Spark de voltas e comparação com o analytics do consumer.
+- [x] Verificar schemas writer por ID do Schema Registry para eventos históricos.
+- [x] Confirmar 80/80 pares corrida/carro coincidentes no MinIO.
 
 
 Validação de 06/10/2026: imagem oficial Spark 4.0.1 com Hadoop 3.4.1; MinIO

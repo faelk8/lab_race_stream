@@ -215,10 +215,12 @@ services:
       - --conf
       - spark.jars.ivy=/opt/spark/work-dir/.ivy2
       - --packages
-      - org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.1,org.apache.hadoop:hadoop-aws:3.4.1
+      - org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.1,org.apache.spark:spark-avro_2.13:4.0.1,org.apache.hadoop:hadoop-aws:3.4.1
       - /opt/racestream/arquivo_telemetria.py
     depends_on:
       kafka:
+        condition: service_healthy
+      schema-registry:
         condition: service_healthy
       topic-init:
         condition: service_completed_successfully
@@ -226,6 +228,7 @@ services:
         condition: service_completed_successfully
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
       MINIO_ENDPOINT: http://minio:9000
       MINIO_BUCKET: ${MINIO_BUCKET:-racestream}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-racestream}

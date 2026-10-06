@@ -6,6 +6,20 @@ não é necessário copiar toda a conversa.
 
 ## Trabalho atual
 
+**Melhorias entregues em 06/10/2026:** o painel mantém página de desktop, com
+largura mínima de 1.100 px. Antes da largada, permite configurar chuva (volta de
+início e intensidade), furos de pneu e colisões por carro e volta. A chuva reduz
+aderência e velocidade; o furo agenda parada emergencial apenas para troca de
+pneus; a colisão programada retira os dois carros na metade da volta escolhida.
+Os cenários ficam em PostgreSQL e acompanham a configuração reservada pelo worker.
+
+O job `stream-processing/spark/agregar_voltas.py` gera agregados de voltas
+válidas e compara quantidade, melhor e pior volta com o último analytics do
+consumer. Os Parquet ficam em `lap_performance/` e `consumer_parity/` no MinIO.
+Validação real de 06/10: 80 pares corrida/carro comparados e 80 coincidentes.
+O decoder consulta os schemas pelo ID dos envelopes no Schema Registry, então
+aceita as versões Avro históricas compatíveis.
+
 **Concluído:** limite de 60 km/h desde a entrada até a saída dos boxes,
 serviço parado com duração física e classificação recalculada durante os boxes.
 A terceira parada de C continua apenas abastecimento, com reserva de uma volta.
@@ -24,10 +38,10 @@ O MinIO local usa as portas 19000 (S3) e 19001 (Console), pois a porta 9000 já
 estava ocupada. MinIO Community foi compilado das tags fonte fixadas devido à
 retirada das imagens públicas.
 
-Próximos incrementos: transformar o arquivo em tabelas analíticas refinadas,
-comparar agregados Spark com as projeções do consumer atual e depois tratar
-realismo adicional (desaceleração contínua até a vaga, bandeiras/neutralização,
-chuva e penalidades). Consulte o ExecPlan específico antes de continuar.
+Próximos incrementos: desaceleração contínua até a vaga, bandeiras e
+neutralização, penalidades, além de testes de recuperação/paridade com fixtures
+curtas. Chuva e incidentes determinísticos configuráveis já foram entregues.
+Consulte o ExecPlan específico antes de continuar.
 Há uma alteração preexistente em `.env.example`; não sobrescrever nem incluir
 em commit sem verificar sua origem.
 
@@ -41,6 +55,7 @@ sobre o Jota local, consultar os modelos instalados antes de alterar sua configu
 
 - [Plano e histórico de melhorias](execplan-refinamento-corrida.md).
 - [ExecPlan Spark, PostgreSQL e MinIO](execplan-spark-postgresql-minio.md).
+- [ExecPlan de cenários configuráveis e análises Spark](execplan-corrida-interativa.md).
 - [ADR 0011 de persistência e Spark](adr/0011-spark-postgresql-minio.md).
 - [Decisões técnicas e limites](adr/0010-cronometragem-e-projecoes-de-corrida.md).
 - [Contexto compartilhado com Jota](jota-contexto.md).
@@ -62,3 +77,8 @@ Ao terminar uma etapa, atualize trabalho atual, evidências e pendências aqui e
 plano, então execute `systemctl --user start jota-racestream-sync.service`.
 O timer do Jota também indexa os arquivos a cada dois minutos com a sessão ativa.
 A gravação em arquivos preserva o trabalho mesmo se o Jota estiver indisponível.
+Nesta sessão, o PostgreSQL do Jota retornou `OperationalError` tanto para leitura
+quanto para gravação de preferências. As notas do projeto foram atualizadas; a
+preferência de página desktop ainda precisa ser persistida quando o banco voltar.
+O serviço de sincronização do Jota foi executado com sucesso e atualizou um
+contexto do projeto.

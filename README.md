@@ -58,6 +58,9 @@ Kafka race.state / analytics / events
 ## Executar a corrida
 
 Plano da integração analítica: [Spark, PostgreSQL e MinIO](docs/execplan-spark-postgresql-minio.md); decisão arquitetural em [ADR 0011](docs/adr/0011-spark-postgresql-minio.md).
+Os cenários e a comparação Spark estão detalhados no
+[plano de corrida interativa](docs/execplan-corrida-interativa.md) e na
+[ADR 0012](docs/adr/0012-cenarios-de-prova-e-paridade-spark.md).
 
 Pré-requisitos: Docker com Compose. A instalação Python local é necessária apenas para executar testes e ferramentas de desenvolvimento.
 
@@ -68,6 +71,11 @@ docker compose up --build
 ```
 
 O Compose inicia PostgreSQL, Kafka, Schema Registry, Redpanda Console, MinIO, Spark, API, dashboard, simulador e consumer. O simulador aguarda o botão **Iniciar corrida** no painel. A prova termina pela passagem na chegada após 60 voltas do líder; os demais encerram na passagem seguinte. A física usa passos de 20 ms, com reprodução acelerada em 45 vezes por padrão. Cada carro publica um snapshot Avro por segundo real, além dos eventos de passagem. A duração real depende do ritmo e dos boxes; não há encerramento artificial aos 120 segundos.
+
+O painel é uma página desktop (largura mínima de 1.100 px). Antes da largada,
+configure chuva (volta inicial e intensidade) e incidentes: furo de pneu agenda
+uma parada emergencial para troca; colisão retira os dois carros envolvidos.
+Os eventos são reproduzíveis e ocorrem na metade da volta selecionada.
 
 ### Links de acesso
 
@@ -106,6 +114,27 @@ reinícios. Para acompanhar o processador:
 ```bash
 docker compose logs -f spark-archive
 ```
+
+Para materializar o agregado de desempenho por carro e comparar voltas válidas,
+melhor volta e pior volta com a última análise do consumer arquivada no Kafka,
+pause brevemente o arquivador e execute:
+
+```bash
+docker compose stop spark-archive
+docker compose run --rm --no-deps spark-archive \
+  --master 'local[1]' --driver-memory 512m \
+  --conf spark.jars.ivy=/opt/spark/work-dir/.ivy2 \
+  --packages org.apache.spark:spark-avro_2.13:4.0.1,org.apache.hadoop:hadoop-aws:3.4.1 \
+  /opt/racestream/agregar_voltas.py
+docker compose up -d spark-archive
+```
+
+O resultado fica em `lap_performance/` e `consumer_parity/` no bucket
+`racestream`. `paridade=true` indica que a contagem, a melhor volta e a pior
+volta calculadas em lote coincidem com o resumo online. A comparação usa os
+eventos `race.lap.completed.v1` e `race.analytics.v1` arquivados pelo mesmo job.
+O job obtém do Schema Registry os schemas writer de cada ID Avro e usa a versão
+compatível mais recente como schema de leitura, incluindo eventos históricos.
 
 MinIO está publicado apenas em `localhost:19000` (S3) e `localhost:19001`
 (Console). As credenciais locais padrão são `racestream` e

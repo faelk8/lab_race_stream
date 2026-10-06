@@ -1,6 +1,6 @@
 # Contexto compartilhado do RaceStream com o Jota
 
-Atualizado em 04/10/2026. Repositório: `/home/rafael/Documentos/github/lab_race_stream`.
+Atualizado em 06/10/2026. Repositório: `/home/rafael/Documentos/github/lab_race_stream`.
 O índice acompanha o diretório de trabalho, incluindo alterações não commitadas.
 Consulte os arquivos atuais antes de agir: este resumo não declara toda mudança
 como validada nem autoriza alterações adicionais.
@@ -70,3 +70,17 @@ retomou do checkpoint.
 PostgreSQL continua autoridade operacional para configurações, corridas,
 resultados e projeções. A API e o consumer seguem online sem substituição.
 Console MinIO: http://localhost:19001; S3: http://localhost:19000. Plano: docs/execplan-spark-postgresql-minio.md.
+
+Em 06/10/2026, o painel desktop passou a configurar cenários determinísticos de
+chuva, furo e colisão antes da largada. A migração PostgreSQL 006 guarda estes
+parâmetros. Chuva reduz velocidade e aderência; furo agenda uma parada para
+trocar os pneus; colisão abandona os dois carros configurados. Não executar
+layout de celular: a página tem largura mínima de 1.100 px.
+
+O job `stream-processing/spark/agregar_voltas.py` gera análise por carro e
+compara contagem, melhor e pior volta com o consumer. Validação com o arquivo
+real do MinIO: 80 de 80 pares corrida/carro coincidentes. Schemas são obtidos por
+ID no Schema Registry para suportar versões Avro compatíveis. Realismo pendente:
+desaceleração contínua na vaga, bandeiras/neutralização e penalidades. Detalhes,
+comandos e evidências em `docs/RETOMADA.md` e
+`docs/execplan-corrida-interativa.md`.
