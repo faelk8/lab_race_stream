@@ -8,11 +8,12 @@ Completar os incrementos de realismo que permanecem abertos: aproximação físi
 da vaga nos boxes, neutralização com bandeiras e penalidades aplicáveis durante a
 corrida.
 
-## 2. Estado inicial
+## 2. Estado inicial antes da implementação
 
 - o pit lane respeita 60 km/h, mas a velocidade é zerada ao cruzar a vaga;
 - chuva, furos e colisões configuráveis já existem;
-- não há estado de bandeira, neutralização nem penalidade no domínio atual;
+- antes deste plano, não havia estado de bandeira, neutralização nem penalidade
+  no domínio;
 - eventos, contratos e interface precisam evoluir de forma aditiva.
 
 ## 3. Entregas incrementais

@@ -43,8 +43,7 @@ export function isDuplicateIncident(incidents: RaceIncident[], candidate: RaceIn
         ? [candidate.car_id, candidate.second_car_id].sort().join(":")
         : candidate.car_id;
     return incidents.some((incident) => {
-        if (incident.incident_type !== candidate.incident_type || incident.lap !== candidate.lap ||
-            incident.penalty_seconds !== candidate.penalty_seconds) return false;
+        if (incident.incident_type !== candidate.incident_type || incident.lap !== candidate.lap) return false;
         const incidentCars = incident.incident_type === "collision"
             ? [incident.car_id, incident.second_car_id].sort().join(":")
             : incident.car_id;

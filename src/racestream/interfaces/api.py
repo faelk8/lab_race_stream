@@ -233,7 +233,6 @@ def create_app(
                 incident.incident_type,
                 incident.lap,
                 participants_key,
-                incident.penalty_seconds,
             )
             if event_key in configured_events:
                 raise HTTPException(

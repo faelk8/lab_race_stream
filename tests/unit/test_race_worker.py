@@ -300,7 +300,28 @@ def test_api_rejects_duplicate_events_in_the_same_lap() -> None:
         endpoint(RaceStartRequest(incidents=[puncture, puncture]))
 
     assert error.value.status_code == 422
-    assert "mesmo evento já foi configurado" in str(error.value.detail)
+    assert "Esse evento já foi configurado" in str(error.value.detail)
+
+    with pytest.raises(HTTPException) as penalty_error:
+        endpoint(
+            RaceStartRequest(
+                incidents=[
+                    IncidentRequest(
+                        incident_type="time_penalty",
+                        lap=5,
+                        car_id=repository.configurations[0].car_id,
+                        penalty_seconds=5,
+                    ),
+                    IncidentRequest(
+                        incident_type="time_penalty",
+                        lap=5,
+                        car_id=repository.configurations[0].car_id,
+                        penalty_seconds=10,
+                    ),
+                ]
+            )
+        )
+    assert penalty_error.value.status_code == 422
 
 
 def test_api_accepts_wet_tire_and_rejects_rain_on_last_lap() -> None:

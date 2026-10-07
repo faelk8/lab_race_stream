@@ -407,8 +407,9 @@ continua alimentando a API; substituir seu processamento exige paridade futura.
 - [x] Criar agregados analíticos de voltas no Spark e gravá-los em Parquet.
 - [x] Comparar resultados Spark com projeções do consumer; a validação registrada
       encontrou 80/80 pares coincidentes. O consumer permanece no caminho online.
-- [ ] Continuar melhorias físicas da corrida: desaceleração contínua nos boxes,
-      bandeiras/neutralização e penalidades. Chuva configurável já foi entregue.
+- [x] Continuar melhorias físicas da corrida: desaceleração contínua nos boxes,
+      bandeiras/neutralização e penalidades, concluídas no plano
+      `execplan-realismo-corrida.md`.
 
 Detalhes: [ExecPlan Spark/PostgreSQL/MinIO](execplan-spark-postgresql-minio.md)
 e [ADR 0011](adr/0011-spark-postgresql-minio.md).

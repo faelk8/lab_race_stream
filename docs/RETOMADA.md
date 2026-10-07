@@ -1,6 +1,6 @@
 # Retomada do RaceStream
 
-Atualizado em 06/10/2026. Este arquivo é o ponto de entrada após pausa por crédito,
+Atualizado em 07/10/2026. Este arquivo é o ponto de entrada após pausa por crédito,
 fechamento do chat ou troca de modelo. O repositório e seus planos guardam o
 estado; não é necessário copiar toda a conversa.
 
@@ -81,6 +81,36 @@ carros foi inspecionada: posições e distâncias estavam coerentes, com grupos
 separados por apenas 3 m, insuficiente para os marcadores atuais. ADR 0019 registra
 a regra. Carros retirados após colisão também são removidos do mapa, permanecendo
 no pelotão e no histórico. Nenhuma nova corrida foi iniciada.
+
+**Configuração de eventos e cadastro do piloto (07/10/2026):** após a colisão,
+os dois carros envolvidos deixam de aparecer para eventos na mesma volta e nas
+seguintes. A tela e a API também rejeitam eventos repetidos para o mesmo tipo,
+participantes e volta; a comparação de colisões não depende da ordem dos carros.
+Os testes cobrem a colisão repetida, o furo repetido e penalidades repetidas
+mesmo quando o valor em segundos muda. O nome do piloto `DRV-01` foi atualizado
+para Rafael Batista no seed e em uma migração aditiva para bancos existentes; o
+Dockerfile inclui essa migração. O PostgreSQL ativo foi atualizado e a API
+retornou Rafael Batista. API e dashboard foram reconstruídos e ficaram saudáveis.
+Testes do frontend, build, testes focados da API e Ruff passaram. A interface
+atualizada ainda precisa de uma verificação manual no navegador após recarga.
+
+## Próxima continuidade recomendada
+
+1. Fazer uma checagem manual no navegador: adicionar uma colisão, confirmar que
+   seus carros saem das opções naquela volta e nas seguintes, trocar a ordem dos
+   carros, tentar repetir o mesmo incidente e conferir a mensagem de bloqueio.
+2. Decidir se eventos ainda não enviados devem sobreviver a uma recarga da página.
+   Hoje `raceSetup` existe apenas no estado React e só é enviado quando a corrida
+   começa; atualizar a página apaga o rascunho.
+3. Criar testes automatizados próprios para os jobs Spark e a paridade com o
+   consumer, que permanecem sem suíte dedicada.
+4. Adicionar CI para Ruff, mypy, pytest, build do frontend e validação do Compose.
+5. Planejar retenção, backup e restauração de PostgreSQL e MinIO, além de
+   readiness e métricas para consumer e Spark.
+
+Não iniciar uma corrida completa apenas para revisar o setup: as regras de
+disponibilidade e duplicidade têm testes unitários e de API; a inspeção visual
+pendente deve usar o formulário antes da largada e uma carga de teste isolada.
 
 **Penalidade de tempo (07/10/2026):** a configuração da largada aceita penalidade
 por carro, volta e duração. O painel oferece 5, 10 e 20 segundos e exibe o total

@@ -1,6 +1,6 @@
 # Plano de execução: cenários configuráveis e análises Spark
 
-Atualizado em 06/10/2026. Estado: implementado e validado localmente.
+Atualizado em 07/10/2026. Estado: implementado e validado localmente.
 
 ## 1. Objetivo
 
@@ -13,14 +13,15 @@ no Spark com os resumos produzidos pelo consumer online.
 Inclui API, PostgreSQL, simulador, painel desktop, Spark e documentação. Chuva
 reduz aderência e velocidade conforme intensidade; todos os carros recebem uma
 parada escalonada para montar pneus de chuva e abastecer. Furo de pneu agenda
-troca emergencial; colisão programada retira os carros envolvidos. Penalidades
-e neutralização ficam como etapas seguintes. A prova segue local e reproduzível.
+troca emergencial; colisão programada retira os carros envolvidos e aciona
+safety car. Penalidades de tempo são aplicadas na classificação final. A prova
+segue local e reproduzível.
 
 ## 3. Estado atual
 
-O painel inicia corridas com configuração fixa e já usa layout desktop com
-adaptações estreitas. PostgreSQL persiste o ciclo da corrida. O Spark arquiva
-envelopes Avro em Parquet, enquanto o consumer calcula voltas, parciais e
+O painel permite configurar chuva, furos, colisões e penalidades antes da largada.
+PostgreSQL persiste o ciclo da corrida e seus cenários. O Spark arquiva envelopes
+Avro em Parquet e calcula agregados batch; o consumer calcula voltas, parciais e
 analytics online.
 
 ## 4. Arquitetura alvo
@@ -77,6 +78,7 @@ Kafka -> Spark -> Parquet no MinIO -> agregados por carro/volta -> comparação
 
 - Configuração de incidentes é explícita e reproduzível, sem aleatoriedade oculta.
 - Colisão programada gera abandono dos dois carros no ponto configurado.
+- Colisões acionam safety car; penalidades configuradas são somadas ao tempo final.
 - Pneu furado força uma visita aos boxes e reinicia idade/pressão dos pneus.
 - Pneus de chuva são montados em paradas distribuídas deterministicamente; a
   API rejeita início tardio que não permita manter cada parada a 2–6 voltas da
@@ -106,10 +108,10 @@ e o schema reader compatível mais recente do Schema Registry. Os agregados são
 gravados em `lap_performance/` e a comparação em `consumer_parity/` no bucket
 `racestream`.
 
-Continuam fora desta entrega: desaceleração contínua até a vaga, bandeiras,
-neutralização e penalidades. A chuva é um fator físico determinístico de pista
-molhada, sem previsão meteorológica detalhada. O teste legado com `TestClient`
-ficou bloqueado na inicialização do lifespan nesta instalação; a nova rota foi
-validada diretamente com dependências injetadas, sem iniciar serviços externos.
-O POST de configuração inválida foi exercitado pelo HTTP da API local e retornou
-422 sem criar uma corrida.
+As entregas físicas inicialmente descritas como pendentes (frenagem progressiva
+na vaga, bandeira amarela/safety car e penalidades de tempo) foram concluídas e
+registradas no [plano de realismo](execplan-realismo-corrida.md). Permanecem fora
+do modelo clima variável após a largada, VSC e dinâmica física de impacto. A
+suíte dedicada para os jobs Spark também continua pendente. O teste legado com
+`TestClient` ficou bloqueado na inicialização do lifespan nesta instalação; as
+rotas de cenário foram validadas diretamente com dependências injetadas.

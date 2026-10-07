@@ -82,6 +82,8 @@ test("Eventos idênticos na mesma volta são reconhecidos mesmo com colisão inv
     assert.equal(isDuplicateIncident([collision], { ...collision, car_id: "CAR-02", second_car_id: "CAR-01" }), true);
     assert.equal(isDuplicateIncident([collision], { ...collision, lap: 6 }), false);
     assert.equal(isDuplicateIncident([{ ...collision, incident_type: "tire_puncture", second_car_id: "", penalty_seconds: 0 }], { ...collision, incident_type: "tire_puncture", second_car_id: "", penalty_seconds: 0 }), true);
+    const penalty = { ...collision, incident_type: "time_penalty", second_car_id: "", penalty_seconds: 5 };
+    assert.equal(isDuplicateIncident([penalty], { ...penalty, penalty_seconds: 10 }), true);
 });
 
 test("O atraso inclui voltas completas e mantém a precisão de milissegundos", () => {

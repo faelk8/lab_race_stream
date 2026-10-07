@@ -40,14 +40,14 @@ Há um índice parcial que permite apenas uma corrida controlada nos estados
 ### Inicialização e migrações
 
 Os arquivos em `postgres/initdb/` são executados automaticamente apenas na
-criação de um volume PostgreSQL vazio. O método `seed_default_cars()` reaplica de
-forma aditiva os scripts `002` a `006` e insere carros ausentes.
+criação de um volume PostgreSQL vazio. Ao iniciar, `seed_default_cars()` reaplica
+os scripts idempotentes `002` a `009` e insere carros ausentes. A imagem da API
+inclui esses scripts. O script `009` atualiza o nome padrão do piloto `DRV-01`
+quando o valor persistido ainda é o anterior, preservando outros nomes editados.
 
-O script `007_pneu_chuva.sql` não aparece na lista de reaplicação do método. Em
-um volume antigo criado antes do suporte ao composto `wet`, ele depende de
-aplicação operacional separada. Em um volume novo, o `initdb` executa o arquivo.
-
-Não existe ferramenta de migração com controle de versões, como Alembic.
+Não há tabela de versões/checksums nem ferramenta dedicada, como Alembic. A ordem
+dos scripts está codificada no repositório; alterações devem manter idempotência
+e atualizar também o `Dockerfile` para copiar qualquer novo script para a imagem.
 
 > Não identificado no repositório.
 
@@ -93,4 +93,3 @@ recupera projeções e deduplica replays. Não há scripts de backup, restauraç
 replicação ou disaster recovery dos volumes.
 
 > Não identificado no repositório.
-
