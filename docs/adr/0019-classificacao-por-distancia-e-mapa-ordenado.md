@@ -22,6 +22,9 @@ separados por poucos metros ocupavam os mesmos pixels, escondendo carros.
   circular, mantendo a ordem inclusive quando há carros uma ou mais voltas atrás.
 - Quando uma ultrapassagem altera distância e posição oficial, a próxima projeção
   troca a ordem dos carros no mapa e no pelotão.
+- Carros com `car_status = retired` deixam de ser desenhados na pista. A telemetria
+  e a linha correspondente no pelotão continuam disponíveis para consulta do
+  abandono e da classificação.
 
 ## Consequências
 
@@ -32,5 +35,6 @@ modificados.
 ## Validação
 
 Testes do frontend verificam que distância prevalece sobre o tempo da última
-volta, o espaçamento mínimo do mapa e a mudança de ordem após ultrapassagem. Build
-TypeScript/Vite, testes frontend, Ruff, mypy e testes físicos selecionados passam.
+volta, o espaçamento mínimo do mapa, a mudança de ordem após ultrapassagem e a
+remoção visual de carros retirados. Build TypeScript/Vite, testes frontend, Ruff,
+mypy e testes físicos selecionados passam.

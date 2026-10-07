@@ -79,7 +79,8 @@ ultrapassagem. Testes cobrem ordem por distância, mudança de ordem e espaçame
 testes frontend/build e verificações Python passaram. Uma projeção pausada de 20
 carros foi inspecionada: posições e distâncias estavam coerentes, com grupos
 separados por apenas 3 m, insuficiente para os marcadores atuais. ADR 0019 registra
-a regra. Nenhuma nova corrida foi iniciada.
+a regra. Carros retirados após colisão também são removidos do mapa, permanecendo
+no pelotão e no histórico. Nenhuma nova corrida foi iniciada.
 
 **Penalidade de tempo (07/10/2026):** a configuração da largada aceita penalidade
 por carro, volta e duração. O painel oferece 5, 10 e 20 segundos e exibe o total

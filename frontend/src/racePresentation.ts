@@ -18,6 +18,11 @@ export function compareRaceOrder(left: RaceTelemetry | undefined, right: RaceTel
     return left.race_position - right.race_position;
 }
 
+/** Retire carros fora do mapa, mantendo os dados deles no pelotão e no histórico. */
+export function visibleTrackCars(cars: RaceTelemetry[]): RaceTelemetry[] {
+    return cars.filter((car) => car.car_status !== "retired");
+}
+
 /** Distribui visualmente marcadores próximos sem alterar a ordem de corrida. */
 export function spreadTrackPositions(cars: RaceTelemetry[], pathLength: number, trackLength: number, mapOffset = 0, minimumGap = 9): Map<string, number> {
     const positions = new Map<string, number>();

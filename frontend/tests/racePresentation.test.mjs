@@ -5,7 +5,7 @@ import ts from "typescript";
 
 const source = readFileSync(new URL("../src/racePresentation.ts", import.meta.url), "utf8");
 const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } });
-const { rankCars, leaderGapMs, formatGap, countryFlag, countryName, RaceFrameBuffer, spreadTrackPositions } =
+const { rankCars, leaderGapMs, formatGap, countryFlag, countryName, RaceFrameBuffer, spreadTrackPositions, visibleTrackCars } =
     await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
 
 function event(carId, position, elapsed = 1, lap = 2, progress = 0.9) {
@@ -57,6 +57,16 @@ test("Marcadores seguem a ordem do pelotão e mantêm espaçamento mínimo na pi
     }));
     const swappedPositions = spreadTrackPositions(swapped, 1000, 10000, 0, 9);
     assert.notEqual(swappedPositions.get("CAR-3"), positions.get("CAR-3"));
+});
+
+test("Carros retirados após colisão somem da pista e continuam disponíveis no restante do estado", () => {
+    const cars = [
+        { ...event("CAR-1", 1), car_status: "racing" },
+        { ...event("CAR-2", 2), car_status: "retired" },
+        { ...event("CAR-3", 3), car_status: "racing" },
+    ];
+    assert.deepEqual(visibleTrackCars(cars).map((car) => car.car_id), ["CAR-1", "CAR-3"]);
+    assert.equal(cars[1].car_status, "retired");
 });
 
 test("O atraso inclui voltas completas e mantém a precisão de milissegundos", () => {

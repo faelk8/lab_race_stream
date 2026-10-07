@@ -21,7 +21,7 @@ import { startTransition, useDeferredValue, useEffect, useRef, useState } from "
 import { getCars, getLatestRace, pauseRace, resumeRace, startRace, stopRace, telemetrySocketUrl, updateCar } from "./api";
 import { RaceInsights } from "./RaceInsights";
 import { InterlagosTrack } from "./InterlagosTrack";
-import { countryFlag, countryName, rankCars, teamName } from "./racePresentation";
+import { countryFlag, countryName, rankCars, teamName, visibleTrackCars } from "./racePresentation";
 import type { AnalyticsEvent, CarAnalytics, CarConfiguration, RaceIncident, RaceSnapshot, RaceStartConfiguration, RaceStateEvent, RaceTelemetry, TireCompound } from "./types";
 
 type ConnectionState = "connecting" | "connected" | "reconnecting";
@@ -170,6 +170,7 @@ export function App() {
     }, [race?.race_id, cars.length]);
 
     const liveCars = Object.values(telemetry);
+    const onTrackCars = visibleTrackCars(liveCars);
     const leader = [...liveCars].sort((left, right) =>
         left.distance_m != null && right.distance_m != null && left.distance_m !== right.distance_m
             ? right.distance_m - left.distance_m
@@ -311,19 +312,19 @@ export function App() {
                         </div>
                         <div className="track-stage">
                             <InterlagosTrack
-                                cars={liveCars}
+                                cars={onTrackCars}
                                 selectedCarId={selectedCarId}
                                 onSelectCar={setSelectedCarId}
                                 trackDefinition={sessionTrack}
                                 highlightedCarIds={selectionMode === "team" ? participants.filter(c => c.team_id === selectedTeam).map(c => c.car_id) : []}
                             />
-                            {liveCars.length === 0 && (
+                            {onTrackCars.length === 0 && (
                                 <div className="track-waiting"><Activity size={18} /> Aguardando telemetria</div>
                             )}
                         </div>
                         <div className="track-footer">
                             <span><i className="legend-dot leader-dot" /> LÍDER P{leader?.race_position ?? "--"}</span>
-                            <span>{liveCars.length.toString().padStart(2, "0")} CARROS</span>
+                            <span>{onTrackCars.length.toString().padStart(2, "0")} NA PISTA</span>
                             <span>SENTIDO ANTI-HORÁRIO</span>
                         </div>
                     </section>
