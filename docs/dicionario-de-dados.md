@@ -35,9 +35,9 @@ uma réplica e retenção de sete dias.
 | --- | --- | --- | --- |
 | `telemetry` | `telemetry-stream.avsc` | `car_id` | Snapshot do carro, posição, velocidade, combustível, pneus e força G. |
 | `validated` | `validated-stream.avsc` | `car_id` | Snapshot aceito na validação; mantém o contrato da telemetria. |
-| `timing` | `timing-stream.avsc` | `car_id` | Passagem por checkpoint, setor e linha de chegada com tempos medidos. |
-| `lap_completed` | `lap-stream.avsc` | `car_id` | Volta concluída, setores, validade e indicação de passagem pelos boxes. |
-| `pitstop` | `pitstop-stream.avsc` | `car_id` | Fases de entrada, serviço e saída; número da parada e combustível adicionado. |
+| `timing` | `timing-stream.avsc` | `car_id` | Passagem por checkpoint, setor e linha de chegada com tempos e posição medidos. |
+| `lap_completed` | `lap-stream.avsc` | `car_id` | Volta concluída, volta corrente, posição, setores e validade. |
+| `pitstop` | `pitstop-stream.avsc` | `car_id` | Entrada, serviço e saída, com volta, duração cumulativa, pneu e combustível. |
 | `incident` | `incident-stream.avsc` | `car_id` | Incidente e motivo associado ao carro. |
 | `control` | `control-stream.avsc` | `race_id` | Estado da sessão, participantes, pista, distância e escala da corrida. |
 | `state` | `state-stream.avsc` | `race_id` | Quadro de estado e classificação dos carros. |
@@ -74,6 +74,7 @@ passaram pela validação.
 | --- | --- |
 | `driver_id`, `team_id` | Piloto e equipe no momento da passagem. |
 | `lap`, `checkpoint_id`, `sector` | Volta, identificador do ponto cronometrado e setor. |
+| `race_position` | Posição consolidada do carro no instante da passagem. |
 | `speed_kmh` | Velocidade no ponto de cronometragem. |
 | `lap_elapsed_ms`, `segment_time_ms`, `sector_time_ms` | Tempo acumulado da volta, do trecho e do setor, em milissegundos. |
 | `pit_lap`, `valid` | Indica volta com passagem pelos boxes e validade da medição. |
@@ -83,7 +84,9 @@ passaram pela validação.
 | Campo | Significado |
 | --- | --- |
 | `driver_id`, `team_id` | Piloto e equipe. |
-| `lap`, `lap_time_ms` | Número e duração total da volta, em milissegundos. |
+| `lap`, `current_lap` | Volta concluída e volta corrente após a passagem; na chegada, ambas ficam limitadas ao total da prova. |
+| `race_position` | Posição do carro na corrida quando concluiu a volta. |
+| `lap_time_ms` | Duração total da volta, em milissegundos. |
 | `sectors_ms` | Lista dos tempos dos três setores, em milissegundos. |
 | `pit_lap`, `valid` | Indica volta com passagem pelos boxes e validade para recordes. |
 
@@ -94,6 +97,9 @@ passaram pela validação.
 | `phase` | Fase do evento de parada (por exemplo, entrada, serviço ou saída). |
 | `stop_number` | Número sequencial da parada do carro. |
 | `fuel_added_kg` | Massa de combustível adicionada durante o serviço. |
+| `tire_compound` | Composto montado no carro durante a fase informada. |
+| `lap` | Volta em que o carro entrou no pit lane. |
+| `pit_stop_time_ms` | Tempo cumulativo desde a entrada no pit lane; em `exit`, duração total da passagem pelos boxes. |
 
 ### `incident`
 

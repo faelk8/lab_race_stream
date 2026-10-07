@@ -488,16 +488,50 @@ h1 span {
     background: #eef3d9;
 }
 
-.leaderboard-row.first-place .position-cell {
-    color: #b48c16;
-}
-
 .position-cell {
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 2px;
     color: #79827f;
     font: 10px var(--mono);
+}
+
+.leaderboard-row.podium-live {
+    background: #e7f4e8;
+    box-shadow: inset 4px 0 #66a96e;
+}
+
+.leaderboard-row.retired-row {
+    background: #fde8e6;
+    box-shadow: inset 4px 0 #d56860;
+}
+
+.leaderboard-row.retired-row .position-cell {
+    color: #aa4039;
+}
+
+.leaderboard-row.podium-finished.podium-1 {
+    background: #fff5cf;
+    box-shadow: inset 4px 0 #d4af37;
+}
+
+.leaderboard-row.podium-finished.podium-2 {
+    background: #f0f2f4;
+    box-shadow: inset 4px 0 #9da5ad;
+}
+
+.leaderboard-row.podium-finished.podium-3 {
+    background: #f7e5d8;
+    box-shadow: inset 4px 0 #b87333;
+}
+
+.leaderboard-row.podium-1 .position-cell { color: #a57f00; }
+.leaderboard-row.podium-2 .position-cell { color: #727b84; }
+.leaderboard-row.podium-3 .position-cell { color: #99521f; }
+
+.podium-trophy {
+    flex: 0 0 auto;
 }
 
 .car-identity {

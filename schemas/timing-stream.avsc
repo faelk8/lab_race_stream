@@ -94,6 +94,11 @@
     {
       "name": "valid",
       "type": "boolean"
+    },
+    {
+      "name": "race_position",
+      "type": "int",
+      "default": 0
     }
   ]
 }

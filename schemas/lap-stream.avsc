@@ -77,6 +77,16 @@
     {
       "name": "valid",
       "type": "boolean"
+    },
+    {
+      "name": "current_lap",
+      "type": "int",
+      "default": 1
+    },
+    {
+      "name": "race_position",
+      "type": "int",
+      "default": 0
     }
   ]
 }

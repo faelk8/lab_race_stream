@@ -33,6 +33,8 @@ class PhysicalCar:
     pit_stops: int = 0
     pit_remaining: float = 0.0
     pit_added: float = 0.0
+    pit_entry_time: float | None = None
+    pit_lap_number: int | None = None
     pit_requested: bool = False
     tire_change_pending: bool = False
     applied_incidents: set[int] = field(default_factory=set)
@@ -104,11 +106,12 @@ class PhysicalRace:
         self.cars = [
             PhysicalCar(
                 p,
-                -i * track.grid_spacing_m,
+                -(i // 2) * track.grid_spacing_m,
                 track.tank_capacity_kg * (1.0 if p.strategy == "A" else 0.5),
                 active_tire=p.tire_compound.value,
                 wet_stop_lap=rain_stop_laps[i],
                 position=i + 1,
+                lane=i % 2,
                 pace=Random(seed + i).uniform(0.97, 1.0),
             )
             for i, p in enumerate(profiles)
@@ -233,8 +236,10 @@ class PhysicalRace:
         if car.pit_status == "in_pit":
             car.speed = car.throttle = car.brake = car.g_long = car.g_lat = 0.0
             car.g_valid = True
+            remaining_before = car.pit_remaining
             car.pit_remaining -= dt
             if car.pit_remaining <= 0:
+                finished_at = self.time + min(dt, max(0.0, remaining_before))
                 car.fuel = min(track.tank_capacity_kg, car.fuel + car.pit_added)
                 if car.target_tire is not None:
                     car.active_tire = car.target_tire
@@ -250,8 +255,11 @@ class PhysicalRace:
                         "stop_number": car.pit_stops,
                         "fuel_added_kg": car.pit_added,
                         "tire_compound": car.active_tire,
+                        "lap": self._pit_lap(car),
+                        "pit_stop_time_ms": self._pit_elapsed_ms(car, finished_at),
                     },
                     car,
+                    finished_at,
                 )
             return
         per_m = (
@@ -368,16 +376,23 @@ class PhysicalRace:
                 boundary += track.length_m
             if not previous < boundary <= proposed:
                 continue
+            crossing_at = self.time + (boundary - previous) / (proposed - previous) * dt
             if phase == "entry" and car.pit_requested and car.pit_status == "on_track":
                 car.pit_status, car.pit_lap = "pit_lane", True
+                car.pit_entry_time = crossing_at
+                car.pit_lap_number = floor(boundary / track.length_m) + 1
                 self._emit(
                     "pitstop",
                     {
                         "phase": "entry",
                         "stop_number": car.pit_stops + 1,
                         "fuel_added_kg": 0.0,
+                        "tire_compound": car.active_tire,
+                        "lap": self._pit_lap(car),
+                        "pit_stop_time_ms": 0,
                     },
                     car,
+                    crossing_at,
                 )
             elif (
                 phase == "service"
@@ -385,7 +400,7 @@ class PhysicalRace:
                 and car.pit_requested
             ):
                 proposed, speed = boundary, 0.0
-                self._service(car, per_m)
+                self._service(car, per_m, crossing_at)
             elif (
                 phase == "exit"
                 and car.pit_status == "pit_lane"
@@ -398,9 +413,15 @@ class PhysicalRace:
                         "phase": "exit",
                         "stop_number": car.pit_stops,
                         "fuel_added_kg": 0.0,
+                        "tire_compound": car.active_tire,
+                        "lap": self._pit_lap(car),
+                        "pit_stop_time_ms": self._pit_elapsed_ms(car, crossing_at),
                     },
                     car,
+                    crossing_at,
                 )
+                car.pit_entry_time = None
+                car.pit_lap_number = None
         finish = self.configuration.target_laps * track.length_m
         if self.leader_finished is not None:
             finish = (floor(previous / track.length_m) + 1) * track.length_m
@@ -467,8 +488,16 @@ class PhysicalRace:
                         participant.applied_incidents.add(index)
                         self._retire(participant, "collision", self.time)
 
-    def _service(self, car: PhysicalCar, per_m: float) -> None:
+    def _service(
+        self, car: PhysicalCar, per_m: float, at: float | None = None
+    ) -> None:
         """Calcule reposição por estratégia, reserva e vazão de abastecimento."""
+        service_at = self.time if at is None else at
+        if car.pit_entry_time is None:
+            car.pit_entry_time = service_at
+            car.pit_lap_number = max(
+                1, floor(max(0.0, car.distance) / self.track.length_m) + 1
+            )
         car.pit_stops += 1
         remaining = (
             max(
@@ -503,9 +532,24 @@ class PhysicalRace:
                 "stop_number": car.pit_stops,
                 "fuel_added_kg": car.pit_added,
                 "tire_compound": car.target_tire or car.active_tire,
+                "lap": self._pit_lap(car),
+                "pit_stop_time_ms": self._pit_elapsed_ms(car, service_at),
             },
             car,
+            service_at,
         )
+
+    def _pit_lap(self, car: PhysicalCar) -> int:
+        """Retorne a volta em que a passagem atual pelos boxes começou."""
+        return car.pit_lap_number or max(
+            1, floor(max(0.0, car.distance) / self.track.length_m) + 1
+        )
+
+    @staticmethod
+    def _pit_elapsed_ms(car: PhysicalCar, at: float) -> int:
+        """Calcule o tempo cumulativo desde a entrada no pit lane."""
+        start = car.pit_entry_time if car.pit_entry_time is not None else at
+        return max(0, round((at - start) * 1000))
 
     def _crossings(
         self, car: PhysicalCar, previous: float, current: float, dt: float
@@ -529,6 +573,7 @@ class PhysicalRace:
                         "driver_id": car.configuration.driver_id,
                         "team_id": car.configuration.team_id,
                         "lap": lap_index + 1,
+                        "race_position": car.position,
                         "checkpoint_id": checkpoint,
                         "sector": sector,
                         "speed_kmh": car.speed * 3.6,

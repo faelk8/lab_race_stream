@@ -58,6 +58,21 @@
     {
       "name": "fuel_added_kg",
       "type": "double"
+    },
+    {
+      "name": "tire_compound",
+      "type": "string",
+      "default": "medium"
+    },
+    {
+      "name": "lap",
+      "type": "int",
+      "default": 0
+    },
+    {
+      "name": "pit_stop_time_ms",
+      "type": "long",
+      "default": 0
     }
   ]
 }

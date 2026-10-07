@@ -70,6 +70,18 @@ nenhuma corrida foi iniciada para esta alteração.
 
 ## Trabalho atual
 
+**Grid, pelotão e eventos enriquecidos (06/10/2026):** a largada posiciona os
+vinte carros em dez linhas de duas colunas. Durante a corrida, os três primeiros
+recebem fundo verde claro; abandonos recebem vermelho claro. Após o encerramento,
+as três primeiras linhas usam ouro, prata e bronze e exibem seus troféus. O cartão
+de telemetria mostra força G instantânea e pico. `lap_completed` inclui volta
+corrente e posição, enquanto `pitstop` inclui volta, composto e duração cumulativa
+desde a entrada até a saída. A decisão está na ADR 0015 e a execução no plano
+`execplan-grid-e-eventos.md`. Ruff, mypy, quatro testes Python direcionados,
+testes do frontend, typecheck e build foram aprovados. Os schemas foram aceitos
+pelo Schema Registry e os serviços alterados foram reconstruídos. Nenhuma
+corrida completa foi iniciada para essa validação.
+
 **Chuva e troca gradual para pneus molhados (06/10/2026):** intensidade agora
 reduz velocidade máxima e aderência dos pneus secos (e afeta também o ritmo com
 pneu de chuva), aumentando o tempo físico medido por volta. O setup aceita
@@ -131,6 +143,7 @@ Consulte o ExecPlan específico antes de continuar.
 - [ADR 0011 de persistência e Spark](adr/0011-spark-postgresql-minio.md).
 - [Decisões técnicas e limites](adr/0010-cronometragem-e-projecoes-de-corrida.md).
 - [Índice da documentação técnica](index.md).
+- [Plano de grid, pelotão e eventos](execplan-grid-e-eventos.md).
 - [Evidências anteriores](validation/refinamento-v4.json).
 - `git log --oneline -12`: commits efetivamente registrados.
 - `git status --short`: alterações ainda não commitadas.

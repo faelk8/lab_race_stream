@@ -37,9 +37,15 @@ def validate_event(event: dict[str, Any]) -> None:
     if event.get("kind") == "timing":
         if event["lap_elapsed_ms"] < 0 or event["segment_time_ms"] < 0:
             raise ValueError("Parcial negativa")
+        if event["race_position"] < 1:
+            raise ValueError("Posição da parcial inválida")
         if event["sector"] not in (0, 1, 2, 3):
             raise ValueError("Setor inválido")
         if event["sector"] and (
             event["sector_time_ms"] is None or event["sector_time_ms"] < 0
         ):
             raise ValueError("Setor sem tempo válido")
+    if event.get("kind") == "pitstop" and (
+        event["lap"] < 1 or event["pit_stop_time_ms"] < 0
+    ):
+        raise ValueError("Contexto de pit stop inválido")

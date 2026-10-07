@@ -135,7 +135,9 @@ Campos, chaves e persistência estão no
 Durante a prova, o dashboard mostra carros no mapa, pelotão ordenado, volta
 atual/total, última volta, setup, combustível, pneus e força G estimada. O
 acompanhamento por carro, piloto ou equipe apresenta melhor/pior volta, ritmo e
-parciais interativas.
+parciais interativas. Na largada, os carros ocupam dez linhas de duas colunas.
+Durante a corrida, o pódio recebe destaque verde e abandonos ficam em vermelho
+claro; ouro, prata e bronze aparecem somente após o encerramento.
 
 PostgreSQL preserva a configuração, o ciclo da corrida, a classificação final ou
 parcial e as projeções recuperáveis. A API ainda não expõe um endpoint dedicado
@@ -162,8 +164,9 @@ persistência está detalhada em [docs/persistence.md](docs/persistence.md).
 7. Spark arquiva o fluxo no MinIO em paralelo.
 
 Pit stops respeitam 60 km/h da entrada à saída, consomem tempo de serviço e
-podem alterar a posição. Chuva reduz aderência/velocidade e agenda trocas para
-pneus `wet`. Furos e colisões podem ser programados antes da largada.
+podem alterar a posição. Seus eventos registram a volta e o tempo cumulativo da
+passagem pelos boxes. Chuva reduz aderência/velocidade e agenda trocas para pneus
+`wet`. Furos e colisões podem ser programados antes da largada.
 
 O fluxo completo está em [docs/data-flow.md](docs/data-flow.md).
 

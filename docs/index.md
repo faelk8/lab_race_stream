@@ -26,7 +26,7 @@ medições oficiais de pista ou de veículos reais.
 
 | Capacidade | Situação |
 | --- | --- |
-| Simulação física e configurável de 20 carros | Implementada no serviço `simulator`. |
+| Simulação física e configurável de 20 carros | Implementada no serviço `simulator`, com grid inicial em duas colunas. |
 | Eventos Kafka com contratos Avro | Implementados com Schema Registry. |
 | Projeções online e histórico discreto | Implementados no consumer Python e PostgreSQL. |
 | API REST e WebSocket | Implementados com FastAPI. |
@@ -57,4 +57,3 @@ medições oficiais de pista ou de veículos reais.
 Os planos de execução registram a evolução e as evidências históricas. Para
 entender o estado atual, use primeiro os documentos desta página e depois os
 [ADRs](decisions.md).
-

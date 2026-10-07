@@ -127,6 +127,9 @@ def apply_event(state: dict[str, Any], event: dict[str, Any]) -> list[dict[str, 
             event = state["lap_end"].pop(sector_key)
             sectors = state["sectors"].get(sector_key, {})
             valid_lap = len(sectors) == 3
+            target_laps = int(
+                (state.get("control") or {}).get("target_laps") or lap + 1
+            )
             completed = derived(
                 event,
                 "lap",
@@ -135,6 +138,8 @@ def apply_event(state: dict[str, Any], event: dict[str, Any]) -> list[dict[str, 
                     "driver_id": event["driver_id"],
                     "team_id": event["team_id"],
                     "lap": lap,
+                    "current_lap": min(lap + 1, target_laps),
+                    "race_position": int(event["race_position"]),
                     "lap_time_ms": event["lap_elapsed_ms"],
                     "sectors_ms": [sectors.get(str(i), 0) for i in (1, 2, 3)],
                     "pit_lap": event["pit_lap"],

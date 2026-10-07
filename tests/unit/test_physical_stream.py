@@ -54,6 +54,8 @@ def test_measured_laps_and_sector_sum(
     assert len(laps) == 4
     assert all(abs(sum(e["sectors_ms"]) - e["lap_time_ms"]) <= 1 for e in laps)
     assert all(50_000 < e["lap_time_ms"] < 200_000 for e in laps)
+    assert all(e["current_lap"] == 2 for e in laps)
+    assert all(e["race_position"] in (1, 2) for e in laps)
     assert [
         c.position for c in sorted(race.cars, key=lambda c: c.finished_at or 0)
     ] == [
@@ -136,6 +138,24 @@ def test_distance_and_acceleration_follow_fixed_step() -> None:
     assert a.cars[0].g_long == pytest.approx(track.acceleration_m_s2 / 9.80665)
 
 
+def test_starting_grid_has_two_columns_and_ten_rows() -> None:
+    """Posicione os vinte carros em dez linhas com duas faixas laterais."""
+    track = load_track()
+    race = PhysicalRace(
+        RaceConfiguration("grid-duplo"), create_default_car_configurations(), track
+    )
+
+    rows: dict[float, list[int]] = {}
+    for car in race.cars:
+        rows.setdefault(car.distance, []).append(car.lane)
+
+    assert len(rows) == 10
+    assert sorted(rows, reverse=True) == [
+        -row * track.grid_spacing_m for row in range(10)
+    ]
+    assert all(sorted(lanes) == [0, 1] for lanes in rows.values())
+
+
 def test_third_stop_adds_only_remaining_plus_reserve() -> None:
     """A terceira parada de C desconta o combustível a bordo e reserva uma volta."""
     profile = replace(create_default_car_configurations()[0], strategy="C")
@@ -174,7 +194,7 @@ def test_rain_stop_schedule_staggers_every_car_by_two_to_six_laps() -> None:
         seed=71,
     )
     schedule = [car.wet_stop_lap for car in race.cars]
-    ordered_stops = sorted(set(schedule))
+    ordered_stops = sorted(lap for lap in schedule if lap is not None)
     assert len(schedule) == 20
     assert len(ordered_stops) == 20
     assert all(lap is not None and 1 <= lap < 60 for lap in schedule)
@@ -466,9 +486,13 @@ def test_pit_lane_limit_service_and_position_loss() -> None:
     service_duration = 0.0
     stopped_distance = 0.0
     fuel_before = 0.0
+    pit_events: list[dict[str, Any]] = []
     for _ in range(4000):
         before = car.pit_status
         race.advance(track.physics_step_seconds)
+        pit_events.extend(
+            event for event in race.drain_events() if event["kind"] == "pitstop"
+        )
         if car.pit_status != "on_track" or before != "on_track":
             assert car.speed * 3.6 <= 60.0 + 1e-8
         if before == "on_track" and car.pit_status == "pit_lane":
@@ -494,6 +518,25 @@ def test_pit_lane_limit_service_and_position_loss() -> None:
             assert serviced
             assert car.position == 2
             assert rival.distance > car.distance
+            assert [event["phase"] for event in pit_events] == [
+                "entry",
+                "service_started",
+                "service_finished",
+                "exit",
+            ]
+            assert all(event["lap"] >= 1 for event in pit_events)
+            assert all(event["pit_stop_time_ms"] >= 0 for event in pit_events)
+            assert pit_events[0]["pit_stop_time_ms"] == 0
+            assert pit_events[-1]["pit_stop_time_ms"] > pit_events[-2][
+                "pit_stop_time_ms"
+            ]
+            schema = json.loads(Path("schemas/pitstop-stream.avsc").read_text())
+            for event in pit_events:
+                validate_event(event)
+                buffer = BytesIO()
+                schemaless_writer(buffer, schema, event)
+                buffer.seek(0)
+                assert schemaless_reader(buffer, schema) == event
             break
     else:
         pytest.fail("O carro não completou a passagem pelos boxes em 80 segundos")

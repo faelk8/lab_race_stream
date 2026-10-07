@@ -94,10 +94,15 @@ A pista define 15 checkpoints, dois finais de setor e a linha de chegada. O
 simulador emite `timing` em cada cruzamento. A projeção agrupa os três setores e
 a chegada para criar `lap_completed`, mantém melhor/pior/última volta, melhores
 setores, até cinco voltas limpas para ritmo e referências comuns de intervalo.
+O evento de volta concluída também informa a volta corrente e a posição. Os
+eventos de pit stop registram a volta de entrada e o tempo cumulativo da passagem
+desde a entrada até a saída do pit lane.
 
 As diferenças ao líder permanecem no contrato `analytics`, mas o painel atual
 não exibe a coluna de diferença ao líder no pelotão. Ele exibe a última volta e
-permite acompanhar carro, piloto ou equipe.
+permite acompanhar carro, piloto ou equipe. O grid inicial usa duas colunas; o
+painel destaca os três primeiros em verde durante a prova, abandonos em vermelho
+claro e o pódio final em ouro, prata e bronze.
 
 ## Arquivamento e análise Spark
 

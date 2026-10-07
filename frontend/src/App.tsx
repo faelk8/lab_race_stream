@@ -330,14 +330,27 @@ export function App() {
                                 const event = telemetry[car.car_id];
                                 const position = event?.race_position ?? index + 1;
                                 const selected = selectedCarId === car.car_id;
+                                const retired = event?.car_status === "retired";
+                                const livePodium = currentStatus === "running" && position <= 3;
+                                const finishedPodium = currentStatus === "finished" && position <= 3;
+                                const resultClass = retired
+                                    ? " retired-row"
+                                    : finishedPodium
+                                      ? ` podium-finished podium-${position}`
+                                      : livePodium
+                                        ? " podium-live"
+                                        : "";
                                 return (
                                     <button
-                                        className={`leaderboard-row${selected ? " selected" : ""}${position === 1 ? " first-place" : ""}`}
+                                        className={`leaderboard-row${selected ? " selected" : ""}${resultClass}`}
                                         key={car.car_id}
                                         onClick={() => setSelectedCarId(car.car_id)}
                                         type="button"
                                     >
-                                        <span className="position-cell">{position === 1 && <Trophy size={12} />}{position.toString().padStart(2, "0")}</span>
+                                        <span className="position-cell">
+                                            {finishedPodium && <Trophy className="podium-trophy" size={12} aria-label={`Troféu da ${position}ª posição`} />}
+                                            {position.toString().padStart(2, "0")}
+                                        </span>
                                         <span className="car-identity">
                                             <span className="driver-identity"><span className="country-flag" role="img" aria-label={`País: ${countryName(car.driver_country_code)}`} title={countryName(car.driver_country_code)}>{countryFlag(car.driver_country_code)}</span><strong>{event?.driver_name || car.driver_name || car.driver_id}</strong></span>
                                             <small>{teamName(car.team_id)} · {car.car_id}</small>
@@ -349,7 +362,6 @@ export function App() {
                             })}
                             {cars.length === 0 && <div className="empty-list">CARREGANDO GRID...</div>}
                         </div>
-                        <p className="leaderboard-note">Diferença medida na última passagem comum. “—” indica referência ainda indisponível.</p>
                     </section>
 
                     <aside className="car-panel" aria-labelledby="car-heading">
@@ -383,6 +395,16 @@ export function App() {
                                 <Trophy size={17} />
                                 <span>MELHOR VOLTA</span>
                                 <strong className="time-value">{formatLapTime(selectedTelemetry?.best_lap_time_ms)}</strong>
+                            </div>
+                            <div className="telemetry-stat">
+                                <Activity size={17} />
+                                <span>FORÇA G</span>
+                                <strong>{selectedTelemetry?.g_horizontal?.toFixed(2) ?? "---"}<small> g</small></strong>
+                            </div>
+                            <div className="telemetry-stat">
+                                <Gauge size={17} />
+                                <span>PICO DE FORÇA G</span>
+                                <strong>{selectedTelemetry?.g_peak?.toFixed(2) ?? "---"}<small> g</small></strong>
                             </div>
                         </div>
 

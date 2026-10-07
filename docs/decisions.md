@@ -18,6 +18,7 @@ novo prevalece para a arquitetura atual.
 | [0012](adr/0012-cenarios-de-prova-e-paridade-spark.md) | Chuva/incidentes reproduzíveis e paridade batch. |
 | [0013](adr/0013-nomes-curtos-topicos-kafka.md) | Tópicos Kafka curtos. |
 | [0014](adr/0014-spark-como-motor-unico.md) | Spark como único motor distribuído. |
+| [0015](adr/0015-grid-e-contexto-de-volta-e-pit-stop.md) | Grid em duas colunas e contexto de volta e pit stop nos eventos. |
 
 ## Decisões substituídas ou ampliadas
 
@@ -49,4 +50,3 @@ Ainda não existem ADRs aceitos para autenticação, produção em cluster, back
 Iceberg, ClickHouse, CDC, métricas/traces ou CI/CD.
 
 > Não identificado no repositório.
-
