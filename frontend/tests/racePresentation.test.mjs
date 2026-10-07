@@ -5,7 +5,7 @@ import ts from "typescript";
 
 const source = readFileSync(new URL("../src/racePresentation.ts", import.meta.url), "utf8");
 const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } });
-const { rankCars, leaderGapMs, formatGap, countryFlag, countryName, RaceFrameBuffer, placeMapLabels } =
+const { rankCars, leaderGapMs, formatGap, countryFlag, countryName, RaceFrameBuffer } =
     await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
 
 function event(carId, position, elapsed = 1, lap = 2, progress = 0.9) {
@@ -69,20 +69,10 @@ test("Bandeiras correspondem ao país e os nomes aparecem em português", () => 
     assert.equal(countryName("BR"), "Brasil");
 });
 
-test("Vinte carros próximos têm balões distintos dentro do mapa", () => {
-    const anchors = Array.from({ length: 20 }, (_, i) => ({ carId: `CAR-${i + 1}`, x: 185 + i * 0.1, y: 556 }));
-    const labels = placeMapLabels(anchors);
-    assert.equal(labels.length, 20);
-    for (const label of labels) {
-        assert.ok(label.x >= 144 && label.x + label.width <= 599);
-        assert.ok(label.y >= 218 && label.y + label.height <= 687);
-        for (const other of labels) {
-            if (other === label) continue;
-            const overlap = label.x < other.x + other.width && label.x + label.width > other.x &&
-                label.y < other.y + other.height && label.y + label.height > other.y;
-            assert.equal(overlap, false);
-        }
-    }
+test("O mapa mantém os carros clicáveis sem renderizar balões de identificação", () => {
+    const source = readFileSync(new URL("../src/InterlagosTrack.tsx", import.meta.url), "utf8");
+    assert.match(source, /onSelectCar\(car\.car_id\)/);
+    assert.doesNotMatch(source, /map-car-balloon|placeMapLabels/);
 });
 
 test("A parada atualiza o quadro sem avançar o tempo da corrida", () => {

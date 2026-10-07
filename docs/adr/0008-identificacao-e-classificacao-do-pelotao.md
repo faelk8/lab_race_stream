@@ -18,9 +18,9 @@ também chegam por partições diferentes e podem misturar instantes na interfac
 - Migrar volumes existentes e preservar nomes/países já preenchidos. Clientes
   antigos da API preservam esses metadados quando não os enviam na edição.
 - Exibir equipe com nome legível, por exemplo `Equipe A1`, mantendo o ID técnico.
-- Manter pequenos balões visíveis no SVG com `CAR-01 · P1`, sem coordenadas de
-  tela na telemetria. Distribuir os balões dentro do mapa evitando sobreposição;
-  cada balão permanece ligado ao marcador do carro e permite selecioná-lo.
+- Exibir no mapa os marcadores dos carros sem rótulos ou balões flutuantes para
+  reduzir a poluição visual. Os marcadores continuam selecionáveis e a identidade
+  permanece disponível no pelotão.
 - Montar quadros completos dos carros com o mesmo `event_time` e tempo decorrido.
   Rejeitar quadros antigos, de outra corrida ou com posições duplicadas. Limitar
   o buffer a 32 quadros pendentes e ampliar a fila WebSocket para 256 eventos,
@@ -37,7 +37,7 @@ também chegam por partições diferentes e podem misturar instantes na interfac
 ## Validação
 Testes do frontend cobrem ordenação, diferença do 15º versus 4º mesmo com última
 volta mais rápida, carros em voltas distintas, mensagens fora de ordem, posições
-duplicadas, buffer limitado, bandeiras e vinte balões próximos sem sobreposição.
+duplicadas, buffer limitado, bandeiras e ausência de balões mantendo a seleção.
 Testes da API verificam edição e preservação de nome/país, validação de código e
 capacidade da fila WebSocket. Conferência visual com dados controlados verificou
 vinte balões e classificação de 1 a 20 em desktop e celular, sem erros JavaScript

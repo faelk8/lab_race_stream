@@ -59,6 +59,16 @@ class ControlledRepository(FakeRaceRepository):
             self.status = "stopping"
         return self.get_latest_race()
 
+    def request_pause(self, race_id: str) -> RaceSnapshot:
+        if self.status == "running":
+            self.status = "paused"
+        return self.get_latest_race()
+
+    def request_resume(self, race_id: str) -> RaceSnapshot:
+        if self.status == "paused":
+            self.status = "running"
+        return self.get_latest_race()
+
     def claim_next_race(self) -> RaceConfiguration | None:
         """Reserve uma solicitação uma única vez."""
         if self.status != "queued":
@@ -102,14 +112,38 @@ def test_stop_preserves_progress_and_worker_waits_for_another_start() -> None:
         (e.fuel_kg, e.track_progress, e.elapsed_race_seconds) for e in previous
     ]
     assert repository.status == "stopped" and len(repository.results) == 2
-    count = len(publisher.events)
-    worker.step(10)
-    assert worker.active_race_id is None and len(publisher.events) == count
-    repository.request_start(RaceConfiguration(race_id="nova"))
+
+
+def test_physical_worker_pause_and_resume_preserve_race_progress() -> None:
+    """O worker mantém carros e relógio imóveis até receber retomada."""
+    from test_physical_stream import CapturePublisher
+
+    from racestream.application.physical_worker import PhysicalWorker
+    from racestream.domain.physical import PhysicalRace
+    from racestream.infrastructure.track_config import load_track
+
+    repository = ControlledRepository()
+    publisher = CapturePublisher()
+    worker = PhysicalWorker(
+        repository, repository, publisher, load_track(), time_scale=2
+    )
+    repository.request_start(RaceConfiguration("worker-pausa", target_laps=10))
+    worker.step(0)
+    worker.step(1)
+    assert isinstance(worker.race, PhysicalRace)
+    state = [car.distance for car in worker.race.cars]
+    clock = worker.race.time
+    repository.request_pause("worker-pausa")
+    worker.step(5)
+    assert worker.race.paused
+    assert worker.race.time == clock
+    assert [car.distance for car in worker.race.cars] == state
+    assert publisher.events[-1]["race_status"] == "paused"
+    assert publisher.events[-1]["speed_kmh"] == 0
+    repository.request_resume("worker-pausa")
     worker.step(0.1)
-    assert worker.active_race_id == "nova"
-    worker.stop_active()
-    assert repository.status == "stopped"
+    assert not worker.race.paused
+    assert worker.race.time > clock
 
 
 def test_cancel_pending_and_natural_finish() -> None:

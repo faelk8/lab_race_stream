@@ -63,7 +63,7 @@ export interface RaceTelemetry {
     best_lap_time_ms: number | null;
     elapsed_race_seconds: number;
     target_laps: number;
-    race_status: "running" | "finished" | "stopped";
+    race_status: "running" | "paused" | "finished" | "stopped";
     track_status?: "green" | "safety_car";
     time_penalty_seconds?: number;
 }
@@ -73,7 +73,7 @@ export interface RaceSnapshot {
     circuit_name: string;
     duration_seconds: number;
     target_laps: number;
-    status: "queued" | "running" | "stopping" | "stopped" | "finished" | "failed";
+    status: "queued" | "running" | "paused" | "stopping" | "stopped" | "finished" | "failed";
     started_at: string;
     finished_at: string | null;
     rain_enabled: boolean;

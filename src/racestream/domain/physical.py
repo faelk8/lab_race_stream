@@ -80,6 +80,7 @@ class PhysicalRace:
         self.time = 0.0
         self.pending_time = 0.0
         self.status = "running"
+        self.paused = False
         self.snapshot_id = 0
         self.sequence = 0
         self.overtakes = 0
@@ -121,16 +122,21 @@ class PhysicalRace:
             ):
                 raise ValueError("A penalidade deve ter ao menos um segundo")
         rain_stop_laps = self._rain_stop_schedule(len(profiles), seed)
+        grid_order = list(profiles)
+        Random(seed ^ hash(configuration.race_id)).shuffle(grid_order)
+        grid_positions = {
+            profile.car_id: index for index, profile in enumerate(grid_order)
+        }
         self.cars = [
             PhysicalCar(
                 p,
-                -(i // 2) * track.grid_spacing_m,
+                -(grid_positions[p.car_id] // 2) * track.grid_spacing_m,
                 track.tank_capacity_kg * (1.0 if p.strategy == "A" else 0.5),
                 active_tire=p.tire_compound.value,
                 wet_stop_lap=rain_stop_laps[i],
-                position=i + 1,
-                lane=i % 2,
-                pace=Random(seed + i).uniform(0.97, 1.0),
+                position=grid_positions[p.car_id] + 1,
+                lane=grid_positions[p.car_id] % 2,
+                pace=Random(seed + grid_positions[p.car_id]).uniform(0.97, 1.0),
             )
             for i, p in enumerate(profiles)
         ]
@@ -221,6 +227,8 @@ class PhysicalRace:
         """Avance em subpassos físicos fixos, preservando determinismo da escala."""
         if simulation_seconds < 0:
             raise ValueError("O tempo não pode retroceder")
+        if self.paused or self.status != "running":
+            return
         self.pending_time += simulation_seconds
         step = self.track.physics_step_seconds
         while self.pending_time + 1e-9 >= step and self.status == "running":
@@ -745,7 +753,7 @@ class PhysicalRace:
                     "sector": 1
                     + sum(progress >= v for v in self.track.sector_ends[:2]),
                     "target_laps": self.configuration.target_laps,
-                    "race_status": self.status,
+                    "race_status": "paused" if self.paused else self.status,
                     "track_status": self.track_status,
                     "car_status": car.status,
                     "fuel_kg": car.fuel,
@@ -793,6 +801,18 @@ class PhysicalRace:
                 car,
             )
             car.peak_g = 0.0
+
+    def pause(self) -> None:
+        """Congele o relógio sem alterar a situação ou posição dos carros."""
+        self.paused = True
+        for car in self.cars:
+            car.speed = car.g_long = car.g_lat = car.throttle = car.brake = 0.0
+            car.g_valid = True
+
+    def resume(self) -> None:
+        """Retome a integração a partir do estado físico preservado."""
+        if self.status == "running":
+            self.paused = False
 
     def stop(self) -> None:
         """Encerre administrativamente sem criar aceleração ou volta artificial."""

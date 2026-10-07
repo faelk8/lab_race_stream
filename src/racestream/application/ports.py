@@ -77,6 +77,20 @@ class RaceControl(Protocol):
         :return: Estado persistido após a solicitação.
         """
 
+    def request_pause(self, race_id: str) -> RaceSnapshot:
+        """Pause uma corrida ativa sem finalizar seus resultados.
+
+        :param race_id: Identificador da corrida.
+        :return: Estado persistido após a pausa.
+        """
+
+    def request_resume(self, race_id: str) -> RaceSnapshot:
+        """Retome uma corrida pausada.
+
+        :param race_id: Identificador da corrida.
+        :return: Estado persistido após a retomada.
+        """
+
     def claim_next_race(self) -> RaceConfiguration | None:
         """Reserve atomicamente a próxima corrida pendente.
 

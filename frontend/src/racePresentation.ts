@@ -78,29 +78,3 @@ export class RaceFrameBuffer {
         return frame;
     }
 }
-
-export interface MapAnchor { carId: string; x: number; y: number }
-export interface MapLabel extends MapAnchor { width: number; height: number }
-
-/** Distribui balões sem sobreposição dentro da área visível do SVG. */
-export function placeMapLabels(anchors: MapAnchor[]): MapLabel[] {
-    const placed: MapLabel[] = [];
-    const width = 80;
-    const height = 18;
-    for (const anchor of anchors) {
-        let chosen: MapLabel | undefined;
-        for (let ring = 0; ring < 36 && !chosen; ring++) {
-            for (let direction = 0; direction < 16 && !chosen; direction++) {
-                const angle = -Math.PI / 2 + direction * Math.PI / 8;
-                const radius = 24 + ring * 12;
-                const x = Math.max(144, Math.min(599 - width, anchor.x + Math.cos(angle) * radius - width / 2));
-                const y = Math.max(218, Math.min(687 - height, anchor.y + Math.sin(angle) * radius - height / 2));
-                const overlaps = placed.some((other) => x < other.x + width + 3 && x + width + 3 > other.x &&
-                    y < other.y + height + 3 && y + height + 3 > other.y);
-                if (!overlaps) chosen = { carId: anchor.carId, x, y, width, height };
-            }
-        }
-        if (chosen) placed.push(chosen);
-    }
-    return placed;
-}

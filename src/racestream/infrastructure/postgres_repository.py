@@ -40,6 +40,9 @@ class PostgresRaceRepository:
                     "004_race_control.sql",
                     "005_stream_projections.sql",
                     "006_race_scenarios.sql",
+                    "007_pneu_chuva.sql",
+                    "008_pause_race.sql",
+                    "004_race_control.sql",
                 ):
                     cursor.execute(Path("postgres/initdb", migration).read_text())
                 cursor.executemany(
@@ -173,7 +176,7 @@ class PostgresRaceRepository:
                 UPDATE races
                 SET status = CASE WHEN status IN ('stopping', 'stopped')
                     THEN 'stopped' ELSE 'finished' END, finished_at = now()
-                WHERE race_id = %s
+                WHERE race_id = %s AND status <> 'paused'
                 """,
                 (race_id,),
             )
@@ -217,7 +220,7 @@ class PostgresRaceRepository:
             connection.execute("SELECT pg_advisory_xact_lock(724163)")
             row = connection.execute(
                 """SELECT * FROM races WHERE controlled
-                AND status IN ('queued', 'running', 'stopping') LIMIT 1"""
+                AND status IN ('queued', 'running', 'paused', 'stopping') LIMIT 1"""
             ).fetchone()
             if row is None:
                 row = connection.execute(
@@ -259,6 +262,38 @@ class PostgresRaceRepository:
                 WHERE race_id = %s RETURNING *""",
                 (race_id,),
             ).fetchone()
+        if row is None:
+            raise KeyError(f"Corrida desconhecida: {race_id}")
+        return self._snapshot_from_row(row)
+
+    def request_pause(self, race_id: str) -> RaceSnapshot:
+        """Pause a corrida sem encerrá-la."""
+        with self._connect() as connection:
+            row = connection.execute(
+                """UPDATE races SET status = 'paused'
+                WHERE race_id = %s AND status = 'running' RETURNING *""",
+                (race_id,),
+            ).fetchone()
+            if row is None:
+                row = connection.execute(
+                    "SELECT * FROM races WHERE race_id = %s", (race_id,)
+                ).fetchone()
+        if row is None:
+            raise KeyError(f"Corrida desconhecida: {race_id}")
+        return self._snapshot_from_row(row)
+
+    def request_resume(self, race_id: str) -> RaceSnapshot:
+        """Retome apenas uma corrida pausada."""
+        with self._connect() as connection:
+            row = connection.execute(
+                """UPDATE races SET status = 'running'
+                WHERE race_id = %s AND status = 'paused' RETURNING *""",
+                (race_id,),
+            ).fetchone()
+            if row is None:
+                row = connection.execute(
+                    "SELECT * FROM races WHERE race_id = %s", (race_id,)
+                ).fetchone()
         if row is None:
             raise KeyError(f"Corrida desconhecida: {race_id}")
         return self._snapshot_from_row(row)
@@ -314,7 +349,9 @@ class PostgresRaceRepository:
         with self._connect() as connection:
             connection.execute(
                 """UPDATE races SET status = 'failed', finished_at = now()
-                WHERE race_id = %s AND status IN ('queued', 'running', 'stopping')""",
+                WHERE race_id = %s AND status IN (
+                    'queued', 'running', 'paused', 'stopping'
+                )""",
                 (race_id,),
             )
 
@@ -323,7 +360,7 @@ class PostgresRaceRepository:
         with self._connect() as connection:
             connection.execute(
                 """UPDATE races SET status = 'stopped', finished_at = now()
-                WHERE controlled AND status IN ('running', 'stopping')"""
+                WHERE controlled AND status IN ('running', 'paused', 'stopping')"""
             )
 
     @staticmethod

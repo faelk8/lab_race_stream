@@ -258,6 +258,22 @@ def create_app(
         except KeyError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
 
+    @app.post("/api/races/{race_id}/pause")
+    def pause_race(race_id: str) -> dict[str, object]:
+        """Pause uma corrida ativa preservando seu progresso."""
+        try:
+            return asdict(control.request_pause(race_id))
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+
+    @app.post("/api/races/{race_id}/resume")
+    def resume_race(race_id: str) -> dict[str, object]:
+        """Retome uma corrida pausada."""
+        try:
+            return asdict(control.request_resume(race_id))
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+
     @app.get("/api/races/latest")
     def latest_race() -> dict[str, object] | None:
         """Return the latest persisted race lifecycle snapshot."""

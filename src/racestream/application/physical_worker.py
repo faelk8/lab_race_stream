@@ -56,7 +56,15 @@ class PhysicalWorker:
             self.race.snapshot()
             self._publish()
             return
-        if self.control.get_race_status(self.race.configuration.race_id) in (
+        status = self.control.get_race_status(self.race.configuration.race_id)
+        if status == "paused":
+            self.race.pause()
+            self.race.snapshot()
+            self._publish()
+            return
+        if status == "running" and self.race.paused:
+            self.race.resume()
+        if status in (
             "stopping",
             "stopped",
         ):

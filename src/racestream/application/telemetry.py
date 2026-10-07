@@ -43,7 +43,7 @@ class TelemetryPayload(BaseModel):
     best_lap_time_ms: int | None = Field(default=None, ge=0)
     elapsed_race_seconds: float = Field(ge=0.0, le=120.0)
     target_laps: int = Field(ge=1)
-    race_status: Literal["running", "finished", "stopped"]
+    race_status: Literal["running", "paused", "finished", "stopped"]
     tire_pressure_psi: float = Field(default=38.0, ge=0.0)
     pit_stops: int = Field(default=0, ge=0)
     overtaking_lane: int = Field(default=0, ge=0, le=1)

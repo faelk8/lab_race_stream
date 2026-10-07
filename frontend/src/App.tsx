@@ -9,6 +9,7 @@ import {
     Radio,
     Play,
     Square,
+    Pause,
     Save,
     Settings2,
     Timer,
@@ -17,7 +18,7 @@ import {
     Zap,
 } from "lucide-react";
 import { startTransition, useDeferredValue, useEffect, useRef, useState } from "react";
-import { getCars, getLatestRace, startRace, stopRace, telemetrySocketUrl, updateCar } from "./api";
+import { getCars, getLatestRace, pauseRace, resumeRace, startRace, stopRace, telemetrySocketUrl, updateCar } from "./api";
 import { RaceInsights } from "./RaceInsights";
 import { InterlagosTrack } from "./InterlagosTrack";
 import { countryFlag, countryName, rankCars, teamName } from "./racePresentation";
@@ -62,7 +63,7 @@ export function App() {
     const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
     const [draft, setDraft] = useState<CarConfiguration | null>(null);
     const [connection, setConnection] = useState<ConnectionState>("connecting");
-    const [raceAction, setRaceAction] = useState<"start" | "stop" | null>(null);
+    const [raceAction, setRaceAction] = useState<"start" | "stop" | "pause" | "resume" | null>(null);
     const raceActionLock = useRef(false);
     const [raceSetup, setRaceSetup] = useState<RaceStartConfiguration>({ rain_enabled: false, rain_start_lap: 1, rain_intensity: 0.5, incidents: [] });
     const [incidentType, setIncidentType] = useState<RaceIncident["incident_type"]>("tire_puncture");
@@ -171,24 +172,25 @@ export function App() {
     const liveCars = Object.values(telemetry);
     const leader = [...liveCars].sort((left, right) => left.race_position - right.race_position)[0];
     const elapsed = leader?.elapsed_race_seconds ?? 0;
-    const currentStatus = race?.status === "running" ? leader?.race_status ?? "running" : race?.status ?? "idle";
-    const activeRace = ["queued", "running", "stopping"].includes(currentStatus);
+    const currentStatus = race?.status ?? "idle";
+    const activeRace = ["queued", "running", "paused", "stopping"].includes(currentStatus);
     const safetyCarActive = currentStatus === "running" && leader?.track_status === "safety_car";
-    const statusLabel = safetyCarActive ? "SAFETY CAR" : { idle: "PRONTA", queued: "AGUARDANDO INÍCIO", running: "CORRIDA", stopping: "PARANDO", stopped: "PARADA", finished: "FINALIZADA", failed: "FALHA" }[currentStatus];
+    const statusLabel = safetyCarActive ? "SAFETY CAR" : { idle: "PRONTA", queued: "AGUARDANDO INÍCIO", running: "CORRIDA", paused: "PAUSADA", stopping: "PARANDO", stopped: "PARADA", finished: "FINALIZADA", failed: "FALHA" }[currentStatus];
     const selectedTelemetry = selectedCarId ? telemetry[selectedCarId] : undefined;
     const selectedConfiguration = cars.find((car) => car.car_id === selectedCarId);
     const participants = sessionCars.length ? sessionCars : cars;
     const rankedConfigurations = rankCars(participants, telemetry);
 
-    async function controlRace(action: "start" | "stop") {
+    async function controlRace(action: "start" | "stop" | "pause" | "resume") {
         if (raceActionLock.current) return;
         raceActionLock.current = true;
         setRaceAction(action);
         setError(null);
         try {
-            setRace(action === "start" ? await startRace(raceSetup) : await stopRace(race!.race_id));
+            const updatedRace = action === "start" ? await startRace(raceSetup) : action === "stop" ? await stopRace(race!.race_id) : action === "pause" ? await pauseRace(race!.race_id) : await resumeRace(race!.race_id);
+            setRace(updatedRace);
         } catch (reason) {
-            const fallback = action === "start" ? "Não foi possível iniciar a corrida." : "Não foi possível parar a corrida.";
+            const fallback = action === "start" ? "Não foi possível iniciar a corrida." : action === "stop" ? "Não foi possível parar a corrida." : action === "pause" ? "Não foi possível pausar a corrida." : "Não foi possível retomar a corrida.";
             const detail = reason instanceof Error && !(reason instanceof TypeError) ? reason.message : "";
             setError(detail || fallback);
         } finally { raceActionLock.current = false; setRaceAction(null); }
@@ -258,7 +260,10 @@ export function App() {
 
                 <section className="race-controls" aria-label="Controle da corrida">
                     <button id="start-race" disabled={activeRace || raceAction !== null} onClick={() => void controlRace("start")}><Play size={16} />{raceAction === "start" ? "Iniciando..." : "Iniciar corrida"}</button>
-                    <button id="stop-race" className="stop-race" disabled={!race || !["queued", "running"].includes(currentStatus) || raceAction !== null} onClick={() => void controlRace("stop")}><Square size={16} />{raceAction === "stop" ? "Parando..." : "Parar corrida"}</button>
+                    {currentStatus === "paused"
+                        ? <button id="resume-race" disabled={raceAction !== null} onClick={() => void controlRace("resume")}><Play size={16} />{raceAction === "resume" ? "Retomando..." : "Retomar corrida"}</button>
+                        : <button id="pause-race" disabled={currentStatus !== "running" || raceAction !== null} onClick={() => void controlRace("pause")}><Pause size={16} />{raceAction === "pause" ? "Pausando..." : "Pausar corrida"}</button>}
+                    <button id="stop-race" className="stop-race" disabled={!race || !["queued", "running", "paused"].includes(currentStatus) || raceAction !== null} onClick={() => void controlRace("stop")}><Square size={16} />{raceAction === "stop" ? "Parando..." : "Parar corrida"}</button>
                     <span>Parar encerra a prova atual. Iniciar cria uma nova corrida.</span>
                 </section>
                 {activeRace && race && <p className="race-conditions" aria-live="polite">
@@ -334,7 +339,7 @@ export function App() {
                                 const position = event?.race_position ?? index + 1;
                                 const selected = selectedCarId === car.car_id;
                                 const retired = event?.car_status === "retired";
-                                const livePodium = currentStatus === "running" && position <= 3;
+                                const livePodium = ["running", "paused"].includes(currentStatus) && position <= 3;
                                 const finishedPodium = currentStatus === "finished" && position <= 3;
                                 const resultClass = retired
                                     ? " retired-row"

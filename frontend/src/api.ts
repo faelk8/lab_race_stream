@@ -57,3 +57,5 @@ export function telemetrySocketUrl(raceId: string): string {
 }
 export function startRace(configuration: RaceStartConfiguration): Promise<RaceSnapshot> { return request("/api/races/start", { method: "POST", body: JSON.stringify(configuration) }); }
 export function stopRace(id: string): Promise<RaceSnapshot> { return request(`/api/races/${encodeURIComponent(id)}/stop`, { method: "POST" }); }
+export function pauseRace(id: string): Promise<RaceSnapshot> { return request(`/api/races/${encodeURIComponent(id)}/pause`, { method: "POST" }); }
+export function resumeRace(id: string): Promise<RaceSnapshot> { return request(`/api/races/${encodeURIComponent(id)}/resume`, { method: "POST" }); }

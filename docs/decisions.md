@@ -21,6 +21,7 @@ novo prevalece para a arquitetura atual.
 | [0015](adr/0015-grid-e-contexto-de-volta-e-pit-stop.md) | Grid em duas colunas e contexto de volta e pit stop nos eventos. |
 | [0016](adr/0016-safety-car-e-voltas-neutralizadas.md) | Safety car automático e exclusão analítica de voltas neutralizadas. |
 | [0017](adr/0017-penalidade-de-tempo.md) | Penalidade de tempo configurável com efeito na classificação final. |
+| [0018](adr/0018-grid-aleatorio-e-pausa-retomada.md) | Grid aleatório, pausa/retomada e mapa sem balões. |
 
 ## Decisões substituídas ou ampliadas
 

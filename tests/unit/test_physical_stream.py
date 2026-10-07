@@ -187,6 +187,43 @@ def test_starting_grid_has_two_columns_and_ten_rows() -> None:
         -row * track.grid_spacing_m for row in range(10)
     ]
     assert all(sorted(lanes) == [0, 1] for lanes in rows.values())
+    shuffled = PhysicalRace(
+        RaceConfiguration("grid-seed-diferente"),
+        create_default_car_configurations(),
+        track,
+        seed=3,
+    )
+    assert [car.position for car in race.cars] != [
+        car.position for car in shuffled.cars
+    ]
+    repeated = PhysicalRace(
+        RaceConfiguration("grid-duplo"),
+        create_default_car_configurations(),
+        track,
+        seed=42,
+    )
+    assert [car.position for car in race.cars] == [
+        car.position for car in repeated.cars
+    ]
+
+
+def test_physical_race_pause_freezes_clock_and_distance() -> None:
+    """Pausar congela o estado e retomar continua do ponto preservado."""
+    race = PhysicalRace(
+        RaceConfiguration("pausa"),
+        create_default_car_configurations()[:2],
+        load_track(),
+    )
+    race.advance(0.5)
+    race.pause()
+    state = [(car.distance, car.speed) for car in race.cars]
+    elapsed = race.time
+    race.advance(5)
+    assert race.time == elapsed
+    assert [(car.distance, car.speed) for car in race.cars] == state
+    race.resume()
+    race.advance(0.5)
+    assert race.time > elapsed
 
 
 def test_third_stop_adds_only_remaining_plus_reserve() -> None:

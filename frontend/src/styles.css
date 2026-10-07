@@ -922,11 +922,6 @@ h1 span {
 .driver-identity strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .country-flag { font: 16px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; flex-shrink: 0; }
 .leaderboard-note { padding: 8px 11px; margin: 0; font-size: 10px; color: #616c68; line-height: 1.5; }
-.map-label-connector { stroke: #53605b; stroke-width: .7; opacity: .65; pointer-events: none; }
-.map-car-balloon rect { fill: #17221e; stroke: #dce4d6; stroke-width: .7; }
-.map-car-balloon text { fill: #f7faf4; font: 600 9px var(--mono); pointer-events: none; }
-.track-car.is-selected .map-car-balloon rect { stroke: var(--acid); stroke-width: 1.5; }
-.track-car:focus-visible .map-car-balloon rect { stroke: var(--acid); stroke-width: 2; }
 
 .race-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0 0 20px; }
 .race-controls button { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #48cf94; border-radius: 6px; background: #143c2d; color: #b5f7d7; padding: 10px 16px; font: inherit; cursor: pointer; }
