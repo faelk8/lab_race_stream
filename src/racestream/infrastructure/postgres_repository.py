@@ -42,6 +42,7 @@ class PostgresRaceRepository:
                     "006_race_scenarios.sql",
                     "007_pneu_chuva.sql",
                     "008_pause_race.sql",
+                    "009_renomear_piloto_rafael_batista.sql",
                 ):
                     cursor.execute(Path("postgres/initdb", migration).read_text())
                 cursor.executemany(
