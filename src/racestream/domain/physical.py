@@ -9,6 +9,8 @@ from typing import Any
 from racestream.domain.models import CarConfiguration, RaceConfiguration, RaceResult
 from racestream.domain.track import Track
 
+PIT_BRAKING_USAGE = 0.5
+
 
 @dataclass
 class PhysicalCar:
@@ -318,6 +320,22 @@ class PhysicalRace:
         )
         if car.pit_status == "pit_lane":
             target = min(target, track.pit_speed_kmh / 3.6)
+            if car.pit_requested:
+                distance_to_box = (
+                    (track.pit_box - progress) % 1
+                    * track.length_m
+                    * track.pit_path_ratio
+                )
+                target = min(
+                    target,
+                    (
+                        2
+                        * track.braking_m_s2
+                        * PIT_BRAKING_USAGE
+                        * max(0.0, distance_to_box)
+                    )
+                    ** 0.5,
+                )
         elif car.pit_requested:
             target = min(
                 target,

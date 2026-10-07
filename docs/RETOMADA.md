@@ -70,6 +70,13 @@ nenhuma corrida foi iniciada para esta alteração.
 
 ## Trabalho atual
 
+**Frenagem na vaga dos boxes (07/10/2026):** o carro agora usa a distância
+restante do trajeto do pit lane para reduzir continuamente a velocidade até a
+vaga. A curva reserva margem sobre a capacidade máxima de frenagem e conserva o
+limite de 60 km/h. O trecho curto de boxes foi validado sem executar uma corrida
+completa. Bandeiras/neutralização e penalidades continuam nas próximas etapas do
+`execplan-realismo-corrida.md`.
+
 **Grid, pelotão e eventos enriquecidos (06/10/2026):** a largada posiciona os
 vinte carros em dez linhas de duas colunas. Durante a corrida, os três primeiros
 recebem fundo verde claro; abandonos recebem vermelho claro. Após o encerramento,

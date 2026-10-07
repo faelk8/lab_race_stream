@@ -487,6 +487,7 @@ def test_pit_lane_limit_service_and_position_loss() -> None:
     stopped_distance = 0.0
     fuel_before = 0.0
     pit_events: list[dict[str, Any]] = []
+    approach_speeds: list[float] = []
     for _ in range(4000):
         before = car.pit_status
         race.advance(track.physics_step_seconds)
@@ -497,12 +498,19 @@ def test_pit_lane_limit_service_and_position_loss() -> None:
             assert car.speed * 3.6 <= 60.0 + 1e-8
         if before == "on_track" and car.pit_status == "pit_lane":
             entered = True
+        if before == "pit_lane" and car.pit_status == "pit_lane" and car.pit_requested:
+            approach_speeds.append(car.speed * 3.6)
         if before == "pit_lane" and car.pit_status == "in_pit":
             service_start = race.time
             service_duration = car.pit_remaining
             stopped_distance, fuel_before = car.distance, car.fuel
             assert service_duration >= car.configuration.pit_service_seconds
             assert service_duration >= car.pit_added / track.refuel_kg_per_second
+            assert len(approach_speeds) >= 3
+            assert approach_speeds[-3] > approach_speeds[-2] > approach_speeds[-1]
+            assert approach_speeds[-1] <= track.braking_m_s2 * (
+                track.physics_step_seconds * 3.6 * 2
+            )
         if before == "in_pit":
             assert car.distance == stopped_distance
             assert car.speed == car.throttle == car.g_long == car.g_lat == 0

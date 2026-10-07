@@ -95,3 +95,12 @@ substituídos na primeira parada; a terceira de C permanece somente abasteciment
 A classificação usa a distância percorrida, inclusive durante a parada, de modo
 que o retorno pode acontecer em uma posição inferior. Os eventos de pit stop
 permitem medir os intervalos entre entrada, início/fim do serviço e saída.
+
+### Revisão de 07/10/2026: aproximação da vaga
+
+Durante o trecho entre a entrada e a vaga, o carro calcula a velocidade-alvo pela
+distância restante no trajeto do pit lane. A curva planejada usa metade da
+capacidade máxima de frenagem, criando margem para o integrador discreto e
+evitando zerar a velocidade apenas ao cruzar a vaga. O serviço ainda começa na
+posição configurada do box e a parada final fica limitada à resolução física de
+20 ms.

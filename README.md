@@ -5,7 +5,6 @@ arquitetura orientada a eventos e engenharia de dados. O projeto publica eventos
 Avro no Kafka, cria projeções operacionais em PostgreSQL, atualiza um dashboard
 por WebSocket e arquiva o fluxo em Parquet no MinIO com Apache Spark.
 
-**Python · Kafka · Avro · PostgreSQL · Spark · MinIO · FastAPI · React · TypeScript**
 
 <div align="center">
   <img align="center" alt="Python" height="40" width="50" src="https://raw.githubusercontent.com/devicons/devicon/master/icons/python/python-original.svg">
@@ -164,8 +163,9 @@ persistência está detalhada em [docs/persistence.md](docs/persistence.md).
 7. Spark arquiva o fluxo no MinIO em paralelo.
 
 Pit stops respeitam 60 km/h da entrada à saída, consomem tempo de serviço e
-podem alterar a posição. Seus eventos registram a volta e o tempo cumulativo da
-passagem pelos boxes. Chuva reduz aderência/velocidade e agenda trocas para pneus
+desaceleram progressivamente até a vaga, podendo alterar a posição. Seus eventos
+registram a volta e o tempo cumulativo da passagem pelos boxes. Chuva reduz
+aderência/velocidade e agenda trocas para pneus
 `wet`. Furos e colisões podem ser programados antes da largada.
 
 O fluxo completo está em [docs/data-flow.md](docs/data-flow.md).
