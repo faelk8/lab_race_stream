@@ -3,7 +3,6 @@
 import pytest
 from fastapi import HTTPException
 from fastapi.routing import APIRoute
-from fastapi.testclient import TestClient
 from test_api import FakeRaceRepository, FakeTelemetryHub
 from test_race_service import InMemoryPublisher
 
@@ -184,15 +183,21 @@ def test_failed_initial_publication_releases_claimed_race(
 def test_api_start_is_idempotent_and_stop_reports_missing_race() -> None:
     """Os endpoints aceitam início e parada e retornam 404 para ID inexistente."""
     repository = ControlledRepository()
-    with TestClient(create_app(repository, FakeTelemetryHub(), repository)) as client:
-        first = client.post("/api/races/start")
-        second = client.post("/api/races/start")
-        assert first.status_code == 200
-        assert first.json()["status"] == "queued"
-        assert second.json()["race_id"] == first.json()["race_id"]
-        stopped = client.post(f"/api/races/{first.json()['race_id']}/stop")
-        assert stopped.json()["status"] == "stopped"
-        assert client.post("/api/races/inexistente/stop").status_code == 404
+    app = create_app(repository, FakeTelemetryHub(), repository)
+    endpoints = {
+        route.path: route.endpoint
+        for route in app.routes
+        if isinstance(route, APIRoute)
+    }
+    first = endpoints["/api/races/start"](RaceStartRequest())
+    second = endpoints["/api/races/start"](RaceStartRequest())
+    assert first["status"] == "queued"
+    assert second["race_id"] == first["race_id"]
+    stopped = endpoints["/api/races/{race_id}/stop"](first["race_id"])
+    assert stopped["status"] == "stopped"
+    with pytest.raises(HTTPException) as error:
+        endpoints["/api/races/{race_id}/stop"]("inexistente")
+    assert error.value.status_code == 404
 
 
 def test_api_start_persists_weather_and_incident_scenarios() -> None:

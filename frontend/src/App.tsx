@@ -22,6 +22,7 @@ import { getCars, getLatestRace, pauseRace, resumeRace, startRace, stopRace, tel
 import { RaceInsights } from "./RaceInsights";
 import { InterlagosTrack } from "./InterlagosTrack";
 import { availableCarsForIncidentLap, countryFlag, countryName, isDuplicateIncident, rankCars, teamName, visibleTrackCars } from "./racePresentation";
+import { DEFAULT_RACE_SETUP, loadRaceSetup, saveRaceSetup } from "./raceSetupStorage";
 import type { AnalyticsEvent, CarAnalytics, CarConfiguration, RaceIncident, RaceSnapshot, RaceStartConfiguration, RaceStateEvent, RaceTelemetry, TireCompound } from "./types";
 
 type ConnectionState = "connecting" | "connected" | "reconnecting";
@@ -65,7 +66,7 @@ export function App() {
     const [connection, setConnection] = useState<ConnectionState>("connecting");
     const [raceAction, setRaceAction] = useState<"start" | "stop" | "pause" | "resume" | null>(null);
     const raceActionLock = useRef(false);
-    const [raceSetup, setRaceSetup] = useState<RaceStartConfiguration>({ rain_enabled: false, rain_start_lap: 1, rain_intensity: 0.5, incidents: [] });
+    const [raceSetup, setRaceSetup] = useState<RaceStartConfiguration>(loadRaceSetup);
     const [incidentType, setIncidentType] = useState<RaceIncident["incident_type"]>("tire_puncture");
     const [incidentLap, setIncidentLap] = useState(5);
     const [incidentCar, setIncidentCar] = useState("CAR-01");
@@ -75,6 +76,7 @@ export function App() {
     const [saved, setSaved] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const telemetry = useDeferredValue(telemetryByCar);
+    useEffect(() => { saveRaceSetup(raceSetup); }, [raceSetup]);
     const eligibleIncidentCars = availableCarsForIncidentLap(cars, raceSetup.incidents, incidentLap);
     const selectedIncidentCar = eligibleIncidentCars.find((car) => car.car_id === incidentCar)?.car_id ?? eligibleIncidentCars[0]?.car_id ?? "";
     const eligibleSecondCars = eligibleIncidentCars.filter((car) => car.car_id !== selectedIncidentCar);
@@ -201,6 +203,7 @@ export function App() {
         try {
             const updatedRace = action === "start" ? await startRace(raceSetup) : action === "stop" ? await stopRace(race!.race_id) : action === "pause" ? await pauseRace(race!.race_id) : await resumeRace(race!.race_id);
             setRace(updatedRace);
+            if (action === "start") setRaceSetup({ ...DEFAULT_RACE_SETUP, incidents: [] });
         } catch (reason) {
             const fallback = action === "start" ? "Não foi possível iniciar a corrida." : action === "stop" ? "Não foi possível parar a corrida." : action === "pause" ? "Não foi possível pausar a corrida." : "Não foi possível retomar a corrida.";
             const detail = reason instanceof Error && !(reason instanceof TypeError) ? reason.message : "";
@@ -298,8 +301,10 @@ export function App() {
                         {incidentType === "collision" && <label>Carro 2<select value={selectedSecondCar} onChange={(event) => setIncidentSecondCar(event.target.value)}>{!eligibleSecondCars.length && <option value="">Nenhum carro disponível</option>}{eligibleSecondCars.map((car) => <option key={car.car_id} value={car.car_id}>{car.car_id} · {car.driver_name}</option>)}</select></label>}
                         {incidentType === "time_penalty" && <label>Penalidade <select value={penaltySeconds} onChange={(event) => setPenaltySeconds(Number(event.target.value))}><option value="5">5 segundos</option><option value="10">10 segundos</option><option value="20">20 segundos</option></select></label>}
                         <button type="submit" disabled={!canAddIncident}>Adicionar evento</button>
+                        <button type="button" className="scenario-clear" onClick={() => setRaceSetup({ ...DEFAULT_RACE_SETUP, incidents: [] })}>Limpar rascunho</button>
                     </form>
                     {duplicateIncident && <small role="status">Este evento já foi configurado nesta volta. Remova o evento existente para adicioná-lo novamente.</small>}
+                    <small>Configuração salva automaticamente neste navegador até iniciar a corrida.</small>
                     {raceSetup.incidents.length > 0 && <ul className="scenario-list">{raceSetup.incidents.map((scenario, index) => <li key={`${scenario.incident_type}-${scenario.lap}-${scenario.car_id}-${index}`}><span>Volta {scenario.lap} · {scenario.incident_type === "collision" ? `Colisão ${scenario.car_id} / ${scenario.second_car_id}` : scenario.incident_type === "time_penalty" ? `Penalidade de ${scenario.penalty_seconds}s para ${scenario.car_id}` : `Furo em ${scenario.car_id}`}</span><button type="button" aria-label="Remover evento" onClick={() => setRaceSetup((current) => ({ ...current, incidents: current.incidents.filter((_, itemIndex) => itemIndex !== index) }))}>Remover</button></li>)}</ul>}
                 </section>}
                 <section className="race-follow" aria-label="Selecionar acompanhamento">

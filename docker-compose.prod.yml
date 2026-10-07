@@ -1,0 +1,59 @@
+services:
+  postgres:
+    ports: !reset []
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo de produção}
+
+  minio:
+    ports: !reset []
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Defina MINIO_ROOT_USER no arquivo de produção}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Defina MINIO_ROOT_PASSWORD no arquivo de produção}
+
+  minio-init:
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Defina MINIO_ROOT_USER no arquivo de produção}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Defina MINIO_ROOT_PASSWORD no arquivo de produção}
+
+  kafka:
+    ports: !reset []
+
+  schema-registry:
+    ports: !reset []
+
+  redpanda-console:
+    profiles: ["operacao"]
+
+  api:
+    ports: !reset []
+
+  dashboard:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_BASE_URL: ""
+    ports: !reset []
+    expose:
+      - "80"
+
+  reverse-proxy:
+    image: caddy:2.9-alpine
+    restart: unless-stopped
+    depends_on:
+      - dashboard
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      RACE_DOMAIN: ${RACE_DOMAIN:?Defina RACE_DOMAIN no arquivo de produção}
+      RACE_BASIC_AUTH_USER: ${RACE_BASIC_AUTH_USER:?Defina RACE_BASIC_AUTH_USER no arquivo de produção}
+      RACE_BASIC_AUTH_HASH: ${RACE_BASIC_AUTH_HASH:?Defina RACE_BASIC_AUTH_HASH no arquivo de produção}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  caddy-data:
+  caddy-config:

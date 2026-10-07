@@ -40,16 +40,18 @@ Há um índice parcial que permite apenas uma corrida controlada nos estados
 ### Inicialização e migrações
 
 Os arquivos em `postgres/initdb/` são executados automaticamente apenas na
-criação de um volume PostgreSQL vazio. Ao iniciar, `seed_default_cars()` reaplica
-os scripts idempotentes `002` a `009` e insere carros ausentes. A imagem da API
-inclui esses scripts. O script `009` atualiza o nome padrão do piloto `DRV-01`
-quando o valor persistido ainda é o anterior, preservando outros nomes editados.
+criação de um volume PostgreSQL vazio. Ao iniciar, `seed_default_cars()` carrega
+os scripts `001` a `009`, valida seus checksums e aplica somente as versões
+ausentes. `schema_migrations` registra versão, nome do arquivo, SHA-256 e instante
+de aplicação. Alterar um arquivo já registrado interrompe a inicialização; a
+mudança deve ser publicada em uma versão nova. A imagem da API inclui os scripts.
+O script `009` atualiza o nome padrão do piloto `DRV-01` somente se o valor
+persistido ainda for o anterior.
 
-Não há tabela de versões/checksums nem ferramenta dedicada, como Alembic. A ordem
-dos scripts está codificada no repositório; alterações devem manter idempotência
-e atualizar também o `Dockerfile` para copiar qualquer novo script para a imagem.
-
-> Não identificado no repositório.
+A aplicação das migrações e o registro são feitos na mesma transação após obter
+um advisory lock. Os scripts de `initdb` ainda são executados pelo PostgreSQL
+somente na criação de volume vazio; o executor da aplicação cria o histórico de
+versões ao iniciar.
 
 ## Kafka
 

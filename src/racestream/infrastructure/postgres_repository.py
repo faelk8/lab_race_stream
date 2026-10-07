@@ -16,6 +16,7 @@ from racestream.domain.models import (
     TireCompound,
 )
 from racestream.domain.simulator import create_default_car_configurations
+from racestream.infrastructure.migrations import apply_migrations, load_migrations
 
 
 class PostgresRaceRepository:
@@ -34,17 +35,7 @@ class PostgresRaceRepository:
         with self._connect() as connection:
             with connection.cursor() as cursor:
                 cursor.execute("SELECT pg_advisory_xact_lock(724164)")
-                for migration in (
-                    "002_corrida_rules.sql",
-                    "003_driver_identity.sql",
-                    "004_race_control.sql",
-                    "005_stream_projections.sql",
-                    "006_race_scenarios.sql",
-                    "007_pneu_chuva.sql",
-                    "008_pause_race.sql",
-                    "009_renomear_piloto_rafael_batista.sql",
-                ):
-                    cursor.execute(Path("postgres/initdb", migration).read_text())
+                apply_migrations(cursor, load_migrations(Path("postgres/initdb")))
                 cursor.executemany(
                     """
                     INSERT INTO cars (

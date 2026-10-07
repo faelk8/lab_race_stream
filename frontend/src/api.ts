@@ -52,7 +52,9 @@ export function updateCar(
 }
 
 export function telemetrySocketUrl(raceId: string): string {
-    const websocketBase = apiBase.replace(/^http/, "ws");
+    const websocketBase = apiBase
+        ? apiBase.replace(/^http/, "ws")
+        : `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}`;
     return `${websocketBase}/ws/races/${encodeURIComponent(raceId)}`;
 }
 export function startRace(configuration: RaceStartConfiguration): Promise<RaceSnapshot> { return request("/api/races/start", { method: "POST", body: JSON.stringify(configuration) }); }

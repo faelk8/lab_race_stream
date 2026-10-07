@@ -34,7 +34,8 @@ medições oficiais de pista ou de veículos reais.
 | Arquivo histórico | Implementado em Parquet no MinIO por Spark Structured Streaming. |
 | Agregados de volta e comparação de paridade | Implementados como job Spark batch sob demanda. |
 | Protobuf, ClickHouse, Iceberg e Debezium | Não implementados. |
-| Kubernetes, observabilidade completa e CI/CD | Não implementados. |
+| CI | Workflow GitHub Actions para testes e builds. |
+| Kubernetes, deploy contínuo e observabilidade completa | Não implementados. |
 
 ## Navegação
 
@@ -47,12 +48,13 @@ medições oficiais de pista ou de veículos reais.
 7. [Spark](spark.md) — arquivamento, agregações e validação.
 8. [Desenvolvimento](development.md) — organização, dependências e padrões.
 9. [Testes](testing.md) — camadas, comandos e cobertura funcional.
-10. [Deploy e CI/CD](deployment.md) — Compose e ausências atuais.
+10. [Deploy e CI/CD](deployment.md) — Compose local, pipeline de validação e preparação para produção.
 11. [Logs e observabilidade](observability.md) — logs, saúde e lacunas.
 12. [Troubleshooting](troubleshooting.md) — falhas frequentes e diagnóstico.
 13. [Decisões](decisions.md) — ADRs e decisões vigentes.
 14. [Limitações e próximos passos](limitations.md) — limites comprovados e evolução.
 15. [Dicionário de dados](dicionario-de-dados.md) — tópicos e contratos Avro.
+16. [Preparação para produção](production-readiness.md) — gates, métricas, readiness, backup e retenção.
 
 Os planos de execução registram a evolução e as evidências históricas. Para
 entender o estado atual, use primeiro os documentos desta página e depois os

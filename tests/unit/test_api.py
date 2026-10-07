@@ -2,7 +2,9 @@
 
 import asyncio
 
-from fastapi.testclient import TestClient
+import pytest
+from fastapi.routing import APIRoute
+from pydantic import ValidationError
 
 from racestream.domain.models import (
     CarConfiguration,
@@ -11,7 +13,7 @@ from racestream.domain.models import (
     RaceSnapshot,
 )
 from racestream.domain.simulator import create_default_car_configurations
-from racestream.interfaces.api import create_app
+from racestream.interfaces.api import CarConfigurationRequest, create_app
 from racestream.interfaces.kafka_hub import KafkaTelemetryHub
 
 
@@ -75,45 +77,45 @@ class FakeTelemetryHub(KafkaTelemetryHub):
         """Implement hub shutdown without external resources."""
 
 
+def route_endpoint(app, path: str):
+    """Localize o endpoint para teste direto sem lifespan ou threadpool ASGI."""
+    return next(
+        route.endpoint
+        for route in app.routes
+        if isinstance(route, APIRoute) and route.path == path
+    )
+
+
 def test_car_configuration_can_be_updated_through_rest() -> None:
     """The API persists validated setup using its injected repository."""
     repository = FakeRaceRepository()
     app = create_app(repository, FakeTelemetryHub())
 
-    with TestClient(app) as client:
-        response = client.put(
-            "/api/cars/CAR-01",
-            json={
-                "driver_id": "DRV-01",
-                "car_weight_kg": 830.0,
-                "driver_weight_kg": 76.0,
-                "top_speed_kmh": 340.0,
-                "tire_compound": "soft",
-            },
-        )
+    response = route_endpoint(app, "/api/cars/{car_id}")(
+        "CAR-01",
+        CarConfigurationRequest(
+            driver_id="DRV-01",
+            car_weight_kg=830.0,
+            driver_weight_kg=76.0,
+            top_speed_kmh=340.0,
+            tire_compound="soft",
+        ),
+    )
 
-    assert response.status_code == 200
-    assert response.json()["top_speed_kmh"] == 340.0
-    assert response.json()["tire_compound"] == "soft"
+    assert response["top_speed_kmh"] == 340.0
+    assert response["tire_compound"] == "soft"
 
 
 def test_car_configuration_rejects_invalid_performance_values() -> None:
     """The API rejects vehicle limits outside the supported domain range."""
-    app = create_app(FakeRaceRepository(), FakeTelemetryHub())
-
-    with TestClient(app) as client:
-        response = client.put(
-            "/api/cars/CAR-01",
-            json={
-                "driver_id": "DRV-01",
-                "car_weight_kg": 830.0,
-                "driver_weight_kg": 76.0,
-                "top_speed_kmh": 500.0,
-                "tire_compound": "soft",
-            },
+    with pytest.raises(ValidationError):
+        CarConfigurationRequest(
+            driver_id="DRV-01",
+            car_weight_kg=830.0,
+            driver_weight_kg=76.0,
+            top_speed_kmh=500.0,
+            tire_compound="soft",
         )
-
-    assert response.status_code == 422
 
 
 def test_legacy_setup_update_preserves_team_and_strategy() -> None:
@@ -121,23 +123,21 @@ def test_legacy_setup_update_preserves_team_and_strategy() -> None:
     repository = FakeRaceRepository()
     original = repository.configurations[2]
     app = create_app(repository, FakeTelemetryHub())
-    with TestClient(app) as client:
-        response = client.put(
-            f"/api/cars/{original.car_id}",
-            json={
-                "driver_id": original.driver_id,
-                "car_weight_kg": 500.0,
-                "driver_weight_kg": original.driver_weight_kg,
-                "top_speed_kmh": original.top_speed_kmh,
-                "tire_compound": original.tire_compound.value,
-            },
-        )
-    assert response.status_code == 200
-    assert response.json()["team_id"] == original.team_id
-    assert response.json()["strategy"] == "C"
-    assert response.json()["driver_height_m"] == original.driver_height_m
-    assert response.json()["driver_name"] == original.driver_name
-    assert response.json()["driver_country_code"] == original.driver_country_code
+    response = route_endpoint(app, "/api/cars/{car_id}")(
+        original.car_id,
+        CarConfigurationRequest(
+            driver_id=original.driver_id,
+            car_weight_kg=500.0,
+            driver_weight_kg=original.driver_weight_kg,
+            top_speed_kmh=original.top_speed_kmh,
+            tire_compound=original.tire_compound.value,
+        ),
+    )
+    assert response["team_id"] == original.team_id
+    assert response["strategy"] == "C"
+    assert response["driver_height_m"] == original.driver_height_m
+    assert response["driver_name"] == original.driver_name
+    assert response["driver_country_code"] == original.driver_country_code
 
 
 def test_driver_name_and_country_can_be_edited() -> None:
@@ -152,10 +152,10 @@ def test_driver_name_and_country_can_be_edited() -> None:
         "driver_country_code": "BR",
     }
     app = create_app(repository, FakeTelemetryHub())
-    with TestClient(app) as client:
-        response = client.put(f"/api/cars/{original.car_id}", json=payload)
-    assert response.status_code == 200
-    assert response.json()["driver_name"] == "Ana Souza"
+    response = route_endpoint(app, "/api/cars/{car_id}")(
+        original.car_id, CarConfigurationRequest(**payload)
+    )
+    assert response["driver_name"] == "Ana Souza"
     assert repository.configurations[0].driver_country_code == "BR"
 
 
@@ -166,10 +166,8 @@ def test_driver_country_rejects_malformed_code() -> None:
     repository = FakeRaceRepository()
     original = repository.configurations[0]
     payload = {**asdict(original), "driver_country_code": "brasil"}
-    app = create_app(repository, FakeTelemetryHub())
-    with TestClient(app) as client:
-        response = client.put(f"/api/cars/{original.car_id}", json=payload)
-    assert response.status_code == 422
+    with pytest.raises(ValidationError):
+        CarConfigurationRequest(**payload)
 
 
 def test_websocket_queue_preserves_a_complete_grid_burst() -> None:

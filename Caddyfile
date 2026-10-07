@@ -1,0 +1,6 @@
+{$RACE_DOMAIN} {
+	basic_auth {
+		{$RACE_BASIC_AUTH_USER} {$RACE_BASIC_AUTH_HASH}
+	}
+	reverse_proxy dashboard:80
+}

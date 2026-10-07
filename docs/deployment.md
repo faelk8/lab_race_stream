@@ -1,6 +1,6 @@
 # Deploy e CI/CD
 
-## Alvo implementado
+## Execução local
 
 Docker Compose é o único alvo de deploy/orquestração presente. A topologia é de
 nó único e voltada ao desenvolvimento local. Os serviços Python compartilham um
@@ -57,6 +57,15 @@ Os volumes nomeados são `kafka-data`, `postgres-data`, `minio-data` e
 - Os containers locais da aplicação são construídos no host e não são
   publicados por pipeline.
 
+## Preparação para deploy
+
+O arquivo `docker-compose.prod.yml` usa uma imagem estática Nginx para o painel,
+proxy same-origin para API/WebSocket e Caddy para TLS e autenticação básica.
+Consulte o [plano de preparação e operação](production-readiness.md) para
+configuração, limites conhecidos, readiness, métricas, backup e retenção. Esta
+composição é uma base para validação; os limites de nó único e a ausência de
+autenticação por usuário impedem tratá-la como arquitetura de produção irrestrita.
+
 ## Kubernetes e Helm
 
 > Não identificado no repositório.
@@ -66,10 +75,9 @@ ConfigMaps ou Secrets.
 
 ## CI/CD
 
-> Não identificado no repositório.
-
-Não existe diretório `.github/`, workflow GitHub Actions ou configuração de
-outro provedor de CI. Testes e build são executados manualmente.
+O workflow `.github/workflows/ci.yml` executa verificações Python, frontend,
+fixtures Spark e validação Compose em push e pull request. Não há publicação de
+imagens, entrega contínua ou deploy automatizado.
 
 ## Deploy em nuvem
 

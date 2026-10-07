@@ -39,3 +39,18 @@ test("Erros de validação do FastAPI são mostrados sem o prefixo técnico", as
         globalThis.fetch = previousFetch;
     }
 });
+
+test("WebSocket usa o mesmo domínio e TLS quando a API não tem endereço fixo", async () => {
+    const sameOriginSource = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8")
+        .replace('import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"', '""');
+    const { outputText: sameOriginOutput } = ts.transpileModule(sameOriginSource, {
+        compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 },
+    });
+    const sameOriginApi = await import(`data:text/javascript;base64,${Buffer.from(sameOriginOutput).toString("base64")}`);
+    globalThis.window = { location: { protocol: "https:", host: "race.example" } };
+    try {
+        assert.equal(sameOriginApi.telemetrySocketUrl("race 01"), "wss://race.example/ws/races/race%2001");
+    } finally {
+        delete globalThis.window;
+    }
+});

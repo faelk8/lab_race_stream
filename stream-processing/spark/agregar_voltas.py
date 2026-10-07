@@ -4,28 +4,25 @@ import json
 import os
 from urllib.request import urlopen
 
+from analitica_voltas import (
+    agregar_voltas,
+    analytics_mais_recente,
+    comparar_agregados,
+    resumir_paridade,
+)
 from arquivo_telemetria import criar_sessao
 from pyspark.sql import DataFrame
 from pyspark.sql.avro.functions import from_avro
 from pyspark.sql.functions import (
-    avg,
     coalesce,
     col,
     conv,
-    count,
     explode,
     expr,
     hex,
-    max,
-    min,
-    row_number,
     substring,
     when,
 )
-from pyspark.sql.functions import (
-    sum as soma,
-)
-from pyspark.sql.window import Window
 
 
 def obter_schema(url: str) -> str:
@@ -79,17 +76,8 @@ def executar() -> dict[str, int]:
     base = f"s3a://{bucket}"
     arquivo = spark.read.parquet(f"{base}/telemetry_raw")
     voltas_decodificadas = decodificar(arquivo, "lap_completed")
-    voltas = (
-        voltas_decodificadas.select("evento.*")
-        .filter(col("valid"))
-        .dropDuplicates(["event_id"])
-    )
-    agregado = voltas.groupBy("race_id", "car_id").agg(
-        count("lap_time_ms").alias("voltas_validas"),
-        min("lap_time_ms").alias("melhor_volta_ms"),
-        max("lap_time_ms").alias("pior_volta_ms"),
-        avg("lap_time_ms").alias("media_volta_ms"),
-    )
+    voltas = voltas_decodificadas.select("evento.*")
+    agregado = agregar_voltas(voltas)
     analytics = (
         decodificar(arquivo, "analytics")
         .select("evento.*")
@@ -105,35 +93,11 @@ def executar() -> dict[str, int]:
         col("carro.best_lap_time_ms").alias("melhor_consumer_ms"),
         col("carro.worst_lap_time_ms").alias("pior_consumer_ms"),
     )
-    mais_recente = Window.partitionBy("race_id", "car_id").orderBy(
-        col("revision").desc()
-    )
-    online = (
-        carros_online.withColumn("ordem", row_number().over(mais_recente))
-        .filter(col("ordem") == 1)
-        .drop("ordem")
-    )
-    comparacao = agregado.join(online, ["race_id", "car_id"], "full")
-    comparacao = comparacao.withColumn(
-        "paridade",
-        col("voltas_validas").eqNullSafe(col("voltas_consumer"))
-        & col("melhor_volta_ms").eqNullSafe(col("melhor_consumer_ms"))
-        & col("pior_volta_ms").eqNullSafe(col("pior_consumer_ms")),
-    )
+    online = analytics_mais_recente(carros_online)
+    comparacao = comparar_agregados(agregado, online)
     agregado.write.mode("overwrite").parquet(f"{base}/lap_performance")
     comparacao.write.mode("overwrite").parquet(f"{base}/consumer_parity")
-    totais = comparacao.agg(
-        count("car_id").alias("carros"),
-        count("paridade").alias("comparados"),
-        count(expr("CASE WHEN paridade THEN 1 END")).alias("coincidentes"),
-        soma(when(~col("paridade"), 1).otherwise(0)).alias("divergentes"),
-    ).first()
-    return {
-        "carros": int(totais["carros"]),
-        "comparados": int(totais["comparados"]),
-        "coincidentes": int(totais["coincidentes"]),
-        "divergentes": int(totais["divergentes"]),
-    }
+    return resumir_paridade(comparacao)
 
 
 def main() -> None:

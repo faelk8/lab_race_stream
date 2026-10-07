@@ -193,7 +193,7 @@ Variáveis e limites estão em [docs/configuration.md](docs/configuration.md).
 | Protobuf, ClickHouse, Iceberg e Debezium | Não implementados. |
 | Kubernetes e Helm | Não implementados. |
 | OpenTelemetry, Prometheus e Grafana | Não implementados. |
-| GitHub Actions/CI/CD | Não implementado. |
+| GitHub Actions/CI | Workflow de validação implementado; deploy automático não implementado. |
 
 Limitações e próximos passos: [docs/limitations.md](docs/limitations.md).
 

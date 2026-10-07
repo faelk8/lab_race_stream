@@ -245,6 +245,22 @@ services:
     cpus: 1.0
     restart: unless-stopped
 
+  spark-tests:
+    image: apache/spark:4.0.1-python3
+    profiles: ["test"]
+    entrypoint: ["/opt/spark/bin/spark-submit"]
+    command:
+      - --master
+      - local[1]
+      - --conf
+      - spark.ui.enabled=false
+      - /opt/racestream/tests/test_analitica_voltas.py
+    environment:
+      HOME: /tmp
+      PYTHONPATH: /opt/racestream
+    volumes:
+      - ./stream-processing/spark:/opt/racestream:ro
+
   consumer:
     build: .
     command: ["python", "-m", "racestream.interfaces.stream_processor"]

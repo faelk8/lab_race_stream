@@ -20,14 +20,16 @@
 - PostgreSQL não tem expurgo das projeções/eventos discretos.
 - MinIO não tem lifecycle, backup ou replicação.
 - O arquivo bruto depende dos schemas históricos do Registry para decodificação.
-- O bootstrap da API reaplica os scripts SQL `002` a `009` de forma idempotente,
-  mas não mantém tabela de versões, checksums, nem trilha formal de migrações.
+- O registro `schema_migrations` mantém versão e checksum; ainda falta validar
+  upgrade, reexecução e recuperação de migração em PostgreSQL isolado.
 - Não há Iceberg, ClickHouse, CDC ou Protobuf.
 
 ## Limitações da aplicação
 
-- API e serviços não têm autenticação, autorização ou TLS.
-- O frontend usa Vite em modo de desenvolvimento no container.
+- A API não tem identidade individual nem autorização por ação. A composição de
+  produção aplica TLS e autenticação básica compartilhada no Caddy.
+- O Compose local usa Vite em modo de desenvolvimento; o overlay de produção
+  serve o build estático por Nginx.
 - O PostgreSQL não é exposto ao host.
 - O grupo do consumer online é fixo no código.
 - Nem todas as variáveis lidas pelo código são repassadas pelo Compose.
@@ -36,28 +38,27 @@
 
 ## Limitações de operação e qualidade
 
-- Não há CI/CD, Kubernetes ou deploy de produção.
+- Há CI para testes/builds; não há entrega contínua, Kubernetes ou deploy
+  automatizado de produção.
 - Não há métricas, traces, dashboards ou alertas.
 - Não há E2E automatizado de navegador ou carga.
 - A integração PostgreSQL é um script manual que não é copiado para a imagem.
-- Os jobs Spark não têm suíte automatizada própria.
+- Os agregados e a paridade Spark têm teste com fixtures locais; falta teste
+  ponta a ponta do decoder Avro, leitura Parquet e escrita/recuperação no MinIO.
 - Há docstrings históricas em inglês e a regra de documentação pública não é
   verificada automaticamente.
 
 ## Próximos passos baseados nas lacunas atuais
 
-1. Criar testes pequenos e determinísticos para os jobs Spark e para a paridade
-   com o consumer.
-2. Versionar migrações PostgreSQL e validar upgrade/reexecução de volumes antigos.
+1. Adicionar teste ponta a ponta do job Spark com envelopes Avro, Parquet e
+   Schema Registry, mantendo as fixtures locais atuais para as regras.
+2. Validar upgrade, reexecução e checksum das migrações em PostgreSQL isolado.
 3. Adicionar readiness real para producer, consumer e Spark, além de métricas de
    atraso, outbox e DLQ.
-4. Criar um build de produção do dashboard e proteger API e transporte antes de
-   qualquer deploy fora da máquina local.
-5. Implementar CI para Ruff, mypy, pytest, frontend e validação Compose.
-6. Definir backup, restauração e retenção para PostgreSQL e MinIO.
-7. Persistir ou permitir exportar rascunhos de eventos configurados antes da
-   largada, se a operação precisar recuperá-los após recarga da página.
-8. Avaliar Iceberg ou ClickHouse somente com casos de consulta e retenção claros;
+4. Revisar e endurecer autenticação, segredos, Kafka e disponibilidade antes de
+   expor o esqueleto Compose de produção fora de rede controlada.
+5. Definir backup, restauração e retenção para PostgreSQL e MinIO.
+6. Avaliar Iceberg ou ClickHouse somente com casos de consulta e retenção claros;
    a implementação atual não depende deles.
 
 Os itens acima são recomendações derivadas das lacunas verificadas; não

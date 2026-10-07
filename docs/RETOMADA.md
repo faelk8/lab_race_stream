@@ -17,9 +17,9 @@ object storage, não outro banco relacional. Spark Structured Streaming arquiva
 os tópicos Kafka em Parquet e o job Spark batch calcula agregados e paridade. O
 consumer Python ainda realiza validação e projeções online. A implementação não
 inclui Protobuf, ClickHouse, Iceberg, Debezium, Kubernetes, OpenTelemetry,
-Prometheus, Grafana ou GitHub Actions/CI/CD. O README agora apresenta essa
-diferença entre stack local executável e possibilidades futuras, sem listar o
-motor de processamento removido.
+Prometheus ou Grafana. Um workflow GitHub Actions agora executa CI de código,
+testes, Spark e Compose; não há publicação de imagens nem deploy contínuo. O
+README apresenta a stack local executável e as possibilidades futuras.
 
 O menu interno do README segue: 1 Objetivo (1.1 problema); 2 Princípios (2.1
 tecnologias); 3 Executar corrida (3.1 iniciar serviços e corrida, 3.2 finalizar,
@@ -94,6 +94,22 @@ retornou Rafael Batista. API e dashboard foram reconstruídos e ficaram saudáve
 Testes do frontend, build, testes focados da API e Ruff passaram. A interface
 atualizada ainda precisa de uma verificação manual no navegador após recarga.
 
+**Continuidade da plataforma (07/10/2026):** o rascunho do formulário de corrida
+agora é salvo e validado no `localStorage` do navegador, com opção de limpar;
+iniciar a corrida reseta o formulário. Os agregados Spark e a paridade com o
+consumer ganharam fixtures locais executadas por `docker compose --profile test`.
+O PostgreSQL registra as versões e os checksums das migrações `001` a `009` e
+recusa alteração de uma versão já aplicada. GitHub Actions valida Python,
+frontend, Spark e Compose. O overlay de produção usa Nginx para o build estático,
+proxy same-origin, Caddy para TLS/autenticação básica e mantém as portas de dados
+fechadas no host. A composição é nó único e não é pronta para exposição irrestrita.
+
+Verificações: testes focados Python, frontend/build, fixtures Spark, Ruff e
+configuração Compose aprovados. A composição de produção foi validada
+estruturalmente; não foi iniciada em domínio público nem recebeu credenciais
+reais. Consulte [preparação para produção](production-readiness.md) para as
+pendências de segurança, métricas/readiness, backup e retenção.
+
 ## Próxima continuidade recomendada
 
 1. Fazer uma checagem manual no navegador: adicionar uma colisão, confirmar que
@@ -102,11 +118,11 @@ atualizada ainda precisa de uma verificação manual no navegador após recarga.
 2. Decidir se eventos ainda não enviados devem sobreviver a uma recarga da página.
    Hoje `raceSetup` existe apenas no estado React e só é enviado quando a corrida
    começa; atualizar a página apaga o rascunho.
-3. Criar testes automatizados próprios para os jobs Spark e a paridade com o
-   consumer, que permanecem sem suíte dedicada.
-4. Adicionar CI para Ruff, mypy, pytest, build do frontend e validação do Compose.
-5. Planejar retenção, backup e restauração de PostgreSQL e MinIO, além de
-   readiness e métricas para consumer e Spark.
+3. Cobrir o decoder Avro e a execução ponta a ponta do job Spark sobre Parquet e
+   Schema Registry; as transformações de agregado/paridade já têm fixtures.
+4. Validar reexecução e upgrade das migrações num PostgreSQL isolado; o registro
+   de versões e checksum já foi implementado.
+5. Planejar readiness/métricas de consumer e Spark, backup/restauração e retenção.
 
 Não iniciar uma corrida completa apenas para revisar o setup: as regras de
 disponibilidade e duplicidade têm testes unitários e de API; a inspeção visual
