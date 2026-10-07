@@ -5,7 +5,7 @@ import ts from "typescript";
 
 const source = readFileSync(new URL("../src/racePresentation.ts", import.meta.url), "utf8");
 const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } });
-const { rankCars, leaderGapMs, formatGap, countryFlag, countryName, RaceFrameBuffer } =
+const { rankCars, leaderGapMs, formatGap, countryFlag, countryName, RaceFrameBuffer, spreadTrackPositions } =
     await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
 
 function event(carId, position, elapsed = 1, lap = 2, progress = 0.9) {
@@ -26,6 +26,37 @@ test("O 15º tem maior atraso que o 4º mesmo com uma última volta mais rápida
     assert.ok(events["CAR-15"].last_lap_time_ms < events["CAR-4"].last_lap_time_ms);
     assert.ok(gaps[14] > gaps[3]);
     assert.ok(gaps.every((gap, i) => i === 0 || gap >= gaps[i - 1]));
+});
+
+test("O pelotão prioriza distância de corrida, não o tempo da última volta", () => {
+    const cars = [{ car_id: "CAR-A" }, { car_id: "CAR-B" }];
+    const events = {
+        "CAR-A": { ...event("CAR-A", 1), distance_m: 200, last_lap_time_ms: 95_000 },
+        "CAR-B": { ...event("CAR-B", 2), distance_m: 210, last_lap_time_ms: 80_000 },
+    };
+    assert.deepEqual(rankCars(cars, events).map((car) => car.car_id), ["CAR-B", "CAR-A"]);
+});
+
+test("Marcadores seguem a ordem do pelotão e mantêm espaçamento mínimo na pista", () => {
+    const cars = [
+        { ...event("CAR-2", 2), track_progress: 0.1001, distance_m: 1001 },
+        { ...event("CAR-1", 1), track_progress: 0.1002, distance_m: 1002 },
+        { ...event("CAR-3", 3), track_progress: 0.1000, distance_m: 1000 },
+    ];
+    const positions = spreadTrackPositions(cars, 1000, 10000, 0, 9);
+    const ordered = [...cars].sort((a, b) => a.race_position - b.race_position);
+    for (let i = 1; i < ordered.length; i++) {
+        let gap = positions.get(ordered[i - 1].car_id) - positions.get(ordered[i].car_id);
+        if (gap < 0) gap += 1000;
+        assert.ok(gap >= 9);
+    }
+    const swapped = cars.map((car) => ({
+        ...car,
+        race_position: car.race_position === 1 ? 3 : car.race_position === 3 ? 1 : 2,
+        distance_m: car.car_id === "CAR-3" ? 1003 : car.car_id === "CAR-2" ? 1002 : 1001,
+    }));
+    const swappedPositions = spreadTrackPositions(swapped, 1000, 10000, 0, 9);
+    assert.notEqual(swappedPositions.get("CAR-3"), positions.get("CAR-3"));
 });
 
 test("O atraso inclui voltas completas e mantém a precisão de milissegundos", () => {

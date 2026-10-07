@@ -170,7 +170,11 @@ export function App() {
     }, [race?.race_id, cars.length]);
 
     const liveCars = Object.values(telemetry);
-    const leader = [...liveCars].sort((left, right) => left.race_position - right.race_position)[0];
+    const leader = [...liveCars].sort((left, right) =>
+        left.distance_m != null && right.distance_m != null && left.distance_m !== right.distance_m
+            ? right.distance_m - left.distance_m
+            : left.race_position - right.race_position,
+    )[0];
     const elapsed = leader?.elapsed_race_seconds ?? 0;
     const currentStatus = race?.status ?? "idle";
     const activeRace = ["queued", "running", "paused", "stopping"].includes(currentStatus);
@@ -336,7 +340,7 @@ export function App() {
                         <div className="leaderboard-list">
                             {rankedConfigurations.map((car, index) => {
                                 const event = telemetry[car.car_id];
-                                const position = event?.race_position ?? index + 1;
+                                const position = index + 1;
                                 const selected = selectedCarId === car.car_id;
                                 const retired = event?.car_status === "retired";
                                 const livePodium = ["running", "paused"].includes(currentStatus) && position <= 3;

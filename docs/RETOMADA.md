@@ -70,6 +70,17 @@ nenhuma corrida foi iniciada para esta alteração.
 
 ## Trabalho atual
 
+**Classificação e visualização do pelotão (07/10/2026):** o pelotão agora usa a
+distância acumulada como critério principal e a posição oficial em caso de
+empate; tempo de última volta não determina posição. O número exibido corresponde
+à ordem apresentada. Os marcadores do mapa mantêm distância visual mínima ao
+longo da linha de corrida e seguem a ordem da classificação, trocando após uma
+ultrapassagem. Testes cobrem ordem por distância, mudança de ordem e espaçamento;
+testes frontend/build e verificações Python passaram. Uma projeção pausada de 20
+carros foi inspecionada: posições e distâncias estavam coerentes, com grupos
+separados por apenas 3 m, insuficiente para os marcadores atuais. ADR 0019 registra
+a regra. Nenhuma nova corrida foi iniciada.
+
 **Penalidade de tempo (07/10/2026):** a configuração da largada aceita penalidade
 por carro, volta e duração. O painel oferece 5, 10 e 20 segundos e exibe o total
 no pelotão e na telemetria. A sanção é publicada em `incident` e somada ao tempo

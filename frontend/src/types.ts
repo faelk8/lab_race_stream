@@ -32,6 +32,7 @@ export interface RaceTelemetry {
     kind?: string;
     snapshot_id?: number;
     distance_m?: number;
+    laps_completed?: number;
     driver_name?: string;
     driver_country_code?: string;
     team_id?: string;

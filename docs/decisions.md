@@ -22,6 +22,7 @@ novo prevalece para a arquitetura atual.
 | [0016](adr/0016-safety-car-e-voltas-neutralizadas.md) | Safety car automático e exclusão analítica de voltas neutralizadas. |
 | [0017](adr/0017-penalidade-de-tempo.md) | Penalidade de tempo configurável com efeito na classificação final. |
 | [0018](adr/0018-grid-aleatorio-e-pausa-retomada.md) | Grid aleatório, pausa/retomada e mapa sem balões. |
+| [0019](adr/0019-classificacao-por-distancia-e-mapa-ordenado.md) | Pelotão pela distância e marcadores com espaçamento visual. |
 
 ## Decisões substituídas ou ampliadas
 

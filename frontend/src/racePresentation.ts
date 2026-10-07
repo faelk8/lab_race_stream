@@ -5,10 +5,38 @@ const REFERENCE_LAP_MS = 90_000;
 /** Ordena as configurações pela classificação de um quadro completo. */
 export function rankCars(cars: CarConfiguration[], events: Record<string, RaceTelemetry>): CarConfiguration[] {
     return [...cars].sort((left, right) =>
-        (events[left.car_id]?.race_position ?? Number.MAX_SAFE_INTEGER) -
-        (events[right.car_id]?.race_position ?? Number.MAX_SAFE_INTEGER) ||
+        compareRaceOrder(events[left.car_id], events[right.car_id]) ||
         left.car_id.localeCompare(right.car_id),
     );
+}
+
+export function compareRaceOrder(left: RaceTelemetry | undefined, right: RaceTelemetry | undefined): number {
+    if (!left || !right) return (left ? -1 : 0) - (right ? -1 : 0);
+    if (left.distance_m != null && right.distance_m != null && left.distance_m !== right.distance_m) {
+        return right.distance_m - left.distance_m;
+    }
+    return left.race_position - right.race_position;
+}
+
+/** Distribui visualmente marcadores próximos sem alterar a ordem de corrida. */
+export function spreadTrackPositions(cars: RaceTelemetry[], pathLength: number, trackLength: number, mapOffset = 0, minimumGap = 9): Map<string, number> {
+    const positions = new Map<string, number>();
+    if (pathLength <= 0 || cars.length === 0) return positions;
+    const ordered = [...cars].sort(compareRaceOrder);
+    let previous: number | null = null;
+    for (const car of ordered) {
+        const physicalDistance = car.distance_m ?? car.track_progress * trackLength;
+        const raw = (physicalDistance / trackLength + mapOffset) * pathLength;
+        let unwrapped = raw;
+        if (previous !== null) {
+            unwrapped += Math.round((previous - raw) / pathLength) * pathLength;
+            while (unwrapped >= previous) unwrapped -= pathLength;
+            if (previous - unwrapped < minimumGap) unwrapped = previous - minimumGap;
+        }
+        previous = unwrapped;
+        positions.set(car.car_id, (unwrapped % pathLength + pathLength) % pathLength);
+    }
+    return positions;
 }
 
 /** Estima o atraso pela distância atrás do líder, em milissegundos físicos. */
