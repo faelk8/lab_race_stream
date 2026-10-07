@@ -20,6 +20,7 @@ def initial_projection() -> dict[str, Any]:
         "splits": {},
         "sectors": {},
         "sector_best": {},
+        "neutralized": {},
         "laps": {},
         "clean": {},
         "lap_end": {},
@@ -100,6 +101,9 @@ def apply_event(state: dict[str, Any], event: dict[str, Any]) -> list[dict[str, 
         if previous is None or lap >= previous["lap"]:
             splits[point] = split
         sector_key = f"{car}:{lap}"
+        neutralized_laps = state.setdefault("neutralized", {})
+        if event["neutralized"]:
+            neutralized_laps[sector_key] = True
         if event["sector"]:
             sectors = state["sectors"].setdefault(sector_key, {})
             sectors[str(event["sector"])] = event["sector_time_ms"]
@@ -126,7 +130,8 @@ def apply_event(state: dict[str, Any], event: dict[str, Any]) -> list[dict[str, 
         ):
             event = state["lap_end"].pop(sector_key)
             sectors = state["sectors"].get(sector_key, {})
-            valid_lap = len(sectors) == 3
+            neutralized = neutralized_laps.pop(sector_key, False)
+            valid_lap = len(sectors) == 3 and event["valid"] and not neutralized
             target_laps = int(
                 (state.get("control") or {}).get("target_laps") or lap + 1
             )
@@ -140,6 +145,7 @@ def apply_event(state: dict[str, Any], event: dict[str, Any]) -> list[dict[str, 
                     "lap": lap,
                     "current_lap": min(lap + 1, target_laps),
                     "race_position": int(event["race_position"]),
+                    "neutralized": neutralized,
                     "lap_time_ms": event["lap_elapsed_ms"],
                     "sectors_ms": [sectors.get(str(i), 0) for i in (1, 2, 3)],
                     "pit_lap": event["pit_lap"],

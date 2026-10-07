@@ -172,7 +172,8 @@ export function App() {
     const elapsed = leader?.elapsed_race_seconds ?? 0;
     const currentStatus = race?.status === "running" ? leader?.race_status ?? "running" : race?.status ?? "idle";
     const activeRace = ["queued", "running", "stopping"].includes(currentStatus);
-    const statusLabel = { idle: "PRONTA", queued: "AGUARDANDO INÍCIO", running: "CORRIDA", stopping: "PARANDO", stopped: "PARADA", finished: "FINALIZADA", failed: "FALHA" }[currentStatus];
+    const safetyCarActive = currentStatus === "running" && leader?.track_status === "safety_car";
+    const statusLabel = safetyCarActive ? "SAFETY CAR" : { idle: "PRONTA", queued: "AGUARDANDO INÍCIO", running: "CORRIDA", stopping: "PARANDO", stopped: "PARADA", finished: "FINALIZADA", failed: "FALHA" }[currentStatus];
     const selectedTelemetry = selectedCarId ? telemetry[selectedCarId] : undefined;
     const selectedConfiguration = cars.find((car) => car.car_id === selectedCarId);
     const participants = sessionCars.length ? sessionCars : cars;
@@ -247,9 +248,9 @@ export function App() {
                             <Flag size={17} />
                             <div><span>VOLTA DO LÍDER</span><strong>{Math.min(leader?.lap ?? 1, race?.target_laps ?? 60).toString().padStart(2, "0")} <small>/ {race?.target_laps ?? 60}</small></strong></div>
                         </div>
-                        <div className="metric-cell status-cell">
+                        <div className={`metric-cell status-cell${safetyCarActive ? " safety-car" : ""}`}>
                             <Activity size={17} />
-                            <div><span>STATUS</span><strong>{statusLabel}</strong></div>
+                            <div><span>{safetyCarActive ? "BANDEIRA AMARELA" : "STATUS"}</span><strong>{statusLabel}</strong></div>
                         </div>
                     </div>
                 </section>

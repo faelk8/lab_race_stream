@@ -10,6 +10,8 @@ from racestream.domain.models import CarConfiguration, RaceConfiguration, RaceRe
 from racestream.domain.track import Track
 
 PIT_BRAKING_USAGE = 0.5
+SAFETY_CAR_SPEED_KMH = 120.0
+SAFETY_CAR_EXTRA_LAPS = 1
 
 
 @dataclass
@@ -81,6 +83,8 @@ class PhysicalRace:
         self.sequence = 0
         self.overtakes = 0
         self.leader_finished: float | None = None
+        self.track_status = "green"
+        self.neutralization_end_distance: float | None = None
         self.events: list[dict[str, Any]] = []
         if (
             configuration.rain_enabled
@@ -205,6 +209,7 @@ class PhysicalRace:
             self.time += step
             self.pending_time -= step
             self._rank()
+            self._update_neutralization()
             if self.leader_finished is not None:
                 for car in self.cars:
                     if (
@@ -318,6 +323,8 @@ class PhysicalRace:
             track.tire_grip_factors[car.active_tire]
             * (1 - (0.07 if car.active_tire == "wet" else 0.25) * rain_factor),
         )
+        if self.track_status == "safety_car":
+            target = min(target, SAFETY_CAR_SPEED_KMH / 3.6)
         if car.pit_status == "pit_lane":
             target = min(target, track.pit_speed_kmh / 3.6)
             if car.pit_requested:
@@ -375,6 +382,7 @@ class PhysicalRace:
                 and speed > ahead.speed + 0.2
                 and self.overtakes < track.max_overtakes
                 and ahead.lane == 0
+                and self.track_status == "green"
             )
             if can_pass:
                 car.lane = 1
@@ -505,6 +513,36 @@ class PhysicalRace:
                     ):
                         participant.applied_incidents.add(index)
                         self._retire(participant, "collision", self.time)
+                self._start_neutralization(incident.lap)
+
+    def _start_neutralization(self, incident_lap: int) -> None:
+        """Acione o safety car até o líder completar a volta seguinte."""
+        end_distance = (
+            incident_lap + SAFETY_CAR_EXTRA_LAPS
+        ) * self.track.length_m
+        self.neutralization_end_distance = max(
+            self.neutralization_end_distance or 0.0, end_distance
+        )
+        if self.track_status != "safety_car":
+            self.track_status = "safety_car"
+            self._emit("incident", {"reason": "safety_car_started"})
+
+    def _update_neutralization(self) -> None:
+        """Restaure bandeira verde quando o líder atingir a distância definida."""
+        if (
+            self.track_status != "safety_car"
+            or self.neutralization_end_distance is None
+        ):
+            return
+        leader_distance = max(
+            (car.distance for car in self.cars if car.status == "racing"),
+            default=0.0,
+        )
+        if leader_distance + 1e-9 < self.neutralization_end_distance:
+            return
+        self.track_status = "green"
+        self.neutralization_end_distance = None
+        self._emit("incident", {"reason": "safety_car_ended"})
 
     def _service(
         self, car: PhysicalCar, per_m: float, at: float | None = None
@@ -592,6 +630,7 @@ class PhysicalRace:
                         "team_id": car.configuration.team_id,
                         "lap": lap_index + 1,
                         "race_position": car.position,
+                        "neutralized": self.track_status == "safety_car",
                         "checkpoint_id": checkpoint,
                         "sector": sector,
                         "speed_kmh": car.speed * 3.6,
@@ -599,7 +638,8 @@ class PhysicalRace:
                         "segment_time_ms": round((at - car.line_start) * 1000),
                         "sector_time_ms": sector_ms,
                         "pit_lap": car.pit_lap,
-                        "valid": car.pit_status == "on_track",
+                        "valid": car.pit_status == "on_track"
+                        and self.track_status == "green",
                     },
                     car,
                     at,
@@ -667,6 +707,7 @@ class PhysicalRace:
                     + sum(progress >= v for v in self.track.sector_ends[:2]),
                     "target_laps": self.configuration.target_laps,
                     "race_status": self.status,
+                    "track_status": self.track_status,
                     "car_status": car.status,
                     "fuel_kg": car.fuel,
                     "car_weight_kg": c.car_weight_kg + c.driver_weight_kg + car.fuel,

@@ -167,6 +167,8 @@ desaceleram progressivamente até a vaga, podendo alterar a posição. Seus even
 registram a volta e o tempo cumulativo da passagem pelos boxes. Chuva reduz
 aderência/velocidade e agenda trocas para pneus
 `wet`. Furos e colisões podem ser programados antes da largada.
+Uma colisão aciona safety car até o líder completar a volta seguinte, limita o
+pelotão a 120 km/h, bloqueia ultrapassagens e invalida a volta para recordes.
 
 O fluxo completo está em [docs/data-flow.md](docs/data-flow.md).
 

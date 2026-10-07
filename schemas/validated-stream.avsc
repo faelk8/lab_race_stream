@@ -226,6 +226,11 @@
         "long"
       ],
       "default": null
+    },
+    {
+      "name": "track_status",
+      "type": "string",
+      "default": "green"
     }
   ]
 }

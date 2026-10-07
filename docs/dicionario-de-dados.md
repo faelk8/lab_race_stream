@@ -58,6 +58,7 @@ passaram pela validação.
 | --- | --- |
 | `driver_id`, `driver_name`, `driver_country_code`, `team_id` | Identidade do piloto e da equipe; o país usa código ISO. |
 | `race_status`, `car_status`, `pit_status`, `driving_phase` | Situação da corrida, carro, parada e fase de condução. |
+| `track_status` | Estado global da pista: `green` ou `safety_car`. |
 | `tire_compound`, `tire_age_laps`, `tire_pressure_psi` | Composto montado, idade em voltas e pressão em PSI. |
 | `snapshot_id`, `sample_sequence` | Identificadores do quadro e da amostra de telemetria. |
 | `current_lap_time_ms`, `last_lap_time_ms`, `best_lap_time_ms`, `worst_lap_time_ms` | Tempos da volta atual, última, melhor e pior, em milissegundos; alguns podem ser nulos. |
@@ -78,6 +79,7 @@ passaram pela validação.
 | `speed_kmh` | Velocidade no ponto de cronometragem. |
 | `lap_elapsed_ms`, `segment_time_ms`, `sector_time_ms` | Tempo acumulado da volta, do trecho e do setor, em milissegundos. |
 | `pit_lap`, `valid` | Indica volta com passagem pelos boxes e validade da medição. |
+| `neutralized` | Indica passagem ocorrida durante safety car. |
 
 ### `lap_completed`
 
@@ -89,6 +91,7 @@ passaram pela validação.
 | `lap_time_ms` | Duração total da volta, em milissegundos. |
 | `sectors_ms` | Lista dos tempos dos três setores, em milissegundos. |
 | `pit_lap`, `valid` | Indica volta com passagem pelos boxes e validade para recordes. |
+| `neutralized` | Informa se ao menos uma passagem da volta ocorreu durante safety car. |
 
 ### `pitstop`
 
@@ -106,6 +109,9 @@ passaram pela validação.
 | Campo | Significado |
 | --- | --- |
 | `reason` | Motivo ou descrição categórica do incidente. |
+
+Além dos incidentes dos carros, `reason` pode registrar
+`safety_car_started` e `safety_car_ended` com chave Kafka igual a `race_id`.
 
 ### `control`
 

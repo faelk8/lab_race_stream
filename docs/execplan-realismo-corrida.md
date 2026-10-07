@@ -45,7 +45,7 @@ auditáveis. A primeira versão deve permanecer determinística e configurável.
 
 - [x] Identificar as lacunas no domínio e nos planos existentes.
 - [x] Implementar e validar frenagem contínua até a vaga.
-- [ ] Implementar e validar bandeiras e neutralização.
+- [x] Implementar e validar bandeiras e neutralização.
 - [ ] Implementar e validar penalidades.
 - [ ] Atualizar documentação de retomada e concluir o plano.
 
@@ -55,3 +55,11 @@ O teste curto de pit lane comprova limite de 60 km/h, três amostras finais com
 velocidade estritamente decrescente, chegada à vaga dentro de dois subpassos da
 capacidade de frenagem, serviço parado e perda de posição. A prova completa não
 foi executada para este incremento.
+
+## 7. Evidência da segunda entrega
+
+Uma colisão determinística com três carros comprovou abandono dos dois
+envolvidos, início e fim do safety car, redução do sobrevivente até 120 km/h e
+retorno à bandeira verde. Uma fixture de cronometragem comprovou que qualquer
+checkpoint neutralizado invalida a volta concluída. O roundtrip Avro cobre os
+campos aditivos de pista, passagem e volta.

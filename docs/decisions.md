@@ -19,6 +19,7 @@ novo prevalece para a arquitetura atual.
 | [0013](adr/0013-nomes-curtos-topicos-kafka.md) | Tópicos Kafka curtos. |
 | [0014](adr/0014-spark-como-motor-unico.md) | Spark como único motor distribuído. |
 | [0015](adr/0015-grid-e-contexto-de-volta-e-pit-stop.md) | Grid em duas colunas e contexto de volta e pit stop nos eventos. |
+| [0016](adr/0016-safety-car-e-voltas-neutralizadas.md) | Safety car automático e exclusão analítica de voltas neutralizadas. |
 
 ## Decisões substituídas ou ampliadas
 

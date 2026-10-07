@@ -99,6 +99,11 @@
       "name": "race_position",
       "type": "int",
       "default": 0
+    },
+    {
+      "name": "neutralized",
+      "type": "boolean",
+      "default": false
     }
   ]
 }

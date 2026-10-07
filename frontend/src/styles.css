@@ -226,6 +226,15 @@ h1 span {
     font-size: 13px;
 }
 
+.status-cell.safety-car,
+.status-cell.safety-car strong {
+    color: #b17a00;
+}
+
+.status-cell.safety-car {
+    background: #fff3bf;
+}
+
 .error-banner {
     margin: 0 0 14px;
     padding: 10px 13px;

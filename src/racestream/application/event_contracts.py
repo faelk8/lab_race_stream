@@ -32,6 +32,8 @@ def validate_event(event: dict[str, Any]) -> None:
     if event.get("kind") == "telemetry":
         if not 0 <= event["track_progress"] < 1 or event["race_position"] < 1:
             raise ValueError("Posição inválida")
+        if event["track_status"] not in ("green", "safety_car"):
+            raise ValueError("Estado de pista inválido")
         if not 0 <= event["speed_kmh"] <= 380 or not 0 <= event["fuel_kg"] <= 110.001:
             raise ValueError("Velocidade ou combustível inválido")
     if event.get("kind") == "timing":

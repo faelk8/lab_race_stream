@@ -64,6 +64,7 @@ export interface RaceTelemetry {
     elapsed_race_seconds: number;
     target_laps: number;
     race_status: "running" | "finished" | "stopped";
+    track_status?: "green" | "safety_car";
 }
 
 export interface RaceSnapshot {

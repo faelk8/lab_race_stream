@@ -109,6 +109,39 @@ def test_late_sectors_revise_final_analytics(
     assert all(c["lap_count"] == 2 for c in outputs[-1]["cars"])
 
 
+def test_neutralized_checkpoint_invalidates_completed_lap(
+    short_race: tuple[PhysicalRace, list[dict[str, Any]]],
+) -> None:
+    """Uma passagem sob safety car retira a volta dos recordes analíticos."""
+    _, events = short_race
+    state = initial_projection()
+    completed_laps: list[dict[str, Any]] = []
+
+    for source in events:
+        event = deepcopy(source)
+        if (
+            event["kind"] == "timing"
+            and event["car_id"] == "CAR-01"
+            and event["lap"] == 1
+            and event["checkpoint_id"] == "P05"
+        ):
+            event["neutralized"] = True
+            event["valid"] = False
+        completed_laps.extend(
+            output
+            for output in apply_event(state, event)
+            if output["kind"] == "lap"
+        )
+
+    neutralized = next(
+        event
+        for event in completed_laps
+        if event["car_id"] == "CAR-01" and event["lap"] == 1
+    )
+    assert neutralized["neutralized"] is True
+    assert neutralized["valid"] is False
+
+
 def test_replayed_frames_do_not_regress_ranking(
     short_race: tuple[PhysicalRace, list[dict[str, Any]]],
 ) -> None:
@@ -587,8 +620,8 @@ def test_puncture_scenario_requests_emergency_tire_change() -> None:
 
 
 def test_collision_scenario_retires_both_configured_cars() -> None:
-    """Colisão programada registra abandono de ambos os participantes."""
-    profiles = create_default_car_configurations()[:2]
+    """Colisão retira envolvidos e neutraliza temporariamente a corrida."""
+    profiles = create_default_car_configurations()[:3]
     incident = RaceIncident("collision", 1, profiles[0].car_id, profiles[1].car_id)
     race = PhysicalRace(
         RaceConfiguration("colisao-planejada", target_laps=4, incidents=(incident,)),
@@ -600,13 +633,27 @@ def test_collision_scenario_retires_both_configured_cars() -> None:
 
     race._apply_scenarios(car, car.distance, 0.5)
 
-    assert all(item.status == "retired" for item in race.cars)
+    assert [item.status for item in race.cars] == ["retired", "retired", "racing"]
+    assert race.track_status == "safety_car"
     assert [
         event["reason"] for event in race.events if event["kind"] == "incident"
     ] == [
         "collision",
         "collision",
+        "safety_car_started",
     ]
+
+    survivor = race.cars[2]
+    survivor.distance = 0.6 * race.track.length_m
+    survivor.speed = 50.0
+    for _ in range(100):
+        race._advance_car(survivor, race.track.physics_step_seconds)
+    assert survivor.speed * 3.6 <= 120.0 + 1e-8
+
+    survivor.distance = 2 * race.track.length_m
+    race._update_neutralization()
+    assert race.track_status == "green"
+    assert race.events[-1]["reason"] == "safety_car_ended"
 
 
 def test_rain_reduces_speed_on_the_configured_lap() -> None:

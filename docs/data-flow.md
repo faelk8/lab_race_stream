@@ -104,6 +104,12 @@ permite acompanhar carro, piloto ou equipe. O grid inicial usa duas colunas; o
 painel destaca os três primeiros em verde durante a prova, abandonos em vermelho
 claro e o pódio final em ouro, prata e bronze.
 
+Uma colisão aciona neutralização automática até o líder completar a volta
+seguinte. Nesse período, o simulador limita o pelotão a 120 km/h, impede novas
+ultrapassagens em pista e marca as passagens. Uma volta que contenha ao menos uma
+passagem neutralizada continua no histórico, mas não participa de recordes e
+métricas de ritmo.
+
 ## Arquivamento e análise Spark
 
 ```mermaid

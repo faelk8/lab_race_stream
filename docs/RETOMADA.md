@@ -70,6 +70,13 @@ nenhuma corrida foi iniciada para esta alteração.
 
 ## Trabalho atual
 
+**Safety car e bandeira amarela (07/10/2026):** colisões programadas agora
+neutralizam a prova até o líder completar a volta seguinte. O pelotão fica
+limitado a 120 km/h e não pode ultrapassar em pista. Telemetria e painel informam
+o estado, e voltas com qualquer passagem neutralizada não entram em recordes ou
+ritmo. Testes determinísticos validaram início/fim, limite e exclusão analítica;
+nenhuma corrida completa foi iniciada.
+
 **Frenagem na vaga dos boxes (07/10/2026):** o carro agora usa a distância
 restante do trajeto do pit lane para reduzir continuamente a velocidade até a
 vaga. A curva reserva margem sobre a capacidade máxima de frenagem e conserva o
