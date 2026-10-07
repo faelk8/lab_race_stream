@@ -1,6 +1,6 @@
 # Plano de execução: realismo de corrida
 
-Data: 07/10/2026. Estado: em execução.
+Data: 07/10/2026. Estado: concluído.
 
 ## 1. Objetivo
 
@@ -46,8 +46,8 @@ auditáveis. A primeira versão deve permanecer determinística e configurável.
 - [x] Identificar as lacunas no domínio e nos planos existentes.
 - [x] Implementar e validar frenagem contínua até a vaga.
 - [x] Implementar e validar bandeiras e neutralização.
-- [ ] Implementar e validar penalidades.
-- [ ] Atualizar documentação de retomada e concluir o plano.
+- [x] Implementar e validar penalidades.
+- [x] Atualizar documentação de retomada e concluir o plano.
 
 ## 6. Evidência da primeira entrega
 
@@ -63,3 +63,10 @@ envolvidos, início e fim do safety car, redução do sobrevivente até 120 km/h
 retorno à bandeira verde. Uma fixture de cronometragem comprovou que qualquer
 checkpoint neutralizado invalida a volta concluída. O roundtrip Avro cobre os
 campos aditivos de pista, passagem e volta.
+
+## 8. Evidência da terceira entrega
+
+Uma fixture com dois carros aplicou cinco segundos ao vencedor físico e comprovou
+a inversão da classificação diante de um rival que chegou três segundos depois.
+O teste também validou o evento `incident`, o roundtrip Avro e a exposição da
+penalidade na telemetria. A API aceita a configuração e rejeita duração zero.

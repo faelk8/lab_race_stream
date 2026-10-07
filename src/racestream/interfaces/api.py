@@ -49,24 +49,29 @@ class CarConfigurationRequest(BaseModel):
 class IncidentRequest(BaseModel):
     """Incidente configurado para ocorrer em uma volta específica."""
 
-    incident_type: Literal["tire_puncture", "collision"]
+    incident_type: Literal["tire_puncture", "collision", "time_penalty"]
     lap: int = Field(ge=1, le=1000)
     car_id: str = Field(min_length=1, max_length=64)
     second_car_id: str = Field(default="", max_length=64)
+    penalty_seconds: int = Field(default=0, ge=0, le=60)
 
     @model_validator(mode="after")
-    def validate_collision(self) -> "IncidentRequest":
-        """Exija dois carros distintos para uma colisão programada.
+    def validate_incident(self) -> "IncidentRequest":
+        """Valide participantes e duração conforme o tipo de incidente.
 
         :return: A solicitação validada.
-        :raises ValueError: Se os carros configurados forem inválidos.
+        :raises ValueError: Se participantes ou penalidade forem inválidos.
         """
         if self.incident_type == "collision" and (
             not self.second_car_id or self.second_car_id == self.car_id
         ):
             raise ValueError("Uma colisão exige dois carros diferentes")
-        if self.incident_type == "tire_puncture" and self.second_car_id:
-            raise ValueError("Furo de pneu aceita somente um carro")
+        if self.incident_type != "collision" and self.second_car_id:
+            raise ValueError("Somente colisão aceita um segundo carro")
+        if self.incident_type == "time_penalty" and self.penalty_seconds < 1:
+            raise ValueError("A penalidade deve ter ao menos um segundo")
+        if self.incident_type != "time_penalty" and self.penalty_seconds:
+            raise ValueError("Tempo de penalidade exige o evento correspondente")
         return self
 
 

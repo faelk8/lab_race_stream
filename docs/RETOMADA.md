@@ -70,7 +70,25 @@ nenhuma corrida foi iniciada para esta alteração.
 
 ## Trabalho atual
 
-**Safety car e bandeira amarela (07/10/2026):** colisões programadas agora
+**Penalidade de tempo (07/10/2026):** a configuração da largada aceita penalidade
+por carro, volta e duração. O painel oferece 5, 10 e 20 segundos e exibe o total
+no pelotão e na telemetria. A sanção é publicada em `incident` e somada ao tempo
+de chegada, podendo inverter a classificação final. Fixture curta comprovou uma
+inversão por cinco segundos; nenhuma corrida completa foi iniciada. O plano de
+realismo está concluído, com limitações registradas na ADR 0017.
+
+**Realismo de corrida (07/10/2026):** a aproximação à vaga dos boxes desacelera
+progressivamente e mantém o limite de 60 km/h. Colisões programadas acionam
+safety car até o líder completar a volta seguinte: o pelotão fica limitado a
+120 km/h, sem ultrapassagens, e voltas neutralizadas não entram em recordes ou
+ritmo. Penalidades configuráveis de 5, 10 ou 20 segundos aparecem no pelotão e
+na telemetria e são somadas ao tempo final, podendo inverter a classificação.
+Testes direcionados, Ruff, mypy, typecheck e build foram aprovados; os serviços
+foram reconstruídos e a prova completa não foi iniciada. Detalhes e limites na
+[ADR de safety car](adr/0016-safety-car-e-voltas-neutralizadas.md) e na
+[ADR de penalidades](adr/0017-penalidade-de-tempo.md).
+
+**Safety car e bandeira amarela (registro anterior, 07/10/2026):** colisões programadas agora
 neutralizam a prova até o líder completar a volta seguinte. O pelotão fica
 limitado a 120 km/h e não pode ultrapassar em pista. Telemetria e painel informam
 o estado, e voltas com qualquer passagem neutralizada não entram em recordes ou

@@ -20,6 +20,7 @@ novo prevalece para a arquitetura atual.
 | [0014](adr/0014-spark-como-motor-unico.md) | Spark como único motor distribuído. |
 | [0015](adr/0015-grid-e-contexto-de-volta-e-pit-stop.md) | Grid em duas colunas e contexto de volta e pit stop nos eventos. |
 | [0016](adr/0016-safety-car-e-voltas-neutralizadas.md) | Safety car automático e exclusão analítica de voltas neutralizadas. |
+| [0017](adr/0017-penalidade-de-tempo.md) | Penalidade de tempo configurável com efeito na classificação final. |
 
 ## Decisões substituídas ou ampliadas
 

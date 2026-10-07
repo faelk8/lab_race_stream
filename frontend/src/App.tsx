@@ -69,6 +69,7 @@ export function App() {
     const [incidentLap, setIncidentLap] = useState(5);
     const [incidentCar, setIncidentCar] = useState("CAR-01");
     const [incidentSecondCar, setIncidentSecondCar] = useState("CAR-02");
+    const [penaltySeconds, setPenaltySeconds] = useState(5);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -273,14 +274,15 @@ export function App() {
                             <small>Para {cars.length} carros e {race?.target_laps ?? 60} voltas, inicie até a volta {Math.max(1, (race?.target_laps ?? 60) - 1 - 2 * (cars.length - 1))}.</small>
                         </>}
                     </div>
-                    <form className="scenario-form" onSubmit={(event) => { event.preventDefault(); const scenario: RaceIncident = { incident_type: incidentType, lap: incidentLap, car_id: incidentCar, second_car_id: incidentType === "collision" ? incidentSecondCar : "" }; setRaceSetup((current) => ({ ...current, incidents: [...current.incidents, scenario] })); }}>
-                        <label>Evento <select value={incidentType} onChange={(event) => setIncidentType(event.target.value as RaceIncident["incident_type"])}><option value="tire_puncture">Furo de pneu · parada emergencial</option><option value="collision">Colisão · abandono dos envolvidos</option></select></label>
+                    <form className="scenario-form" onSubmit={(event) => { event.preventDefault(); const scenario: RaceIncident = { incident_type: incidentType, lap: incidentLap, car_id: incidentCar, second_car_id: incidentType === "collision" ? incidentSecondCar : "", penalty_seconds: incidentType === "time_penalty" ? penaltySeconds : 0 }; setRaceSetup((current) => ({ ...current, incidents: [...current.incidents, scenario] })); }}>
+                        <label>Evento <select value={incidentType} onChange={(event) => setIncidentType(event.target.value as RaceIncident["incident_type"])}><option value="tire_puncture">Furo de pneu · parada emergencial</option><option value="collision">Colisão · abandono e safety car</option><option value="time_penalty">Penalidade de tempo</option></select></label>
                         <label>Volta <input type="number" min="1" max={race?.target_laps ?? 60} value={incidentLap} onChange={(event) => setIncidentLap(Number(event.target.value))} required /></label>
                         <label>Carro {incidentType === "collision" ? "1" : "afetado"}<select value={incidentCar} onChange={(event) => setIncidentCar(event.target.value)}>{cars.map((car) => <option key={car.car_id} value={car.car_id}>{car.car_id} · {car.driver_name}</option>)}</select></label>
                         {incidentType === "collision" && <label>Carro 2<select value={incidentSecondCar} onChange={(event) => setIncidentSecondCar(event.target.value)}>{cars.filter((car) => car.car_id !== incidentCar).map((car) => <option key={car.car_id} value={car.car_id}>{car.car_id} · {car.driver_name}</option>)}</select></label>}
+                        {incidentType === "time_penalty" && <label>Penalidade <select value={penaltySeconds} onChange={(event) => setPenaltySeconds(Number(event.target.value))}><option value="5">5 segundos</option><option value="10">10 segundos</option><option value="20">20 segundos</option></select></label>}
                         <button type="submit" disabled={!cars.length}>Adicionar evento</button>
                     </form>
-                    {raceSetup.incidents.length > 0 && <ul className="scenario-list">{raceSetup.incidents.map((scenario, index) => <li key={`${scenario.incident_type}-${scenario.lap}-${scenario.car_id}-${index}`}><span>Volta {scenario.lap} · {scenario.incident_type === "collision" ? `Colisão ${scenario.car_id} / ${scenario.second_car_id}` : `Furo em ${scenario.car_id}`}</span><button type="button" aria-label="Remover evento" onClick={() => setRaceSetup((current) => ({ ...current, incidents: current.incidents.filter((_, itemIndex) => itemIndex !== index) }))}>Remover</button></li>)}</ul>}
+                    {raceSetup.incidents.length > 0 && <ul className="scenario-list">{raceSetup.incidents.map((scenario, index) => <li key={`${scenario.incident_type}-${scenario.lap}-${scenario.car_id}-${index}`}><span>Volta {scenario.lap} · {scenario.incident_type === "collision" ? `Colisão ${scenario.car_id} / ${scenario.second_car_id}` : scenario.incident_type === "time_penalty" ? `Penalidade de ${scenario.penalty_seconds}s para ${scenario.car_id}` : `Furo em ${scenario.car_id}`}</span><button type="button" aria-label="Remover evento" onClick={() => setRaceSetup((current) => ({ ...current, incidents: current.incidents.filter((_, itemIndex) => itemIndex !== index) }))}>Remover</button></li>)}</ul>}
                 </section>}
                 <section className="race-follow" aria-label="Selecionar acompanhamento">
                     <label>Acompanhar por <select value={selectionMode} onChange={e => { setSelectionMode(e.target.value as typeof selectionMode); setSelectedTeam(null); }}><option value="car">Carro</option><option value="driver">Piloto</option><option value="team">Equipe</option></select></label>
@@ -354,7 +356,7 @@ export function App() {
                                         </span>
                                         <span className="car-identity">
                                             <span className="driver-identity"><span className="country-flag" role="img" aria-label={`País: ${countryName(car.driver_country_code)}`} title={countryName(car.driver_country_code)}>{countryFlag(car.driver_country_code)}</span><strong>{event?.driver_name || car.driver_name || car.driver_id}</strong></span>
-                                            <small>{teamName(car.team_id)} · {car.car_id}</small>
+                                            <small>{teamName(car.team_id)} · {car.car_id}{event?.time_penalty_seconds ? ` · PEN +${event.time_penalty_seconds}s` : ""}</small>
                                         </span>
                                         <span className="lap-cell" title="Volta atual sobre total de voltas">{event ? `${Math.min(event.lap, event.target_laps)}/${event.target_laps}` : `--/${race?.target_laps ?? 60}`}</span>
                                         <span className="last-lap-cell" title="Última volta concluída">{formatLapTime(event?.last_lap_time_ms ?? analytics[car.car_id]?.last_lap_time_ms)}</span>
@@ -422,6 +424,7 @@ export function App() {
 
                         <p>{selectedConfiguration?.team_id} · Estratégia {selectedConfiguration?.strategy} · {selectedTelemetry?.pit_status === "in_pit" ? "NOS BOXES" : selectedTelemetry?.pit_status === "out_of_fuel" ? "SEM COMBUSTÍVEL" : selectedTelemetry?.pit_status === "tire_burst" ? "PNEU ESTOURADO" : "NA PISTA"}</p>
                         <p>Pressão {selectedTelemetry?.tire_pressure_psi?.toFixed(1) ?? "38.0"} psi · Paradas {selectedTelemetry?.pit_stops ?? 0}</p>
+                        {!!selectedTelemetry?.time_penalty_seconds && <p className="penalty-readout">Penalidade de tempo: +{selectedTelemetry.time_penalty_seconds} s na classificação final</p>}
                         <form className="setup-form" onSubmit={saveConfiguration}>
                             <div className="setup-title">
                                 <span><Settings2 size={16} /> CONFIGURAÇÃO</span>

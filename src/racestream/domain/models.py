@@ -65,12 +65,14 @@ class RaceIncident:
     :param lap: Volta em que o incidente acontece.
     :param car_id: Primeiro carro envolvido.
     :param second_car_id: Segundo carro, usado em colisões.
+    :param penalty_seconds: Acréscimo aplicado ao tempo final do carro.
     """
 
     incident_type: str
     lap: int
     car_id: str
     second_car_id: str = ""
+    penalty_seconds: int = 0
 
 
 @dataclass(frozen=True)

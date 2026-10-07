@@ -303,6 +303,11 @@
                     "name": "track_status",
                     "type": "string",
                     "default": "green"
+                  },
+                  {
+                    "name": "time_penalty_seconds",
+                    "type": "int",
+                    "default": 0
                   }
                 ]
               }

@@ -50,6 +50,26 @@
     {
       "name": "reason",
       "type": "string"
+    },
+    {
+      "name": "lap",
+      "type": "int",
+      "default": 0
+    },
+    {
+      "name": "penalty_seconds",
+      "type": "int",
+      "default": 0
+    },
+    {
+      "name": "penalty_status",
+      "type": "string",
+      "default": "none"
+    },
+    {
+      "name": "penalty_car_id",
+      "type": "string",
+      "default": ""
     }
   ]
 }

@@ -181,7 +181,13 @@ def test_api_start_persists_weather_and_incident_scenarios() -> None:
                     incident_type="tire_puncture",
                     lap=4,
                     car_id=repository.configurations[0].car_id,
-                )
+                ),
+                IncidentRequest(
+                    incident_type="time_penalty",
+                    lap=5,
+                    car_id=repository.configurations[1].car_id,
+                    penalty_seconds=10,
+                ),
             ],
         )
     )
@@ -191,6 +197,13 @@ def test_api_start_persists_weather_and_incident_scenarios() -> None:
     assert repository.configuration.rain_start_lap == 3
     assert repository.configuration.rain_intensity == 0.75
     assert repository.configuration.incidents[0].incident_type == "tire_puncture"
+    assert repository.configuration.incidents[1].penalty_seconds == 10
+    with pytest.raises(ValueError, match="ao menos um segundo"):
+        IncidentRequest(
+            incident_type="time_penalty",
+            lap=5,
+            car_id=repository.configurations[0].car_id,
+        )
     with pytest.raises(HTTPException) as error:
         endpoint(
             RaceStartRequest(

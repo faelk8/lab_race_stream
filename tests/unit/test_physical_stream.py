@@ -656,6 +656,57 @@ def test_collision_scenario_retires_both_configured_cars() -> None:
     assert race.events[-1]["reason"] == "safety_car_ended"
 
 
+def test_time_penalty_changes_final_ranking_and_is_published() -> None:
+    """A penalidade configurada soma tempo e pode inverter a chegada."""
+    profiles = create_default_car_configurations()[:2]
+    incident = RaceIncident(
+        "time_penalty", 1, profiles[0].car_id, penalty_seconds=5
+    )
+    race = PhysicalRace(
+        RaceConfiguration("penalidade", target_laps=2, incidents=(incident,)),
+        profiles,
+        load_track(),
+    )
+    penalized, rival = race.cars
+    penalized.distance = 0.5 * race.track.length_m
+
+    race._apply_scenarios(penalized, penalized.distance, 0.5)
+
+    penalty_event = next(
+        event
+        for event in race.events
+        if event["kind"] == "incident" and event["reason"] == "time_penalty"
+    )
+    assert penalized.time_penalty_seconds == 5
+    assert penalty_event["lap"] == 1
+    assert penalty_event["penalty_seconds"] == 5
+    assert penalty_event["penalty_status"] == "applied"
+    assert penalty_event["penalty_car_id"] == penalized.configuration.car_id
+    validate_event(penalty_event)
+    schema = json.loads(Path("schemas/incident-stream.avsc").read_text())
+    buffer = BytesIO()
+    schemaless_writer(buffer, schema, penalty_event)
+    buffer.seek(0)
+    assert schemaless_reader(buffer, schema) == penalty_event
+
+    finish = 2 * race.track.length_m
+    penalized.distance = rival.distance = finish
+    penalized.status = rival.status = "finished"
+    penalized.finished_at, rival.finished_at = 100.0, 103.0
+    race._rank()
+    assert rival.position == 1
+    assert penalized.position == 2
+
+    race.snapshot()
+    telemetry = next(
+        event
+        for event in race.events
+        if event["kind"] == "telemetry"
+        and event["car_id"] == penalized.configuration.car_id
+    )
+    assert telemetry["time_penalty_seconds"] == 5
+
+
 def test_rain_reduces_speed_on_the_configured_lap() -> None:
     """Chuva ativa reduz o limite de velocidade frente à mesma pista seca."""
     profile = create_default_car_configurations()[0]

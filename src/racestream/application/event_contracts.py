@@ -51,3 +51,7 @@ def validate_event(event: dict[str, Any]) -> None:
         event["lap"] < 1 or event["pit_stop_time_ms"] < 0
     ):
         raise ValueError("Contexto de pit stop inválido")
+    if event.get("kind") == "incident" and (
+        event["lap"] < 0 or event["penalty_seconds"] < 0
+    ):
+        raise ValueError("Contexto de incidente inválido")

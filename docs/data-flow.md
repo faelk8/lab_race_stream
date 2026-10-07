@@ -110,6 +110,11 @@ ultrapassagens em pista e marca as passagens. Uma volta que contenha ao menos um
 passagem neutralizada continua no histórico, mas não participa de recordes e
 métricas de ritmo.
 
+Uma penalidade de tempo programada é aplicada na metade da volta escolhida e
+publicada em `incident`. Ela aparece na telemetria e no pelotão, mas altera a
+ordem apenas na chegada: carros que completaram a mesma distância são ordenados
+pelo horário de chegada acrescido da penalidade.
+
 ## Arquivamento e análise Spark
 
 ```mermaid

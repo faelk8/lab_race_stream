@@ -169,6 +169,8 @@ aderência/velocidade e agenda trocas para pneus
 `wet`. Furos e colisões podem ser programados antes da largada.
 Uma colisão aciona safety car até o líder completar a volta seguinte, limita o
 pelotão a 120 km/h, bloqueia ultrapassagens e invalida a volta para recordes.
+Penalidades configuráveis de 5, 10 ou 20 segundos são aplicadas ao tempo final e
+podem alterar a classificação depois da chegada.
 
 O fluxo completo está em [docs/data-flow.md](docs/data-flow.md).
 

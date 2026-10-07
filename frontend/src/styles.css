@@ -715,6 +715,15 @@ h1 span {
 
 .compound-wet { color: #39a8d8; }
 
+.penalty-readout {
+    margin: 0;
+    padding: 8px 12px;
+    border-left: 3px solid #c48716;
+    background: #fff4d6;
+    color: #855b09;
+    font: 600 9px var(--mono);
+}
+
 .setup-form {
     padding: 12px;
 }

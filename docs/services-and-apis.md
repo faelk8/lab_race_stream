@@ -57,14 +57,16 @@ padrão do framework. O CORS aceita apenas o dashboard em `localhost:5173` e
       "incident_type": "tire_puncture",
       "lap": 8,
       "car_id": "CAR-03",
-      "second_car_id": ""
+      "second_car_id": "",
+      "penalty_seconds": 0
     }
   ]
 }
 ```
 
-`incident_type` aceita `tire_puncture` ou `collision`. Uma colisão exige dois
-carros distintos. Com vinte carros e sessenta voltas, a chuva precisa começar
+`incident_type` aceita `tire_puncture`, `collision` ou `time_penalty`. Uma colisão
+exige dois carros distintos. A penalidade exige de 1 a 60 segundos e não aceita
+segundo carro. Com vinte carros e sessenta voltas, a chuva precisa começar
 até a volta 21 para que todas as trocas sejam escalonadas em intervalos mínimos
 de duas voltas.
 

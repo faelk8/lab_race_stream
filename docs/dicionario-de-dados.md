@@ -67,6 +67,7 @@ passaram pela validação.
 | `speed_kmh`, `distance_m`, `track_progress`, `lap_distance_m` | Velocidade, distância acumulada, progresso normalizado de 0 a 1 e distância na volta. |
 | `fuel_kg`, `car_weight_kg`, `throttle`, `brake` | Combustível, massa do carro e comandos normalizados de acelerador/freio. |
 | `elapsed_race_seconds`, `pit_stops` | Tempo decorrido da corrida e número de paradas. |
+| `time_penalty_seconds` | Penalidade acumulada que será somada ao tempo final do carro. |
 | `g_longitudinal`, `g_lateral`, `g_horizontal`, `g_peak` | Aceleração longitudinal, lateral, horizontal e pico, expressos em força G; componentes instantâneos podem ser nulos. |
 
 ### `timing`
@@ -109,6 +110,10 @@ passaram pela validação.
 | Campo | Significado |
 | --- | --- |
 | `reason` | Motivo ou descrição categórica do incidente. |
+| `lap` | Volta do incidente ou da aplicação da penalidade; zero quando não se aplica. |
+| `penalty_seconds` | Duração da penalidade de tempo aplicada. |
+| `penalty_status` | Estado da penalidade, como `applied`, ou `none` nos demais incidentes. |
+| `penalty_car_id` | Carro ao qual a penalidade se aplica; vazio quando não há sanção. |
 
 Além dos incidentes dos carros, `reason` pode registrar
 `safety_car_started` e `safety_car_ended` com chave Kafka igual a `race_id`.

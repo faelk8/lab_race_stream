@@ -43,6 +43,7 @@ class PhysicalCar:
     tire_change_pending: bool = False
     applied_incidents: set[int] = field(default_factory=set)
     pit_lap: bool = False
+    time_penalty_seconds: int = 0
     tire_age: float = 0.0
     pressure: float = 38.0
     throttle: float = 0.0
@@ -108,6 +109,17 @@ class PhysicalRace:
                 incident.second_car_id and incident.second_car_id not in car_ids
             ):
                 raise ValueError("O incidente referencia um carro inexistente")
+            if incident.incident_type not in (
+                "tire_puncture",
+                "collision",
+                "time_penalty",
+            ):
+                raise ValueError("Tipo de incidente desconhecido")
+            if (
+                incident.incident_type == "time_penalty"
+                and incident.penalty_seconds < 1
+            ):
+                raise ValueError("A penalidade deve ter ao menos um segundo")
         rain_stop_laps = self._rain_stop_schedule(len(profiles), seed)
         self.cars = [
             PhysicalCar(
@@ -177,6 +189,14 @@ class PhysicalRace:
         at: float | None = None,
     ) -> None:
         """Crie um fato com identidade estável para tentativas de publicação."""
+        if kind == "incident":
+            data = {
+                "lap": 0,
+                "penalty_seconds": 0,
+                "penalty_status": "none",
+                "penalty_car_id": "",
+                **data,
+            }
         self.sequence += 1
         now = datetime.now(UTC).isoformat()
         self.events.append(
@@ -514,6 +534,23 @@ class PhysicalRace:
                         participant.applied_incidents.add(index)
                         self._retire(participant, "collision", self.time)
                 self._start_neutralization(incident.lap)
+            elif (
+                incident.incident_type == "time_penalty"
+                and incident.car_id == car.configuration.car_id
+            ):
+                car.applied_incidents.add(index)
+                car.time_penalty_seconds += incident.penalty_seconds
+                self._emit(
+                    "incident",
+                    {
+                        "reason": "time_penalty",
+                        "lap": incident.lap,
+                        "penalty_seconds": incident.penalty_seconds,
+                        "penalty_status": "applied",
+                        "penalty_car_id": car.configuration.car_id,
+                    },
+                    car,
+                )
 
     def _start_neutralization(self, incident_lap: int) -> None:
         """Acione o safety car até o líder completar a volta seguinte."""
@@ -672,7 +709,9 @@ class PhysicalRace:
             self.cars,
             key=lambda c: (
                 -c.distance,
-                c.finished_at if c.finished_at is not None else float("inf"),
+                c.finished_at + c.time_penalty_seconds
+                if c.finished_at is not None
+                else float("inf"),
                 c.configuration.car_id,
             ),
         )
@@ -720,6 +759,7 @@ class PhysicalRace:
                     "tire_pressure_psi": car.pressure,
                     "pit_status": car.pit_status,
                     "pit_stops": car.pit_stops,
+                    "time_penalty_seconds": car.time_penalty_seconds,
                     "overtaking_lane": car.lane,
                     "driving_phase": "braking"
                     if car.brake > 0

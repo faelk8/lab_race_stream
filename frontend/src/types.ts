@@ -65,6 +65,7 @@ export interface RaceTelemetry {
     target_laps: number;
     race_status: "running" | "finished" | "stopped";
     track_status?: "green" | "safety_car";
+    time_penalty_seconds?: number;
 }
 
 export interface RaceSnapshot {
@@ -82,10 +83,11 @@ export interface RaceSnapshot {
 }
 
 export interface RaceIncident {
-    incident_type: "tire_puncture" | "collision";
+    incident_type: "tire_puncture" | "collision" | "time_penalty";
     lap: number;
     car_id: string;
     second_car_id: string;
+    penalty_seconds: number;
 }
 
 export interface RaceStartConfiguration {
