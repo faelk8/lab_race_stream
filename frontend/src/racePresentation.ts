@@ -37,6 +37,21 @@ export function availableCarsForIncidentLap<T extends { car_id: string }>(
     return cars.filter((car) => !retired.has(car.car_id));
 }
 
+/** Reconhece uma repetição do mesmo evento, sem depender da ordem da colisão. */
+export function isDuplicateIncident(incidents: RaceIncident[], candidate: RaceIncident): boolean {
+    const candidateCars = candidate.incident_type === "collision"
+        ? [candidate.car_id, candidate.second_car_id].sort().join(":")
+        : candidate.car_id;
+    return incidents.some((incident) => {
+        if (incident.incident_type !== candidate.incident_type || incident.lap !== candidate.lap ||
+            incident.penalty_seconds !== candidate.penalty_seconds) return false;
+        const incidentCars = incident.incident_type === "collision"
+            ? [incident.car_id, incident.second_car_id].sort().join(":")
+            : incident.car_id;
+        return incidentCars === candidateCars;
+    });
+}
+
 /** Distribui visualmente marcadores próximos sem alterar a ordem de corrida. */
 export function spreadTrackPositions(cars: RaceTelemetry[], pathLength: number, trackLength: number, mapOffset = 0, minimumGap = 9): Map<string, number> {
     const positions = new Map<string, number>();

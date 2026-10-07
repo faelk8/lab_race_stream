@@ -282,6 +282,27 @@ def test_api_rejects_events_after_a_collision_retires_the_car() -> None:
     assert "já retirado(s)" in str(error.value.detail)
 
 
+def test_api_rejects_duplicate_events_in_the_same_lap() -> None:
+    """A API rejeita repetição idêntica de evento e volta."""
+    repository = ControlledRepository()
+    endpoint = next(
+        route.endpoint
+        for route in create_app(repository, FakeTelemetryHub(), repository).routes
+        if isinstance(route, APIRoute) and route.path == "/api/races/start"
+    )
+    puncture = IncidentRequest(
+        incident_type="tire_puncture",
+        lap=5,
+        car_id=repository.configurations[0].car_id,
+    )
+
+    with pytest.raises(HTTPException) as error:
+        endpoint(RaceStartRequest(incidents=[puncture, puncture]))
+
+    assert error.value.status_code == 422
+    assert "mesmo evento já foi configurado" in str(error.value.detail)
+
+
 def test_api_accepts_wet_tire_and_rejects_rain_on_last_lap() -> None:
     """O setup aceita composto molhado e a chuva precisa permitir a parada."""
     setup = CarConfigurationRequest(

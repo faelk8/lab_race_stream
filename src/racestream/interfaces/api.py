@@ -216,6 +216,7 @@ def create_app(
         target_laps = int(os.environ.get("RACE_TARGET_LAPS", str(TARGET_LAPS)))
         latest_rain_start = target_laps - 1 - 2 * (len(cars) - 1)
         retired_cars: set[str] = set()
+        configured_events: set[tuple[object, ...]] = set()
         for incident in sorted(request.incidents, key=lambda item: item.lap):
             if incident.lap > target_laps or incident.car_id not in cars:
                 raise HTTPException(
@@ -223,6 +224,24 @@ def create_app(
                 )
             if incident.second_car_id not in cars | {""}:
                 raise HTTPException(422, "O incidente referencia um carro desconhecido")
+            participants_key = (
+                tuple(sorted((incident.car_id, incident.second_car_id)))
+                if incident.incident_type == "collision"
+                else (incident.car_id,)
+            )
+            event_key = (
+                incident.incident_type,
+                incident.lap,
+                participants_key,
+                incident.penalty_seconds,
+            )
+            if event_key in configured_events:
+                raise HTTPException(
+                    422,
+                    "Esse evento já foi configurado para o carro e a volta "
+                    "selecionados.",
+                )
+            configured_events.add(event_key)
             participants = {incident.car_id}
             if incident.second_car_id:
                 participants.add(incident.second_car_id)

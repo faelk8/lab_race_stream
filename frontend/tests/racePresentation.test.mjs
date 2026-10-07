@@ -5,7 +5,7 @@ import ts from "typescript";
 
 const source = readFileSync(new URL("../src/racePresentation.ts", import.meta.url), "utf8");
 const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } });
-const { rankCars, leaderGapMs, formatGap, countryFlag, countryName, RaceFrameBuffer, spreadTrackPositions, visibleTrackCars, availableCarsForIncidentLap } =
+const { rankCars, leaderGapMs, formatGap, countryFlag, countryName, RaceFrameBuffer, spreadTrackPositions, visibleTrackCars, availableCarsForIncidentLap, isDuplicateIncident } =
     await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
 
 function event(carId, position, elapsed = 1, lap = 2, progress = 0.9) {
@@ -75,6 +75,13 @@ test("Eventos só oferecem carros ainda ativos na volta configurada", () => {
     assert.deepEqual(availableCarsForIncidentLap(cars, incidents, 14).map((car) => car.car_id), ["CAR-10", "CAR-12", "CAR-15", "CAR-18"]);
     assert.deepEqual(availableCarsForIncidentLap(cars, incidents, 15).map((car) => car.car_id), ["CAR-15", "CAR-18"]);
     assert.deepEqual(availableCarsForIncidentLap(cars, incidents, 20).map((car) => car.car_id), ["CAR-15", "CAR-18"]);
+});
+
+test("Eventos idênticos na mesma volta são reconhecidos mesmo com colisão invertida", () => {
+    const collision = { incident_type: "collision", lap: 5, car_id: "CAR-01", second_car_id: "CAR-02", penalty_seconds: 0 };
+    assert.equal(isDuplicateIncident([collision], { ...collision, car_id: "CAR-02", second_car_id: "CAR-01" }), true);
+    assert.equal(isDuplicateIncident([collision], { ...collision, lap: 6 }), false);
+    assert.equal(isDuplicateIncident([{ ...collision, incident_type: "tire_puncture", second_car_id: "", penalty_seconds: 0 }], { ...collision, incident_type: "tire_puncture", second_car_id: "", penalty_seconds: 0 }), true);
 });
 
 test("O atraso inclui voltas completas e mantém a precisão de milissegundos", () => {

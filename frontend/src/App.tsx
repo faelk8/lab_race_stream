@@ -21,7 +21,7 @@ import { startTransition, useDeferredValue, useEffect, useRef, useState } from "
 import { getCars, getLatestRace, pauseRace, resumeRace, startRace, stopRace, telemetrySocketUrl, updateCar } from "./api";
 import { RaceInsights } from "./RaceInsights";
 import { InterlagosTrack } from "./InterlagosTrack";
-import { availableCarsForIncidentLap, countryFlag, countryName, rankCars, teamName, visibleTrackCars } from "./racePresentation";
+import { availableCarsForIncidentLap, countryFlag, countryName, isDuplicateIncident, rankCars, teamName, visibleTrackCars } from "./racePresentation";
 import type { AnalyticsEvent, CarAnalytics, CarConfiguration, RaceIncident, RaceSnapshot, RaceStartConfiguration, RaceStateEvent, RaceTelemetry, TireCompound } from "./types";
 
 type ConnectionState = "connecting" | "connected" | "reconnecting";
@@ -79,7 +79,9 @@ export function App() {
     const selectedIncidentCar = eligibleIncidentCars.find((car) => car.car_id === incidentCar)?.car_id ?? eligibleIncidentCars[0]?.car_id ?? "";
     const eligibleSecondCars = eligibleIncidentCars.filter((car) => car.car_id !== selectedIncidentCar);
     const selectedSecondCar = eligibleSecondCars.find((car) => car.car_id === incidentSecondCar)?.car_id ?? eligibleSecondCars[0]?.car_id ?? "";
-    const canAddIncident = Boolean(selectedIncidentCar) && (incidentType !== "collision" || Boolean(selectedSecondCar));
+    const incidentDraft: RaceIncident = { incident_type: incidentType, lap: incidentLap, car_id: selectedIncidentCar, second_car_id: incidentType === "collision" ? selectedSecondCar : "", penalty_seconds: incidentType === "time_penalty" ? penaltySeconds : 0 };
+    const duplicateIncident = isDuplicateIncident(raceSetup.incidents, incidentDraft);
+    const canAddIncident = Boolean(selectedIncidentCar) && (incidentType !== "collision" || Boolean(selectedSecondCar)) && !duplicateIncident;
 
     useEffect(() => {
         let active = true;
@@ -289,7 +291,7 @@ export function App() {
                             <small>Para {cars.length} carros e {race?.target_laps ?? 60} voltas, inicie até a volta {Math.max(1, (race?.target_laps ?? 60) - 1 - 2 * (cars.length - 1))}.</small>
                         </>}
                     </div>
-                    <form className="scenario-form" onSubmit={(event) => { event.preventDefault(); if (!canAddIncident) return; const scenario: RaceIncident = { incident_type: incidentType, lap: incidentLap, car_id: selectedIncidentCar, second_car_id: incidentType === "collision" ? selectedSecondCar : "", penalty_seconds: incidentType === "time_penalty" ? penaltySeconds : 0 }; setRaceSetup((current) => ({ ...current, incidents: [...current.incidents, scenario] })); }}>
+                    <form className="scenario-form" onSubmit={(event) => { event.preventDefault(); if (!canAddIncident) return; setRaceSetup((current) => isDuplicateIncident(current.incidents, incidentDraft) ? current : ({ ...current, incidents: [...current.incidents, incidentDraft] })); }}>
                         <label>Evento <select value={incidentType} onChange={(event) => setIncidentType(event.target.value as RaceIncident["incident_type"])}><option value="tire_puncture">Furo de pneu · parada emergencial</option><option value="collision">Colisão · abandono e safety car</option><option value="time_penalty">Penalidade de tempo</option></select></label>
                         <label>Volta <input type="number" min="1" max={race?.target_laps ?? 60} value={incidentLap} onChange={(event) => setIncidentLap(Number(event.target.value))} required /></label>
                         <label>Carro {incidentType === "collision" ? "1" : "afetado"}<select value={selectedIncidentCar} onChange={(event) => setIncidentCar(event.target.value)}>{!eligibleIncidentCars.length && <option value="">Nenhum carro disponível</option>}{eligibleIncidentCars.map((car) => <option key={car.car_id} value={car.car_id}>{car.car_id} · {car.driver_name}</option>)}</select></label>
@@ -297,6 +299,7 @@ export function App() {
                         {incidentType === "time_penalty" && <label>Penalidade <select value={penaltySeconds} onChange={(event) => setPenaltySeconds(Number(event.target.value))}><option value="5">5 segundos</option><option value="10">10 segundos</option><option value="20">20 segundos</option></select></label>}
                         <button type="submit" disabled={!canAddIncident}>Adicionar evento</button>
                     </form>
+                    {duplicateIncident && <small role="status">Este evento já foi configurado nesta volta. Remova o evento existente para adicioná-lo novamente.</small>}
                     {raceSetup.incidents.length > 0 && <ul className="scenario-list">{raceSetup.incidents.map((scenario, index) => <li key={`${scenario.incident_type}-${scenario.lap}-${scenario.car_id}-${index}`}><span>Volta {scenario.lap} · {scenario.incident_type === "collision" ? `Colisão ${scenario.car_id} / ${scenario.second_car_id}` : scenario.incident_type === "time_penalty" ? `Penalidade de ${scenario.penalty_seconds}s para ${scenario.car_id}` : `Furo em ${scenario.car_id}`}</span><button type="button" aria-label="Remover evento" onClick={() => setRaceSetup((current) => ({ ...current, incidents: current.incidents.filter((_, itemIndex) => itemIndex !== index) }))}>Remover</button></li>)}</ul>}
                 </section>}
                 <section className="race-follow" aria-label="Selecionar acompanhamento">
