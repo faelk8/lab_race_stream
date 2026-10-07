@@ -39,7 +39,7 @@ CURVE_ZONES = (
 
 # Pilotos fictícios para o grid educacional.
 DEFAULT_DRIVERS = (
-    ("Rafael Almeida", "BR"),
+    ("Rafael Batista", "BR"),
     ("Lucas Ribeiro", "BR"),
     ("Matías Silva", "AR"),
     ("Diego Torres", "AR"),

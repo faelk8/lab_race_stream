@@ -8,7 +8,7 @@ UPDATE cars AS c SET
  driver_name = CASE WHEN c.driver_name = '' THEN p.name ELSE c.driver_name END,
  driver_country_code = CASE WHEN c.driver_country_code = '' THEN p.country ELSE c.driver_country_code END
 FROM (VALUES
-('DRV-01', 'Rafael Almeida', 'BR'),
+('DRV-01', 'Rafael Batista', 'BR'),
 ('DRV-02', 'Lucas Ribeiro', 'BR'),
 ('DRV-03', 'Matías Silva', 'AR'),
 ('DRV-04', 'Diego Torres', 'AR'),
