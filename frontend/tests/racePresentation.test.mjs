@@ -5,7 +5,7 @@ import ts from "typescript";
 
 const source = readFileSync(new URL("../src/racePresentation.ts", import.meta.url), "utf8");
 const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } });
-const { rankCars, leaderGapMs, formatGap, countryFlag, countryName, RaceFrameBuffer, spreadTrackPositions, visibleTrackCars } =
+const { rankCars, leaderGapMs, formatGap, countryFlag, countryName, RaceFrameBuffer, spreadTrackPositions, visibleTrackCars, availableCarsForIncidentLap } =
     await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
 
 function event(carId, position, elapsed = 1, lap = 2, progress = 0.9) {
@@ -67,6 +67,14 @@ test("Carros retirados após colisão somem da pista e continuam disponíveis no
     ];
     assert.deepEqual(visibleTrackCars(cars).map((car) => car.car_id), ["CAR-1", "CAR-3"]);
     assert.equal(cars[1].car_status, "retired");
+});
+
+test("Eventos só oferecem carros ainda ativos na volta configurada", () => {
+    const cars = ["CAR-10", "CAR-12", "CAR-15", "CAR-18"].map((car_id) => ({ car_id }));
+    const incidents = [{ incident_type: "collision", lap: 15, car_id: "CAR-10", second_car_id: "CAR-12", penalty_seconds: 0 }];
+    assert.deepEqual(availableCarsForIncidentLap(cars, incidents, 14).map((car) => car.car_id), ["CAR-10", "CAR-12", "CAR-15", "CAR-18"]);
+    assert.deepEqual(availableCarsForIncidentLap(cars, incidents, 15).map((car) => car.car_id), ["CAR-15", "CAR-18"]);
+    assert.deepEqual(availableCarsForIncidentLap(cars, incidents, 20).map((car) => car.car_id), ["CAR-15", "CAR-18"]);
 });
 
 test("O atraso inclui voltas completas e mantém a precisão de milissegundos", () => {

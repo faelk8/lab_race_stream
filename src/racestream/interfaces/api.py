@@ -215,13 +215,26 @@ def create_app(
         cars = {item.car_id for item in race_repository.list_car_configurations()}
         target_laps = int(os.environ.get("RACE_TARGET_LAPS", str(TARGET_LAPS)))
         latest_rain_start = target_laps - 1 - 2 * (len(cars) - 1)
-        for incident in request.incidents:
+        retired_cars: set[str] = set()
+        for incident in sorted(request.incidents, key=lambda item: item.lap):
             if incident.lap > target_laps or incident.car_id not in cars:
                 raise HTTPException(
                     422, "A volta ou o carro do incidente são inválidos"
                 )
             if incident.second_car_id not in cars | {""}:
                 raise HTTPException(422, "O incidente referencia um carro desconhecido")
+            participants = {incident.car_id}
+            if incident.second_car_id:
+                participants.add(incident.second_car_id)
+            if participants & retired_cars:
+                unavailable = ", ".join(sorted(participants & retired_cars))
+                raise HTTPException(
+                    422,
+                    f"Carro(s) {unavailable} já retirado(s) em uma colisão anterior; "
+                    "não podem participar de outro evento nessa volta ou depois dela.",
+                )
+            if incident.incident_type == "collision":
+                retired_cars.update(participants)
         if request.rain_enabled and request.rain_start_lap >= target_laps:
             raise HTTPException(422, "A chuva deve começar antes da última volta")
         if request.rain_enabled and request.rain_start_lap > latest_rain_start:

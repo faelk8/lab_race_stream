@@ -250,6 +250,38 @@ def test_api_start_persists_weather_and_incident_scenarios() -> None:
     assert "até a volta 57" in str(error.value.detail)
 
 
+def test_api_rejects_events_after_a_collision_retires_the_car() -> None:
+    """Carros envolvidos em colisão não participam de eventos posteriores."""
+    repository = ControlledRepository()
+    endpoint = next(
+        route.endpoint
+        for route in create_app(repository, FakeTelemetryHub(), repository).routes
+        if isinstance(route, APIRoute) and route.path == "/api/races/start"
+    )
+
+    with pytest.raises(HTTPException) as error:
+        endpoint(
+            RaceStartRequest(
+                incidents=[
+                    IncidentRequest(
+                        incident_type="collision",
+                        lap=15,
+                        car_id=repository.configurations[0].car_id,
+                        second_car_id=repository.configurations[1].car_id,
+                    ),
+                    IncidentRequest(
+                        incident_type="tire_puncture",
+                        lap=16,
+                        car_id=repository.configurations[0].car_id,
+                    ),
+                ]
+            )
+        )
+
+    assert error.value.status_code == 422
+    assert "já retirado(s)" in str(error.value.detail)
+
+
 def test_api_accepts_wet_tire_and_rejects_rain_on_last_lap() -> None:
     """O setup aceita composto molhado e a chuva precisa permitir a parada."""
     setup = CarConfigurationRequest(

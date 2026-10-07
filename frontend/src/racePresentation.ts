@@ -1,4 +1,4 @@
-import type { CarConfiguration, RaceTelemetry } from "./types";
+import type { CarConfiguration, RaceIncident, RaceTelemetry } from "./types";
 
 const REFERENCE_LAP_MS = 90_000;
 
@@ -21,6 +21,20 @@ export function compareRaceOrder(left: RaceTelemetry | undefined, right: RaceTel
 /** Retire carros fora do mapa, mantendo os dados deles no pelotão e no histórico. */
 export function visibleTrackCars(cars: RaceTelemetry[]): RaceTelemetry[] {
     return cars.filter((car) => car.car_status !== "retired");
+}
+
+/** Retorna os carros ainda disponíveis para um evento na volta informada. */
+export function availableCarsForIncidentLap<T extends { car_id: string }>(
+    cars: T[], incidents: RaceIncident[], lap: number,
+): T[] {
+    const retired = new Set<string>();
+    for (const incident of incidents) {
+        if (incident.incident_type === "collision" && incident.lap <= lap) {
+            retired.add(incident.car_id);
+            retired.add(incident.second_car_id);
+        }
+    }
+    return cars.filter((car) => !retired.has(car.car_id));
 }
 
 /** Distribui visualmente marcadores próximos sem alterar a ordem de corrida. */
