@@ -239,7 +239,7 @@ class ProjectionStore:
             row["payload"]
             for row in self.connection.execute(
                 "SELECT payload FROM stream_events WHERE race_id=%s AND car_id=%s "
-                "AND kind=%s ORDER BY simulation_time_us",
+                "AND kind=%s AND payload <> '{}'::jsonb ORDER BY simulation_time_us",
                 (race_id, car_id, kind),
             ).fetchall()
         ]

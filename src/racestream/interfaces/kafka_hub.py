@@ -4,6 +4,7 @@ import asyncio
 import logging
 import os
 import threading
+import time
 
 from racestream.infrastructure.event_stream import EventReader
 
@@ -17,8 +18,24 @@ class KafkaTelemetryHub:
         """Create an inactive telemetry bridge."""
         self._subscribers: set[asyncio.Queue[dict[str, object]]] = set()
         self._stop = threading.Event()
+        self._ready = threading.Event()
+        self._last_check = 0.0
         self._thread: threading.Thread | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
+
+    def is_ready(self) -> bool:
+        """Indique conexão validada e atribuição de partições do consumidor."""
+        return (
+            self._ready.is_set()
+            and not self._stop.is_set()
+            and time.monotonic() - self._last_check < 30
+            and self._thread is not None
+            and self._thread.is_alive()
+        )
+
+    def subscriber_count(self) -> int:
+        """Retorne a quantidade de assinantes conectados ao hub."""
+        return len(self._subscribers)
 
     def start(self, loop: asyncio.AbstractEventLoop) -> None:
         """Start the single Kafka consumer thread.
@@ -64,8 +81,16 @@ class KafkaTelemetryHub:
             consumer: EventReader | None = None
             try:
                 consumer = EventReader(("state", "analytics", "control"), group_id)
+                last_check = 0.0
                 while not self._stop.is_set():
                     received = consumer.poll(timeout=0.5)
+                    if time.monotonic() - last_check >= 10:
+                        if consumer.ready():
+                            self._ready.set()
+                        else:
+                            self._ready.clear()
+                        last_check = time.monotonic()
+                        self._last_check = last_check
                     if received is not None and self._loop is not None:
                         message, event, error = received
                         if error:
@@ -74,6 +99,7 @@ class KafkaTelemetryHub:
                             self._loop.call_soon_threadsafe(self._broadcast, event)
                             consumer.commit(message)
             except Exception:
+                self._ready.clear()
                 LOGGER.exception("Falha ao consumir projeções; reconectando")
                 self._stop.wait(2.0)
             finally:

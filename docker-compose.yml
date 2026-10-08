@@ -182,7 +182,7 @@ services:
         - CMD
         - python
         - -c
-        - import urllib.request; urllib.request.urlopen('http://localhost:8000/health')
+        - import urllib.request; urllib.request.urlopen('http://localhost:8000/ready')
       interval: 10s
       timeout: 5s
       retries: 12
@@ -237,10 +237,20 @@ services:
       SPARK_MAX_OFFSETS_PER_TRIGGER: ${SPARK_MAX_OFFSETS_PER_TRIGGER:-1000}
       SPARK_TRIGGER_INTERVAL: ${SPARK_TRIGGER_INTERVAL:-30 seconds}
       SPARK_LOG_LEVEL: WARN
+      SPARK_STALL_TIMEOUT_SECONDS: ${SPARK_STALL_TIMEOUT_SECONDS:-300}
+      PYTHONPATH: /opt/racestream_health
+      HEALTH_PORT: "9102"
       HOME: /tmp
     volumes:
       - ./stream-processing/spark:/opt/racestream:ro
       - spark-work:/opt/spark/work-dir
+      - ./src/racestream/infrastructure/operational_health.py:/opt/racestream_health/operational_health.py:ro
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9102/ready', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 120s
     mem_limit: 1200m
     cpus: 1.0
     restart: unless-stopped
@@ -277,7 +287,15 @@ services:
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
       KAFKA_TOPIC: telemetry
       KAFKA_CONSUMER_GROUP: ${KAFKA_CONSUMER_GROUP:-racestream-local-consumer}
+      HEALTH_PORT: "9101"
+      HEALTH_TIMEOUT_SECONDS: ${HEALTH_TIMEOUT_SECONDS:-60}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9101/ready', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 30s
     restart: unless-stopped
 
 volumes:

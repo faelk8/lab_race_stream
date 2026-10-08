@@ -1,9 +1,12 @@
 """Arquive envelopes Kafka da corrida em Parquet no MinIO."""
 
 import os
+from urllib.request import urlopen
 
+from operational_health import OperationalHealth, serve_health
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, to_date
+from saude_stream import QueryHealth
 
 
 def criar_sessao() -> SparkSession:
@@ -75,7 +78,32 @@ def main() -> None:
         .trigger(processingTime=os.environ.get("SPARK_TRIGGER_INTERVAL", "30 seconds"))
         .start()
     )
-    consulta.awaitTermination()
+    health = OperationalHealth()
+    server = serve_health(health, int(os.environ.get("HEALTH_PORT", "9102")))
+    monitor = QueryHealth(float(os.environ.get("SPARK_STALL_TIMEOUT_SECONDS", "300")))
+    try:
+        while not consulta.awaitTermination(5):
+            observed = monitor.observe(consulta)
+            minio_ready = False
+            try:
+                endpoint = os.environ.get("MINIO_ENDPOINT", "http://minio:9000")
+                with urlopen(f"{endpoint}/minio/health/ready", timeout=3) as response:
+                    minio_ready = response.status == 200
+            except OSError:
+                pass  # A falha fica visível na readiness e na métrica de prontidão.
+            health.heartbeat(
+                inicializado=True,
+                query=bool(observed.pop("query_ready")),
+                minio=minio_ready,
+            )
+            for name, value in observed.items():
+                health.set(name, value)
+    finally:
+        health.stop()
+        server.shutdown()
+        server.server_close()
+        consulta.stop()
+        spark.stop()
 
 
 if __name__ == "__main__":

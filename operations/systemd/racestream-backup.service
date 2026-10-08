@@ -1,0 +1,9 @@
+[Unit]
+Description=Backup consistente do laboratório RaceStream ocioso
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/Documentos/github/lab_race_stream
+ExecStart=/home/rafael/.local/bin/poetry run python scripts/backup_local.py create --prune
+UMask=0077
+TimeoutStartSec=30min

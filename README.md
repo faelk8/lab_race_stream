@@ -28,6 +28,7 @@ por WebSocket e arquiva o fluxo em Parquet no MinIO com Apache Spark.
    - [3.1 Iniciar serviços e corrida](#31-iniciar-serviços-e-corrida)
    - [3.2 Finalizar](#32-finalizar)
    - [3.3 Telemetria](#33-telemetria)
+   - [3.4 Observabilidade e recuperação local](#34-observabilidade-e-recuperação-local)
 4. [Resultados](#4-resultados)
 5. [Como analisar](#5-como-analisar)
 6. [Como a simulação acontece](#6-como-a-simulação-acontece)
@@ -128,6 +129,57 @@ controle usam eventos próprios. Os tópicos atuais são:
 
 Campos, chaves e persistência estão no
 [dicionário de dados](docs/dicionario-de-dados.md).
+
+### 3.4 Observabilidade e recuperação local
+
+O painel opcional de observabilidade coleta métricas da API, do consumer e do
+Spark. Inicie a stack local e o perfil de observabilidade com:
+
+```bash
+docker compose up -d --build api consumer spark-archive
+docker compose -f docker-compose.yml -f docker-compose.monitoring.yml \
+  --profile observabilidade up -d
+```
+
+- Grafana: http://localhost:3000 (somente leitura e sem login na máquina local).
+- Prometheus: http://localhost:9090.
+- API: `/live`, `/ready` e `/metrics`.
+- Consumer: porta interna 9101; Spark: porta interna 9102.
+
+Para criar um backup local consistente, a corrida precisa estar concluída. O
+procedimento interrompe temporariamente os produtores, consumer, Spark, Kafka,
+Schema Registry e MinIO e retoma os serviços que estavam rodando. Ele recusa
+corridas ativas ou pausadas. O snapshot contém PostgreSQL, MinIO e Kafka, incluindo
+os schemas/offsets; mantenha-o em disco com espaço suficiente.
+
+```bash
+poetry run python scripts/backup_local.py create
+poetry run python scripts/backup_local.py verify backups/PASTA_DO_BACKUP
+```
+
+A restauração exige um projeto novo e mantém os serviços isolados, sem portas
+publicadas. Use somente para validar a recuperação e confira os dados antes de
+remover os volumes do projeto descartável.
+
+```bash
+poetry run python scripts/backup_local.py restore backups/PASTA \
+  --project race-restore-validacao
+```
+
+A retenção PostgreSQL roda em modo de simulação por padrão; conteúdo histórico
+só é apagado com `--apply`, após 30 dias, em lotes. IDs de fatos e chaves de
+deduplicação são mantidos. Kafka mantém sete dias; objetos e checkpoints MinIO
+não têm expurgo automático. `--prune` opcional remove snapshots íntegros com mais de sete dias, mantendo os três mais recentes.
+
+```bash
+docker compose exec -T api python -m racestream.infrastructure.retention --days 30
+docker compose exec -T api python -m racestream.infrastructure.retention \
+  --days 30 --apply --limit 10000
+```
+
+Veja [operação local detalhada](docs/operacao-local.md). O temporizador systemd opcional fica em `operations/systemd/`. Revise e ajuste o
+caminho do projeto antes de instalá-lo; o backup é local e não protege contra a
+perda do disco do laboratório.
 
 ## 4. Resultados
 

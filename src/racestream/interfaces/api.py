@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field, model_validator
 
 from racestream.application.event_contracts import TOPICS
@@ -21,6 +22,8 @@ from racestream.domain.models import (
     TireCompound,
 )
 from racestream.domain.simulator import RACE_DURATION_SECONDS, TARGET_LAPS
+from racestream.infrastructure.dependency_probe import DependencyProbe
+from racestream.infrastructure.operational_health import OperationalHealth
 from racestream.infrastructure.postgres_repository import PostgresRaceRepository
 from racestream.infrastructure.projection_store import ProjectionStore
 from racestream.infrastructure.track_config import load_track
@@ -119,12 +122,20 @@ def create_app(
     control = race_control or cast(RaceControl, race_repository)
     hub = telemetry_hub or KafkaTelemetryHub()
 
+    health_state = OperationalHealth()
+    probe = DependencyProbe(health_state, lambda: hub.is_ready())
+
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         race_repository.seed_default_cars()
         hub.start(asyncio.get_running_loop())
-        yield
-        hub.stop()
+        probe.start()
+        try:
+            yield
+        finally:
+            health_state.stop()
+            await asyncio.to_thread(probe.stop)
+            hub.stop()
 
     app = FastAPI(title="RaceStream Interlagos Dashboard API", lifespan=lifespan)
     app.add_middleware(
@@ -133,6 +144,23 @@ def create_app(
         allow_methods=["GET", "PUT", "POST"],
         allow_headers=["*"],
     )
+
+    @app.get("/live")
+    def live() -> dict[str, str]:
+        """Confirme que o servidor HTTP consegue responder."""
+        return {"status": "ok"}
+
+    @app.get("/ready")
+    def ready() -> JSONResponse:
+        """Consulte sondagens em cache, sem acesso síncrono às dependências."""
+        snapshot = health_state.snapshot()
+        return JSONResponse(snapshot, status_code=200 if snapshot["ready"] else 503)
+
+    @app.get("/metrics", response_class=PlainTextResponse)
+    def metrics() -> str:
+        """Exponha saúde e número atual de conexões WebSocket."""
+        health_state.set("websocket_connections", hub.subscriber_count())
+        return health_state.metrics()
 
     @app.get("/health")
     def health() -> dict[str, str]:

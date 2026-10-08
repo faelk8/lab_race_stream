@@ -18,3 +18,9 @@ frontend/dist/
 !.agents/AGENTS.md
 .aws
 .codex
+.env.*
+!.env.example
+!.env.prod.example
+/backups/
+!to-do.md
+to-do.md

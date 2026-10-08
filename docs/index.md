@@ -54,8 +54,12 @@ medições oficiais de pista ou de veículos reais.
 13. [Decisões](decisions.md) — ADRs e decisões vigentes.
 14. [Limitações e próximos passos](limitations.md) — limites comprovados e evolução.
 15. [Dicionário de dados](dicionario-de-dados.md) — tópicos e contratos Avro.
-16. [Preparação para produção](production-readiness.md) — gates, métricas, readiness, backup e retenção.
+16. [Operação do laboratório local](operacao-local.md) — métricas, backup, restauração e retenção.
 
 Os planos de execução registram a evolução e as evidências históricas. Para
 entender o estado atual, use primeiro os documentos desta página e depois os
 [ADRs](decisions.md).
+
+## Operação do laboratório
+
+Veja [métricas, backup, restauração e retenção local](operacao-local.md) e o [ExecPlan operacional](execplan-operacao.md).

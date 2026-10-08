@@ -1,0 +1,10 @@
+[Unit]
+Description=Backup diário do laboratório RaceStream
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+Unit=racestream-backup.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,246 @@
+{
+  "uid": "racestream-laboratorio",
+  "title": "RaceStream — operação local",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "timezone": "browser",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Serviços respondendo",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "racestream-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "up",
+          "refId": "A",
+          "legendFormat": "{{job}}"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "Serviços prontos",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "racestream-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "racestream_ready",
+          "refId": "A",
+          "legendFormat": "{{job}}"
+        }
+      ],
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "Eventos processados por segundo",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "racestream-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "rate(racestream_consumer_events_total[2m])",
+          "refId": "A",
+          "legendFormat": "{{job}}"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "min": 0
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "Publicações pendentes",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "racestream-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "racestream_outbox_pending",
+          "refId": "A",
+          "legendFormat": "{{job}}"
+        }
+      ],
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "title": "Conexões WebSocket",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "racestream-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "racestream_websocket_connections",
+          "refId": "A",
+          "legendFormat": "{{job}}"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "title": "Duração do micro-lote Spark",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "racestream-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "racestream_spark_batch_duration_seconds",
+          "refId": "A",
+          "legendFormat": "{{job}}"
+        }
+      ],
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "title": "Entradas do último micro-lote",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "racestream-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "racestream_spark_input_rows",
+          "refId": "A",
+          "legendFormat": "{{job}}"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 8,
+      "title": "Falhas de decodificação por segundo",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "racestream-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "rate(racestream_consumer_decode_errors_total[2m])",
+          "refId": "A",
+          "legendFormat": "{{job}}"
+        }
+      ],
+      "gridPos": {
+        "x": 12,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "min": 0
+        },
+        "overrides": []
+      }
+    }
+  ]
+}

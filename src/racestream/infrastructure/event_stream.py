@@ -120,6 +120,12 @@ class EventReader:
         except (ValueError, TypeError, KeyError, EOFError, SerializationError) as exc:
             return message, None, str(exc)
 
+    def ready(self) -> bool:
+        """Valide atribuição e comunicação real com o broker com timeout curto."""
+        return bool(self.reader.assignment()) and bool(
+            self.reader.list_topics(timeout=2).brokers
+        )
+
     def commit(self, message: Any) -> None:
         """Confirme somente após a transação de projeção/outbox."""
         self.reader.commit(message=message, asynchronous=False)

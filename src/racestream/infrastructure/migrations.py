@@ -1,5 +1,6 @@
 """Carregue e aplique migrações SQL com versão e checksum persistidos."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
@@ -68,7 +69,11 @@ def apply_migrations(cursor: Any, migrations: tuple[Migration, ...]) -> None:
         )
         applied = cursor.fetchone()
         if applied is not None:
-            filename, checksum = applied
+            filename, checksum = (
+                (applied["filename"], applied["checksum"])
+                if isinstance(applied, Mapping)
+                else applied
+            )
             if filename != migration.filename or checksum != migration.checksum:
                 raise MigrationDriftError(
                     f"A migração {migration.version} já aplicada foi alterada; "

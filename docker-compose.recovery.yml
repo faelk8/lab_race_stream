@@ -1,0 +1,16 @@
+# Sobreposição para restaurações isoladas, sem publicar portas da aplicação.
+services:
+  postgres:
+    ports: !reset []
+  minio:
+    ports: !reset []
+  kafka:
+    ports: !reset []
+  schema-registry:
+    ports: !reset []
+  api:
+    ports: !reset []
+  dashboard:
+    ports: !reset []
+  redpanda-console:
+    ports: !reset []

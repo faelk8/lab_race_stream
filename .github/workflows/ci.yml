@@ -55,4 +55,21 @@ jobs:
       - uses: actions/checkout@v4
       - run: docker compose config --quiet
       - run: docker compose --profile test config --quiet
+      - run: docker compose -f docker-compose.yml -f docker-compose.monitoring.yml --profile observabilidade config --quiet
+      - run: docker compose -f docker-compose.yml -f docker-compose.recovery.yml config --quiet
       - run: docker compose --env-file .env.prod.example -f docker-compose.yml -f docker-compose.prod.yml config --quiet
+
+  operacao:
+    name: Backup, restauração e retenção
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e '.[dev]'
+      - run: python tests/integration/validate_backup.py
+      - run: docker compose up -d api
+      - run: docker compose exec -T api python < tests/integration/validate_retention.py
+      - run: docker compose down --remove-orphans

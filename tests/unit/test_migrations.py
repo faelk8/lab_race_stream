@@ -68,3 +68,27 @@ def test_migrations_reject_duplicate_versions(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="Versão de migração duplicada"):
         load_migrations(tmp_path)
+
+
+def test_migrations_accept_dictionary_rows_from_real_repository(tmp_path: Path):
+    """O adapter PostgreSQL usa dict_row também após reiniciar os serviços."""
+
+    class DictionaryCursor(MemoryCursor):
+        def fetchone(self):
+            result = super().fetchone()
+            return (
+                dict(zip(("filename", "checksum"), result, strict=True))
+                if result
+                else None
+            )
+
+    path = tmp_path / "001_primeira.sql"
+    path.write_text("SELECT 1;")
+    cursor = DictionaryCursor()
+    migrations = load_migrations(tmp_path)
+    apply_migrations(cursor, migrations)
+    apply_migrations(cursor, migrations)
+    assert len(cursor.executed_sql) == 1
+    path.write_text("SELECT 2;")
+    with pytest.raises(MigrationDriftError):
+        apply_migrations(cursor, load_migrations(tmp_path))
