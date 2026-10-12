@@ -1,13 +1,23 @@
 """Testes de integração local das transformações Spark e da paridade online."""
 
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
 from analitica_voltas import (
     agregar_voltas,
     analytics_mais_recente,
     comparar_agregados,
     resumir_paridade,
 )
-from medalhao import agregar_pit_stops, gerar_classificacao
+from medalhao import (
+    _ler_voltas_incrementais,
+    agregar_janela_voltas,
+    agregar_pit_stops,
+    consolidar_agregados_volta,
+    gerar_classificacao,
+)
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, when
 from pyspark.sql.types import (
     BooleanType,
     IntegerType,
@@ -53,6 +63,59 @@ def main() -> None:
         assert resultados["CAR-01"]["melhor_volta_ms"] == 90_000
         assert resultados["CAR-01"]["pior_volta_ms"] == 100_000
         assert resultados["CAR-02"]["voltas_validas"] == 1
+
+        primeira_janela = agregar_janela_voltas(
+            voltas.filter("event_id != 'lap-3'")
+        )
+        segunda_janela = agregar_janela_voltas(voltas.filter("event_id = 'lap-3'"))
+        consolidado_voltas = consolidar_agregados_volta(
+            primeira_janela.unionByName(segunda_janela)
+        )
+        agregados = {
+            row["car_id"]: row.asDict() for row in consolidado_voltas.collect()
+        }
+        assert agregados["CAR-01"]["completed_lap_count"] == 3
+        assert agregados["CAR-01"]["valid_lap_count"] == 2
+        assert agregados["CAR-01"]["best_lap_time_ms"] == 90_000
+        assert agregados["CAR-01"]["worst_lap_time_ms"] == 100_000
+        assert agregados["CAR-01"]["average_lap_time_ms"] == 95_000
+
+        estado_final_schema = StructType(
+            [
+                StructField("race_id", StringType(), False),
+                StructField("car_id", StringType(), False),
+                StructField("laps_completed", IntegerType(), False),
+            ]
+        )
+        estado_final = spark.createDataFrame(
+            [
+                ("race-fixture", "CAR-01", 3),
+                ("race-fixture", "CAR-02", 1),
+            ],
+            estado_final_schema,
+        )
+        with TemporaryDirectory() as temporario:
+            prefixo = f"{temporario}/corridas/race-fixture"
+            fatos_path = Path(prefixo) / "prata/voltas_incrementais"
+            agregados_path = Path(prefixo) / "prata/agregados_volta"
+            lotes = (
+                (0, voltas.filter("event_id != 'lap-3'"), fatos_path),
+                (1, voltas.filter("event_id = 'lap-3'"), fatos_path),
+                (0, primeira_janela, agregados_path),
+                (1, segunda_janela, agregados_path),
+            )
+            for numero, dados, raiz in lotes:
+                dados.write.mode("overwrite").parquet(
+                    str(raiz / f"lote-{numero:020d}")
+                )
+            incremental = _ler_voltas_incrementais(spark, prefixo, estado_final)
+            assert incremental is not None
+            assert incremental[0].dropDuplicates(["event_id"]).count() == 4
+            divergente = estado_final.withColumn(
+                "laps_completed",
+                when(col("car_id") == "CAR-01", 4).otherwise(col("laps_completed")),
+            )
+            assert _ler_voltas_incrementais(spark, prefixo, divergente) is None
 
         online_schema = StructType(
             [
@@ -159,7 +222,12 @@ def main() -> None:
             for row in agregar_pit_stops(paradas).collect()
         }
         assert contagem_paradas == {"CAR-01": 1}
-        classificacao = gerar_classificacao(telemetria, voltas_ouro, paradas)
+        resumo_voltas_ouro = consolidar_agregados_volta(
+            agregar_janela_voltas(voltas_ouro)
+        )
+        classificacao = gerar_classificacao(
+            telemetria, voltas_ouro, paradas, resumo_voltas_ouro
+        )
         resultados_ouro = [row.asDict() for row in classificacao.collect()]
         assert [row["car_id"] for row in resultados_ouro] == [
             "CAR-01",
@@ -177,7 +245,10 @@ def main() -> None:
         ]
         assert resultados_ouro[0]["country_flag"] == "🇧🇷"
         assert [row["trophy"] for row in resultados_ouro] == ["🏆", "🏆", "🏆"]
-        print("Testes Spark aprovados: agregados, paridade e classificação medalhão.")
+        print(
+            "Testes Spark aprovados: agregados por janela, paridade e "
+            "classificação medalhão."
+        )
     finally:
         spark.stop()
 

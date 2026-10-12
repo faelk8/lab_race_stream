@@ -77,28 +77,34 @@ automática para dados produzidos depois daquela validação.
 
 ## Camadas medalhão
 
-O fluxo bruto Kafka é arquivado continuamente, mas as camadas por corrida só são
-materializadas quando o processo identifica um controle `finished` e o quadro
-final completo. O mesmo processo Spark grava os envelopes originais, os dados
-de voltas/paradas/estado final e a classificação ouro em
-`corridas/{race_id}/{bronze,prata,ouro}`. A classificação inclui posição, nome e
-país do piloto, equipe, melhores/piores e média de voltas válidas, total de
-paradas, voltas válidas e medalha. O endpoint da API lê o resumo ouro; detalhes
-e formato estão em [medalhao.md](medalhao.md). A busca usa o intervalo
-configurável `SPARK_MEDALLION_INTERVAL_SECONDS` (30 segundos por padrão).
+Além do arquivamento geral, uma consulta Structured Streaming independente
+consome `lap_completed` e processa cada micro-lote. Ela grava os envelopes em
+`bronze/janelas_volta`, os eventos normalizados em
+`prata/voltas_incrementais` e estatísticas por corrida/carro em
+`prata/agregados_volta`. Cada micro-lote recebe um caminho determinístico; se
+`foreachBatch` for repetido, o caminho é sobrescrito. O checkpoint próprio fica
+em `s3a://{bucket}/_checkpoints/spark_medallion_laps_v1` por padrão.
 
-Calcular agregados em janelas por volta durante a corrida é uma evolução
-planejada para reduzir o trabalho após a bandeirada. Hoje Bronze, Prata e Ouro
-não são atualizadas incrementalmente por volta.
+Ao detectar `control.status=finished`, o materializador aguarda todos os carros
+no estado final. Compara a contagem das voltas incrementais com
+`laps_completed` do quadro final de cada carro. Se a cobertura coincidir, Ouro
+consolida os agregados incrementais; se não, decodifica `lap_completed` do
+arquivo bruto como fallback. Em ambos os casos grava a Bronze completa, Prata
+consolidada e classificação Ouro. O resumo é escrito por último. Veja
+[medalhao.md](medalhao.md) para o contrato do resultado.
+
+`SPARK_TRIGGER_INTERVAL` define a frequência dos micro-lotes (30 segundos por
+padrão). `SPARK_MEDALLION_INTERVAL_SECONDS` controla a busca por corridas
+encerradas (30 segundos por padrão).
 
 ## Limitações
 
-- As transformações de volta, paradas e classificação possuem fixtures Spark
-  executadas pelo perfil Compose `test`; o decoder e a escrita S3A ainda não têm
-  teste ponta a ponta automatizado.
+- Agregações por janela, paradas e classificação possuem fixtures Spark no perfil
+  Compose `test`; o decoder Avro e a escrita S3A incremental ainda não têm teste
+  ponta a ponta automatizado.
 - A análise depende do Schema Registry ainda conter os IDs históricos.
 - As saídas batch são sobrescritas a cada execução.
 - Não há Iceberg ou catálogo; bronze/prata/ouro são diretórios Parquet no MinIO.
 - Não há publicação de agregados Spark no Kafka ou na API.
-- O checkpoint é único para o conjunto configurado de tópicos; mudanças de
-  assinatura precisam de operação controlada.
+- O arquivador e a consulta incremental de voltas têm checkpoints separados;
+  mudanças nos tópicos/contratos precisam de operação controlada.

@@ -140,5 +140,8 @@ Python no caminho online.
 O arquivamento bruto ocorre continuamente, mas a materialização por corrida é
 disparada pelo estado `finished` e aguarda o quadro final completo. O Spark grava
 Bronze com os envelopes originais, Prata com voltas, pit stops e telemetria final,
-e Ouro com a classificação e o resumo consumidos pela API. A geração incremental
-de agregados por volta é uma evolução planejada, não comportamento atual.
+e Ouro com a classificação e o resumo consumidos pela API. Em paralelo, uma
+segunda consulta Spark prepara por micro-lote envelopes `lap_completed` em Bronze
+e fatos/agregados de volta em Prata. No encerramento, usa esses agregados se a
+contagem por carro coincidir com `laps_completed`; caso contrário, relê as voltas
+do arquivo bruto.

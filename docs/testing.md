@@ -11,7 +11,7 @@
 | Frontend | Apresentação, ordenação, quadros, balões e mensagens de erro. |
 | Integração Kafka | Producer/consumer Avro com broker e Schema Registry reais, opt-in. |
 | Integração PostgreSQL | Script manual isolado para replay, outbox, rollback e DLQ. |
-| Spark | Fixtures locais para agregados, paridade e classificação medalhão; validação de arquivo e decoder ainda exigem stack real. |
+| Spark | Fixtures locais para agregação de múltiplos micro-lotes, leitura Parquet incremental, checagem de cobertura, paridade e classificação; decoder Avro e escrita S3A ponta a ponta ainda exigem stack real. |
 
 Testes end-to-end automatizados em navegador:
 

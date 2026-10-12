@@ -7,6 +7,9 @@ prefixo próprio no mesmo bucket.
 ```text
 s3://racestream/corridas/{race_id}/
 ├── bronze/eventos/             # envelopes Avro e metadados Kafka originais
+├── bronze/janelas_volta/       # envelopes lap_completed agrupados por micro-lote
+├── prata/voltas_incrementais/  # fatos de volta normalizados durante a prova
+├── prata/agregados_volta/      # resumos por corrida/carro e micro-lote
 ├── prata/voltas/               # voltas concluídas
 ├── prata/pit_stops/            # eventos de parada
 ├── prata/telemetria_final/     # último quadro completo da prova
@@ -15,15 +18,20 @@ s3://racestream/corridas/{race_id}/
     └── resumo.json             # resposta consumida pela API
 ```
 
-O arquivador verifica eventos `control` com `status=finished`. A transformação
-aguarda até que o quadro completo da corrida mostre todos os carros finalizados,
-então grava cada camada com substituição idempotente e escreve `resumo.json` por
-último. Se o processo falhar antes do marcador, a varredura seguinte tenta
-novamente.
+O arquivo bruto `telemetry_raw` continua recebendo eventos Kafka. Uma segunda
+consulta Structured Streaming consome `lap_completed` e, em cada micro-lote,
+grava o envelope em Bronze e os fatos e agregados em Prata. Os caminhos usam o
+ID estável do micro-lote e são sobrescritos em caso de repetição; o checkpoint
+separado permite retomar o consumo.
 
-Embora o arquivo bruto em `telemetry_raw` seja alimentado continuamente, as
-camadas abaixo são materializadas após o encerramento da corrida; elas não são
-calculadas a cada volta hoje.
+Quando chega um controle `finished`, o materializador aguarda um quadro completo
+em que todos os carros estejam finalizados. Se a soma de voltas incrementais
+coincidir com `laps_completed` de cada carro, usa os fatos e agregados preparados
+para montar a classificação Ouro sem decodificar novamente todas as voltas. Se
+a consulta estiver atrasada ou a cobertura não fechar, usa os eventos brutos
+arquivados como fallback. As camadas consolidadas são gravadas idempotentemente e
+`resumo.json` é escrito por último; se a transformação falhar antes do marcador,
+a varredura seguinte tenta novamente.
 
 A classificação ouro é ordenada por posição e contém piloto, país, equipe,
 melhor e pior volta, média de voltas válidas, quantidade de paradas concluídas,
@@ -38,16 +46,13 @@ segundos e abre a janela assim que o resultado estiver disponível. O fundo da
 janela tem 50% de opacidade e o painel permanece opaco para manter o texto nítido.
 O único controle da janela é o botão de fechar no canto superior esquerdo.
 
-## Evolução planejada: agregação incremental por volta
+## Comportamento e limites da agregação incremental
 
-Uma evolução possível é preparar agregados em janelas por volta enquanto a
-corrida acontece. A camada Bronze continuaria preservando os eventos brutos; as
-camadas tratadas poderiam receber fatos e agregados de voltas concluídas. No
-encerramento, Ouro consolidaria classificação e pódio a partir desses dados,
-potencialmente reduzindo o tempo de geração do resultado. Isso ainda não está
-implementado. A estratégia precisa definir reprocessamento de eventos atrasados,
-idempotência, corridas pausadas/retomadas e correções de classificação por
-penalidades antes de substituir o batch atual.
+As janelas são micro-lotes de eventos `lap_completed` recebidos pelo Kafka, não
+uma janela fixa de tempo nem processamento de todos os tipos de telemetria.
+Paradas, estado final e Bronze completo por corrida ainda são consolidados no
+encerramento. O caminho rápido de Ouro depende da igualdade entre voltas
+processadas e `laps_completed`; divergências preservam o fallback batch.
 
 Os testes das regras Spark rodam sem Kafka, PostgreSQL ou MinIO:
 

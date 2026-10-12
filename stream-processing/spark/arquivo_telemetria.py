@@ -4,7 +4,7 @@ import os
 import threading
 from urllib.request import urlopen
 
-from medalhao import acompanhar_corridas
+from medalhao import acompanhar_corridas, processar_lote_voltas
 from operational_health import OperationalHealth, serve_health
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, to_date
@@ -80,6 +80,19 @@ def main() -> None:
         .trigger(processingTime=os.environ.get("SPARK_TRIGGER_INTERVAL", "30 seconds"))
         .start()
     )
+    consulta_voltas = (
+        kafka.filter(col("topic") == "lap_completed")
+        .writeStream.foreachBatch(processar_lote_voltas)
+        .option(
+            "checkpointLocation",
+            os.environ.get(
+                "SPARK_MEDALLION_LAPS_CHECKPOINT",
+                f"s3a://{bucket}/_checkpoints/spark_medallion_laps_v1",
+            ),
+        )
+        .trigger(processingTime=os.environ.get("SPARK_TRIGGER_INTERVAL", "30 seconds"))
+        .start()
+    )
     health = OperationalHealth()
     server = serve_health(health, int(os.environ.get("HEALTH_PORT", "9102")))
     monitor = QueryHealth(float(os.environ.get("SPARK_STALL_TIMEOUT_SECONDS", "300")))
@@ -94,6 +107,8 @@ def main() -> None:
     worker_medalhao.start()
     try:
         while not consulta.awaitTermination(5):
+            if not consulta_voltas.isActive:
+                raise RuntimeError("A consulta incremental de voltas foi encerrada")
             observed = monitor.observe(consulta)
             minio_ready = False
             try:
@@ -105,6 +120,7 @@ def main() -> None:
             health.heartbeat(
                 inicializado=True,
                 query=bool(observed.pop("query_ready")),
+                medalhao=consulta_voltas.isActive,
                 minio=minio_ready,
             )
             for name, value in observed.items():
@@ -115,6 +131,7 @@ def main() -> None:
         health.stop()
         server.shutdown()
         server.server_close()
+        consulta_voltas.stop()
         consulta.stop()
         spark.stop()
 

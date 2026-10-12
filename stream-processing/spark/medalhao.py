@@ -22,6 +22,9 @@ from pyspark.sql.functions import (
     udf,
     when,
 )
+from pyspark.sql.functions import (
+    sum as sum_values,
+)
 from pyspark.sql.types import StringType
 from pyspark.sql.window import Window
 
@@ -57,7 +60,39 @@ def agregar_voltas_validas(voltas: DataFrame) -> DataFrame:
         min("lap_time_ms").alias("best_lap_time_ms"),
         max("lap_time_ms").alias("worst_lap_time_ms"),
         avg("lap_time_ms").alias("average_lap_time_ms"),
+        sum_values("lap_time_ms").alias("sum_lap_time_ms"),
         countDistinct("event_id").alias("valid_lap_count"),
+    )
+
+
+def agregar_janela_voltas(voltas: DataFrame) -> DataFrame:
+    """Resuma uma janela, contando voltas inválidas para validar cobertura."""
+    unicas = voltas.dropDuplicates(["event_id"])
+    return unicas.groupBy("race_id", "car_id").agg(
+        countDistinct("event_id").alias("completed_lap_count"),
+        sum_values(when(col("valid"), 1).otherwise(0)).alias("valid_lap_count"),
+        min(when(col("valid"), col("lap_time_ms"))).alias("best_lap_time_ms"),
+        max(when(col("valid"), col("lap_time_ms"))).alias("worst_lap_time_ms"),
+        sum_values(when(col("valid"), col("lap_time_ms")).otherwise(0)).alias(
+            "sum_lap_time_ms"
+        ),
+    )
+
+
+def consolidar_agregados_volta(janelas: DataFrame) -> DataFrame:
+    """Una resumos de micro-lotes em um agregado final por corrida e carro."""
+    return janelas.groupBy("race_id", "car_id").agg(
+        sum_values("completed_lap_count").alias("completed_lap_count"),
+        sum_values("valid_lap_count").alias("valid_lap_count"),
+        min("best_lap_time_ms").alias("best_lap_time_ms"),
+        max("worst_lap_time_ms").alias("worst_lap_time_ms"),
+        sum_values("sum_lap_time_ms").alias("sum_lap_time_ms"),
+    ).withColumn(
+        "average_lap_time_ms",
+        when(
+            col("valid_lap_count") > 0,
+            col("sum_lap_time_ms") / col("valid_lap_count"),
+        ).otherwise(lit(None).cast("double")),
     )
 
 
@@ -75,6 +110,7 @@ def gerar_classificacao(
     telemetria_final: DataFrame,
     voltas: DataFrame,
     paradas: DataFrame,
+    agregado_voltas_pronto: DataFrame | None = None,
 ) -> DataFrame:
     """Una o estado final com métricas, ordene e identifique o pódio."""
     base = telemetria_final.select(
@@ -89,7 +125,11 @@ def gerar_classificacao(
         col("worst_lap_time_ms").cast("long").alias("state_worst_lap_time_ms"),
         col("pit_stops").cast("int").alias("state_pit_stop_count"),
     )
-    agregado_voltas = agregar_voltas_validas(voltas)
+    agregado_voltas = (
+        agregado_voltas_pronto
+        if agregado_voltas_pronto is not None
+        else agregar_voltas_validas(voltas)
+    )
     agregado_paradas = agregar_pit_stops(paradas)
     resultado = (
         base.join(agregado_voltas, ["race_id", "car_id"], "left")
@@ -113,6 +153,8 @@ def gerar_classificacao(
             "state_pit_stop_count",
             "state_best_lap_time_ms",
             "state_worst_lap_time_ms",
+            "sum_lap_time_ms",
+            "completed_lap_count",
         )
         .withColumn(
             "podium_medal",
@@ -124,6 +166,115 @@ def gerar_classificacao(
         .withColumn("trophy", when(col("position") <= 3, lit("🏆")))
     )
     return resultado.orderBy("position", "car_id")
+
+
+def processar_lote_voltas(lote: DataFrame, id_lote: int) -> None:
+    """Grave voltas brutas e métricas por micro-lote nas camadas Bronze/Prata.
+
+    Os caminhos incluem o ID estável do micro-lote. Se Spark repetir um lote
+    após falha, `overwrite` substitui exatamente o mesmo conjunto de arquivos.
+    """
+    if not lote.limit(1).count():
+        return
+    bucket = os.environ.get("MINIO_BUCKET", "racestream")
+    base = f"s3a://{bucket}"
+    arquivadas = lote.select(
+        col("timestamp").alias("kafka_timestamp"),
+        col("topic"),
+        col("partition").alias("kafka_partition"),
+        col("offset").alias("kafka_offset"),
+        col("key").alias("event_key"),
+        col("value").alias("avro_envelope"),
+        col("headers").alias("kafka_headers"),
+    )
+    decodificadas = decodificar(arquivadas, "lap_completed")
+    eventos = decodificadas.select(
+        "topic",
+        "kafka_timestamp",
+        "kafka_partition",
+        "kafka_offset",
+        "avro_envelope",
+        "evento.*",
+    ).dropDuplicates(["event_id"])
+    for linha in eventos.select("race_id").distinct().collect():
+        race_id = linha["race_id"]
+        corrida = eventos.filter(col("race_id") == race_id)
+        prefixo = f"{base}/corridas/{race_id}"
+        lote_nome = f"lote-{id_lote:020d}"
+        corrida.select(
+            "topic", "kafka_timestamp", "kafka_partition", "kafka_offset",
+            "event_id", "event_time", "race_id", "car_id", "lap",
+            "avro_envelope",
+        ).write.mode("overwrite").parquet(
+            f"{prefixo}/bronze/janelas_volta/{lote_nome}"
+        )
+        corrida.select(
+            "event_id", "race_id", "car_id", "lap", "lap_time_ms", "valid",
+            "sectors_ms", "pit_lap", "race_position", "event_time",
+            "kafka_partition", "kafka_offset",
+        ).write.mode("overwrite").parquet(
+            f"{prefixo}/prata/voltas_incrementais/{lote_nome}"
+        )
+        agregar_janela_voltas(corrida).write.mode("overwrite").parquet(
+            f"{prefixo}/prata/agregados_volta/{lote_nome}"
+        )
+        logger.info(
+            "Micro-lote %s materializado para a corrida %s", id_lote, race_id
+        )
+
+
+def _listar_lotes_validos(spark: SparkSession, caminho: str) -> list[str]:
+    """Retorne somente diretórios de micro-lote com marcador Spark de sucesso."""
+    raiz = spark._jvm.org.apache.hadoop.fs.Path(caminho)
+    fs = raiz.getFileSystem(spark.sparkContext._jsc.hadoopConfiguration())
+    if not fs.exists(raiz):
+        return []
+    lotes = []
+    for status in fs.listStatus(raiz):
+        lote = status.getPath()
+        sucesso = spark._jvm.org.apache.hadoop.fs.Path(f"{lote}/_SUCCESS")
+        if status.isDirectory() and lote.getName().startswith("lote-") and fs.exists(
+            sucesso
+        ):
+            lotes.append(lote.toString())
+    return lotes
+
+
+def _ler_voltas_incrementais(
+    spark: SparkSession, prefixo: str, final: DataFrame
+) -> tuple[DataFrame, DataFrame] | None:
+    """Use os fatos incrementais somente quando cobrem o quadro final inteiro."""
+    fatos_path = _listar_lotes_validos(
+        spark, f"{prefixo}/prata/voltas_incrementais"
+    )
+    agregados_path = _listar_lotes_validos(
+        spark, f"{prefixo}/prata/agregados_volta"
+    )
+    if not fatos_path or not agregados_path:
+        return None
+    fatos = spark.read.parquet(*fatos_path).dropDuplicates(["event_id"])
+    agregados = consolidar_agregados_volta(spark.read.parquet(*agregados_path))
+    esperado = final.select("race_id", "car_id", col("laps_completed").cast("long"))
+    contagem_fatos = fatos.groupBy("race_id", "car_id").agg(
+        countDistinct("event_id").alias("fact_lap_count")
+    )
+    cobertura = (
+        esperado.join(
+            agregados.select("race_id", "car_id", "completed_lap_count"),
+            ["race_id", "car_id"],
+            "left",
+        )
+        .join(contagem_fatos, ["race_id", "car_id"], "left")
+        .filter(
+            (coalesce(col("completed_lap_count"), lit(0)) != col("laps_completed"))
+            | (coalesce(col("fact_lap_count"), lit(0)) != col("laps_completed"))
+            | (col("completed_lap_count") != col("fact_lap_count"))
+        )
+    )
+    if cobertura.limit(1).count():
+        logger.info("Agregados incrementais incompletos; usando fallback batch")
+        return None
+    return fatos, agregados
 
 
 def _decodificar_corrida(
@@ -160,7 +311,6 @@ def materializar_corrida(spark: SparkSession, race_id: str) -> bool:
     base = f"s3a://{bucket}"
     arquivo = spark.read.parquet(f"{base}/telemetry_raw")
     estado_decodificado = _decodificar_corrida(arquivo, "state", race_id)
-    voltas_decodificadas = _decodificar_corrida(arquivo, "lap_completed", race_id)
     paradas_decodificadas = _decodificar_corrida(arquivo, "pitstop", race_id)
     if estado_decodificado is None or not estado_decodificado.limit(1).count():
         return False
@@ -183,14 +333,24 @@ def materializar_corrida(spark: SparkSession, race_id: str) -> bool:
     if quantidade_carros == 0 or quantidade_finalizados < quantidade_carros:
         return False
 
-    if voltas_decodificadas is None:
-        voltas = final.limit(0).select(
-            "race_id", "car_id", lit("").alias("event_id"),
-            lit(0).cast("long").alias("lap_time_ms"),
-            lit(False).alias("valid"),
-        )
+    prefixo = f"{base}/corridas/{race_id}"
+    incremental = _ler_voltas_incrementais(spark, prefixo, final)
+    if incremental is not None:
+        voltas, agregado_voltas_pronto = incremental
     else:
-        voltas = voltas_decodificadas.select("evento.*")
+        voltas_decodificadas = _decodificar_corrida(
+            arquivo, "lap_completed", race_id
+        )
+        agregado_voltas_pronto = None
+        if voltas_decodificadas is None:
+            voltas = final.limit(0).select(
+                "race_id", "car_id", lit("").alias("event_id"),
+                lit(0).cast("long").alias("lap_time_ms"),
+                lit(False).alias("valid"),
+            )
+        else:
+            voltas = voltas_decodificadas.select("evento.*")
+
     if paradas_decodificadas is None:
         paradas = final.limit(0).select(
             "race_id", "car_id", lit("").alias("event_id"),
@@ -199,9 +359,30 @@ def materializar_corrida(spark: SparkSession, race_id: str) -> bool:
     else:
         paradas = paradas_decodificadas.select("evento.*")
 
-    prefixo = f"{base}/corridas/{race_id}"
     bronze_registros = []
     for topico in TOPICOS:
+        if topico == "lap_completed" and incremental is not None:
+            lotes_bronze = _listar_lotes_validos(
+                spark, f"{prefixo}/bronze/janelas_volta"
+            )
+            if lotes_bronze:
+                registros_volta = (
+                    spark.read.parquet(*lotes_bronze)
+                    .dropDuplicates(["event_id"])
+                    .select(
+                        "topic",
+                        "kafka_timestamp",
+                        "kafka_partition",
+                        "kafka_offset",
+                        "event_id",
+                        "event_time",
+                        "race_id",
+                        "avro_envelope",
+                    )
+                )
+                if registros_volta.limit(1).count():
+                    bronze_registros.append(registros_volta)
+            continue
         decodificado = _decodificar_corrida(arquivo, topico, race_id)
         if decodificado is None:
             continue
@@ -223,7 +404,9 @@ def materializar_corrida(spark: SparkSession, race_id: str) -> bool:
     paradas.write.mode("overwrite").parquet(f"{prefixo}/prata/pit_stops")
     final.write.mode("overwrite").parquet(f"{prefixo}/prata/telemetria_final")
 
-    classificacao = gerar_classificacao(final, voltas, paradas)
+    classificacao = gerar_classificacao(
+        final, voltas, paradas, agregado_voltas_pronto
+    )
     classificacao.write.mode("overwrite").parquet(f"{prefixo}/ouro/classificacao")
     linhas = [linha.asDict(recursive=True) for linha in classificacao.collect()]
     _salvar_json(

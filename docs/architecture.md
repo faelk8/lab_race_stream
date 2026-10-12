@@ -21,35 +21,38 @@ flowchart LR
     HUB -->|WebSocket| UI
     K --> SPARK[Spark Structured Streaming]
     SPARK -->|Parquet e checkpoint| MINIO[(MinIO)]
+    K -->|lap_completed| LAPSTREAM[Consulta incremental Spark]
+    LAPSTREAM -->|Bronze/Prata por micro-lote| MINIO
     MINIO --> BATCH[Spark batch]
     BATCH -->|agregados Parquet| MINIO
 ```
 
 ### Arquitetura medalhão por corrida
 
-Atualmente, o Spark arquiva os eventos continuamente em `telemetry_raw`, mas
-materializa as camadas medalhão por corrida depois de identificar o controle
-`finished` e o quadro final completo. Bronze preserva os envelopes originais;
-Prata organiza voltas, pit stops e telemetria final; Ouro contém classificação e
-resumo da chegada. Portanto, o cálculo dessas camadas não é incremental durante
-a prova.
+O Spark arquiva os eventos continuamente em `telemetry_raw` e também materializa
+`lap_completed` em micro-lotes durante a corrida: Bronze recebe envelopes por
+janela e Prata recebe fatos e agregados por volta. Após identificar o controle
+`finished` e o quadro final completo, Bronze, Prata consolidada e Ouro são
+finalizadas. Ouro usa os agregados preparados quando sua cobertura coincide com
+`laps_completed` de todos os carros, com fallback para o arquivo bruto.
 
 ```mermaid
 flowchart LR
     K[(Kafka)] -->|fluxo contínuo| S[Spark Structured Streaming]
     S --> RAW[(MinIO: telemetry_raw)]
-    RAW -->|corrida finalizada| B[Bronze: eventos originais]
+    S -->|lap_completed por micro-lote| BW[Bronze: janelas de volta]
+    BW --> PI[Prata: fatos e agregados incrementais]
+    RAW -->|corrida finalizada| B[Bronze: eventos originais consolidados]
+    PI -->|cobertura validada| O[Ouro: classificação e resumo]
     B --> P[Prata: voltas, pit stops e estado final]
     P --> O[Ouro: classificação e resumo]
     O --> API[FastAPI]
     API --> UI[Dashboard: resultado final]
 ```
 
-Evolução planejada: preparar fatos e agregados em janelas por volta durante a
-corrida, mantendo Bronze atualizado e alimentando dados tratados. Ao final,
-Ouro consolidaria a classificação a partir desses agregados. Esse desenho pode
-reduzir o processamento após a bandeirada, mas ainda precisa ser implementado e
-validado; não faz parte do fluxo atual.
+O processamento incremental cobre somente `lap_completed`; pit stops e estado
+final continuam sendo preparados no encerramento. O checkpoint dessa consulta
+é independente do checkpoint do arquivador Kafka.
 
 ## Componentes principais
 

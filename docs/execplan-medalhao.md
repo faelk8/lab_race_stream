@@ -14,9 +14,11 @@ local e ignorado pelo Git; não haverá publicação ou deploy.
 
 ## 3. Estado atual
 
-O serviço `spark-archive` grava envelopes Avro em `telemetry_raw` no MinIO. Há
-transformações batch para voltas e paridade, porém ainda não há camadas por
-corrida nem consumo dessas tabelas no dashboard.
+O serviço `spark-archive` grava envelopes Avro em `telemetry_raw` e mantém uma
+segunda consulta Structured Streaming para persistir `lap_completed` por
+micro-lote em Bronze e Prata. Ao final, Ouro usa esses agregados quando cobrem
+`laps_completed` de todos os carros; se não cobrirem, o materializador usa as
+voltas arquivadas como fallback batch. A API e o dashboard exibem o resumo final.
 
 ## 4. Arquitetura alvo
 
@@ -24,6 +26,10 @@ corrida nem consumo dessas tabelas no dashboard.
 flowchart LR
     K[Kafka: tópicos da corrida] --> S[Spark Structured Streaming]
     S --> R[(MinIO: telemetry_raw)]
+    K -->|lap_completed| I[Consulta incremental]
+    I --> BW[Bronze: janelas por micro-lote]
+    BW --> PI[Prata: fatos e agregados de volta]
+    PI --> O[Ouro: classificação e métricas]
     R --> B[Bronze: envelopes da corrida]
     B --> P[Prata: voltas, pit stops e estado final]
     P --> O[Ouro: classificação e métricas]
@@ -49,17 +55,24 @@ flowchart LR
 - [x] Atualizar instruções do laboratório e ignorar o workflow GitHub local.
 - [x] Executar as fixtures Spark e testar leitura/escrita real no MinIO com dados
   de uma corrida já arquivada.
+- [x] Persistir janelas de voltas em Bronze/Prata durante a prova e usar os
+  agregados na Ouro quando a cobertura coincidir com o quadro final.
+- [x] Manter fallback batch quando o stream incremental ainda estiver atrasado.
 
 ## 7. Estratégia de testes
 
 Fixtures Spark sem dependências externas validam deduplicação, voltas válidas,
-paradas concluídas, pódio e ordenação. Testes FastAPI usam um adaptador falso;
+consolidação de múltiplas janelas, paradas concluídas, pódio e ordenação. Testes FastAPI usam um adaptador falso;
 testes frontend validam formatação e apresentação da classificação.
 
 ## 8. Riscos e decisões
 
 - O histórico bruto continua em `telemetry_raw`; bronze é uma cópia particionada
   por corrida e mantém os envelopes originais para consulta independente.
+- O incremental cobre somente `lap_completed`; pit stops, quadro final e Bronze
+  completo continuam sendo consolidados depois da bandeirada.
+- A cobertura é conferida usando `laps_completed` por carro; se divergir, o
+  processamento final relê o arquivo bruto para preservar a correção.
 - A transformação roda no processo Spark de arquivamento, sem um segundo driver
   Spark residente no laboratório.
 - A janela usa um fundo externo com 50% de opacidade e painel interno opaco para

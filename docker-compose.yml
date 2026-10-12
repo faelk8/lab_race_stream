@@ -245,6 +245,7 @@ services:
       SPARK_LOG_LEVEL: WARN
       SPARK_STALL_TIMEOUT_SECONDS: ${SPARK_STALL_TIMEOUT_SECONDS:-300}
       SPARK_MEDALLION_INTERVAL_SECONDS: ${SPARK_MEDALLION_INTERVAL_SECONDS:-30}
+      SPARK_MEDALLION_LAPS_CHECKPOINT: ${SPARK_MEDALLION_LAPS_CHECKPOINT:-s3a://racestream/_checkpoints/spark_medallion_laps_v1}
       PYTHONPATH: /opt/racestream:/opt/racestream_health
       HEALTH_PORT: "9102"
       HOME: /tmp

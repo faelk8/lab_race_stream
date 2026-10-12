@@ -77,17 +77,23 @@ racestream/
 │   └── spark_kafka_archive_v2/
 ├── lap_performance/
 ├── consumer_parity/
+├── _checkpoints/spark_medallion_laps_v1/
 └── corridas/{race_id}/
     ├── bronze/eventos/
+    ├── bronze/janelas_volta/
+    ├── prata/{voltas_incrementais,agregados_volta}/
     ├── prata/{voltas,pit_stops,telemetria_final}/
     └── ouro/{classificacao,resumo.json}
 ```
 
-`telemetry_raw` preserva o envelope Avro Confluent sem decodificá-lo. Isso exige
+`telemetry_raw` preserva o envelope Avro Confluent sem decodificá-lo. Uma
+consulta Spark independente também decodifica `lap_completed` em micro-lotes e
+persiste janelas brutas e agregados intermediários por corrida. Isso exige
 que os schemas writer referenciados pelos IDs continuem disponíveis no Schema
-Registry para análises posteriores. Após o término, o Spark copia os envelopes
-da corrida para bronze, grava fatos normalizados em prata e publica a tabela ouro
-de classificação; veja [camadas medalhão](medalhao.md).
+Registry para análises posteriores. Após o término, o Spark consolida Bronze e
+Prata e usa os agregados incrementais quando a cobertura de voltas coincide com
+o quadro final; caso contrário, relê o arquivo bruto. Veja
+[camadas medalhão](medalhao.md).
 
 Não há tabela Iceberg, catálogo lakehouse, compactação, vacuum ou lifecycle
 configurado.

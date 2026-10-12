@@ -205,15 +205,11 @@ para listar `race_results`; o dashboard usa a corrida mais recente e as projeç�
 O serviço `spark-archive` arquiva os envelopes Kafka em
 `s3a://racestream/telemetry_raw`. O job batch gera `lap_performance` e
 `consumer_parity`, comparando contagem, melhor e pior volta com o consumer
-online. As camadas medalhão por corrida são materializadas depois que o Spark
-detecta o encerramento da prova.
-
-Uma evolução planejada é preparar os dados de forma incremental durante a
-corrida: manter os eventos brutos na Bronze e consolidar dados em janelas por
-volta para as camadas tratadas. No fim, a Ouro poderia calcular a classificação
-e o pódio a partir desses agregados já preparados, reduzindo o trabalho e a
-espera após a bandeirada. Esse processamento por volta ainda não está
-implementado.
+online. Em paralelo, uma consulta Spark prepara cada micro-lote de `lap_completed`
+em Bronze e mantém fatos e agregados por volta em Prata. Ao fim, Ouro usa esses
+agregados quando cobrem as voltas do quadro final; se houver atraso ou divergência,
+o processamento relê os eventos brutos como fallback. Bronze completa, pit stops,
+estado final e Ouro são consolidados após o encerramento.
 
 Comandos e limites operacionais estão em [docs/spark.md](docs/spark.md). A
 persistência está detalhada em [docs/persistence.md](docs/persistence.md).

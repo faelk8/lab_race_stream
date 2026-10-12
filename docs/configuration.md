@@ -34,7 +34,8 @@ de que precisa.
 | `SPARK_STARTING_OFFSETS` | `earliest` | Offset inicial quando não existe checkpoint. |
 | `SPARK_MAX_OFFSETS_PER_TRIGGER` | `1000` | Limite por microbatch. |
 | `SPARK_TRIGGER_INTERVAL` | `30 seconds` | Frequência do arquivamento. |
-| `SPARK_MEDALLION_INTERVAL_SECONDS` | `30` | Frequência da busca por corridas encerradas para gerar bronze/prata/ouro. |
+| `SPARK_MEDALLION_INTERVAL_SECONDS` | `30` | Frequência da busca por corridas encerradas para consolidar bronze/prata/ouro. |
+| `SPARK_MEDALLION_LAPS_CHECKPOINT` | `s3a://racestream/_checkpoints/spark_medallion_laps_v1` | Checkpoint próprio da consulta incremental de `lap_completed`. |
 
 `RACE_DURATION_SECONDS` não encerra o `PhysicalRace` por tempo. O caminho ativo
 termina por total de voltas, comando de parada ou prazo de chegada após o líder.
