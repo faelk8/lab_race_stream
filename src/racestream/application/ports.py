@@ -109,3 +109,10 @@ class RaceControl(Protocol):
 
         :param race_id: Identificador da corrida.
         """
+
+
+class RaceMedallion(Protocol):
+    """Porta para leitura do resultado ouro materializado no MinIO."""
+
+    def get_gold_results(self, race_id: str) -> dict[str, object] | None:
+        """Recupere o resultado da corrida ou retorne ``None`` se ainda não existe."""

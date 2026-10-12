@@ -10,7 +10,6 @@ from analitica_voltas import (
     comparar_agregados,
     resumir_paridade,
 )
-from arquivo_telemetria import criar_sessao
 from pyspark.sql import DataFrame
 from pyspark.sql.avro.functions import from_avro
 from pyspark.sql.functions import (
@@ -63,7 +62,9 @@ def decodificar(dados: DataFrame, topico: str) -> DataFrame:
             {"avroSchema": reader},
         )
         alternativas.append(when(col("schema_id") == schema_id, decodificado))
-    return fonte.select(coalesce(*alternativas).alias("evento"))
+    # Preserve o envelope e os metadados Kafka para que a camada bronze possa
+    # manter os bytes Avro originais junto do evento decodificado.
+    return fonte.select("*", coalesce(*alternativas).alias("evento"))
 
 
 def executar() -> dict[str, int]:
@@ -71,6 +72,8 @@ def executar() -> dict[str, int]:
 
     :return: Contagens de pares analisados, coincidentes e divergentes.
     """
+    from arquivo_telemetria import criar_sessao
+
     spark = criar_sessao()
     bucket = os.environ.get("MINIO_BUCKET", "racestream")
     base = f"s3a://{bucket}"

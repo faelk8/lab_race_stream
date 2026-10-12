@@ -1,5 +1,8 @@
 # Operação do laboratório local
 
+Este projeto é executado localmente para estudo e teste. Não há publicação nem
+deploy configurado.
+
 ## Serviços e métricas
 
 ```bash

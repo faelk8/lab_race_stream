@@ -1,10 +1,10 @@
-# Deploy e CI/CD
+# Execução local com Docker Compose
 
 ## Execução local
 
-Docker Compose é o único alvo de deploy/orquestração presente. A topologia é de
-nó único e voltada ao desenvolvimento local. Os serviços Python compartilham um
-Dockerfile; o dashboard e o MinIO têm imagens próprias.
+O RaceStream é executado como laboratório de estudo e teste em uma máquina
+local. Docker Compose reúne os serviços; este repositório não publica imagens,
+não executa deploy e não mantém um workflow CI ativo.
 
 ```mermaid
 flowchart TB
@@ -14,11 +14,11 @@ flowchart TB
         SR[Schema Registry]
         RP[Redpanda Console]
         M[MinIO]
-        SIM[Simulator]
-        CON[Consumer]
+        SIM[Simulador]
+        CON[Consumer Python]
         API[API]
         UI[Dashboard]
-        SP[Spark archive]
+        SP[Arquivador Spark]
     end
     SIM --> K
     CON --> K
@@ -45,26 +45,12 @@ flowchart TB
 Os volumes nomeados são `kafka-data`, `postgres-data`, `minio-data` e
 `spark-work`. `docker compose down` preserva os volumes; `down -v` os remove.
 
-## Características não adequadas à produção
+## Arquivos fora do escopo local
 
-- Kafka e PostgreSQL têm instância única.
-- Kafka usa PLAINTEXT e o Schema Registry usa HTTP.
-- Credenciais locais têm valores padrão.
-- A API não implementa autenticação ou autorização.
-- O dashboard executa o servidor de desenvolvimento Vite.
-- Não há proxy reverso, TLS, limites para todos os serviços ou políticas de
-  backup.
-- Os containers locais da aplicação são construídos no host e não são
-  publicados por pipeline.
-
-## Preparação para deploy
-
-O arquivo `docker-compose.prod.yml` usa uma imagem estática Nginx para o painel,
-proxy same-origin para API/WebSocket e Caddy para TLS e autenticação básica.
-Consulte o [plano de preparação e operação](production-readiness.md) para
-configuração, limites conhecidos, readiness, métricas, backup e retenção. Esta
-composição é uma base para validação; os limites de nó único e a ausência de
-autenticação por usuário impedem tratá-la como arquitetura de produção irrestrita.
+Há arquivos históricos de composição e configuração voltados a outros cenários.
+Eles não são usados pelos comandos, testes ou fluxos documentados para este
+laboratório e não representam um plano de publicação. A execução suportada usa
+`docker-compose.yml` e os overlays descritos em [operação local](operacao-local.md).
 
 ## Kubernetes e Helm
 
@@ -73,11 +59,12 @@ autenticação por usuário impedem tratá-la como arquitetura de produção irr
 Não existem manifests, charts, probes Kubernetes, requests/limits de cluster,
 ConfigMaps ou Secrets.
 
-## CI/CD
+## CI e deploy
 
-O workflow `.github/workflows/ci.yml` executa verificações Python, frontend,
-fixtures Spark e validação Compose em push e pull request. Não há publicação de
-imagens, entrega contínua ou deploy automatizado.
+Não há CI ou deploy configurado no repositório compartilhado. O arquivo local
+`.github/workflows/ci.yml` é ignorado pelo Git. As verificações são executadas
+manualmente conforme [testes](testing.md); não publique este laboratório como
+ambiente de serviço.
 
 ## Deploy em nuvem
 

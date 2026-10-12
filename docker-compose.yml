@@ -165,6 +165,8 @@ services:
         condition: service_completed_successfully
       schema-registry:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
     ports:
       - "8000:8000"
     environment:
@@ -173,6 +175,10 @@ services:
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
       KAFKA_TOPIC: telemetry
       KAFKA_DASHBOARD_GROUP: racestream-dashboard
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_BUCKET: ${MINIO_BUCKET:-racestream}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-racestream}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-racestream-local-only}
       RACE_TIME_SCALE: ${RACE_TIME_SCALE:-45}
       RACE_DURATION_SECONDS: ${RACE_DURATION_SECONDS:-120}
       RACE_TARGET_LAPS: ${RACE_TARGET_LAPS:-60}
@@ -238,7 +244,8 @@ services:
       SPARK_TRIGGER_INTERVAL: ${SPARK_TRIGGER_INTERVAL:-30 seconds}
       SPARK_LOG_LEVEL: WARN
       SPARK_STALL_TIMEOUT_SECONDS: ${SPARK_STALL_TIMEOUT_SECONDS:-300}
-      PYTHONPATH: /opt/racestream_health
+      SPARK_MEDALLION_INTERVAL_SECONDS: ${SPARK_MEDALLION_INTERVAL_SECONDS:-30}
+      PYTHONPATH: /opt/racestream:/opt/racestream_health
       HEALTH_PORT: "9102"
       HOME: /tmp
     volumes:

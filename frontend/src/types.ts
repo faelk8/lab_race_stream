@@ -83,6 +83,29 @@ export interface RaceSnapshot {
     incidents: RaceIncident[];
 }
 
+export interface RaceMedallionDriverResult {
+    race_id: string;
+    car_id: string;
+    driver_id: string;
+    driver_name: string;
+    driver_country_code: string;
+    country_flag: string;
+    team_id: string;
+    position: number;
+    best_lap_time_ms: number | null;
+    worst_lap_time_ms: number | null;
+    average_lap_time_ms: number | null;
+    valid_lap_count: number | null;
+    pit_stop_count: number;
+    podium_medal: "ouro" | "prata" | "bronze" | null;
+    trophy: string | null;
+}
+
+export interface RaceMedallionResults {
+    race_id: string;
+    classification: RaceMedallionDriverResult[];
+}
+
 export interface RaceIncident {
     incident_type: "tire_puncture" | "collision" | "time_penalty";
     lap: number;

@@ -17,19 +17,20 @@
 ## Limitações de dados
 
 - Kafka retém sete dias e tem um único broker.
-- PostgreSQL não tem expurgo das projeções/eventos discretos.
-- MinIO não tem lifecycle, backup ou replicação.
+- A retenção de eventos PostgreSQL não remove projeções nem recibos de deduplicação.
+- MinIO não tem lifecycle ou replicação externa; há backup local no mesmo host.
 - O arquivo bruto depende dos schemas históricos do Registry para decodificação.
-- O registro `schema_migrations` mantém versão e checksum; ainda falta validar
-  upgrade, reexecução e recuperação de migração em PostgreSQL isolado.
+- O registro `schema_migrations` mantém versão e checksum; os testes atuais
+  cobrem detecção de checksum diferente. A suíte completa de upgrade/reexecução
+  em PostgreSQL isolado permanece limitada.
 - Não há Iceberg, ClickHouse, CDC ou Protobuf.
 
 ## Limitações da aplicação
 
-- A API não tem identidade individual nem autorização por ação. A composição de
-  produção aplica TLS e autenticação básica compartilhada no Caddy.
-- O Compose local usa Vite em modo de desenvolvimento; o overlay de produção
-  serve o build estático por Nginx.
+- A API não tem identidade individual nem autorização por ação; o painel é de
+  uso local.
+- O Compose principal usa Vite em modo de desenvolvimento. Há arquivos de
+  composição adicionais no repositório que não fazem parte do uso deste laboratório.
 - O PostgreSQL não é exposto ao host.
 - O grupo do consumer online é fixo no código.
 - Nem todas as variáveis lidas pelo código são repassadas pelo Compose.
@@ -38,28 +39,25 @@
 
 ## Limitações de operação e qualidade
 
-- Há CI para testes/builds; não há entrega contínua, Kubernetes ou deploy
-  automatizado de produção.
-- Não há métricas, traces, dashboards ou alertas.
+- CI, publicação e deploy não estão configurados no repositório compartilhado.
+- O perfil local opcional oferece Prometheus, Grafana e métricas básicas dos
+  serviços; não há traces OpenTelemetry, SLOs nem alertas.
 - Não há E2E automatizado de navegador ou carga.
 - A integração PostgreSQL é um script manual que não é copiado para a imagem.
-- Os agregados e a paridade Spark têm teste com fixtures locais; falta teste
-  ponta a ponta do decoder Avro, leitura Parquet e escrita/recuperação no MinIO.
+- Os agregados, a classificação medalhão e a contagem de paradas Spark têm teste
+  com fixtures locais; falta teste ponta a ponta do decoder Avro, leitura Parquet
+  e escrita/recuperação no MinIO como execução automatizada. Uma validação manual
+  ponta a ponta foi feita com a corrida já arquivada `race-c93b4916a097`.
 - Há docstrings históricas em inglês e a regra de documentação pública não é
   verificada automaticamente.
 
 ## Próximos passos baseados nas lacunas atuais
 
-1. Adicionar teste ponta a ponta do job Spark com envelopes Avro, Parquet e
-   Schema Registry, mantendo as fixtures locais atuais para as regras.
-2. Validar upgrade, reexecução e checksum das migrações em PostgreSQL isolado.
-3. Adicionar readiness real para producer, consumer e Spark, além de métricas de
-   atraso, outbox e DLQ.
-4. Revisar e endurecer autenticação, segredos, Kafka e disponibilidade antes de
-   expor o esqueleto Compose de produção fora de rede controlada.
-5. Definir backup, restauração e retenção para PostgreSQL e MinIO.
-6. Avaliar Iceberg ou ClickHouse somente com casos de consulta e retenção claros;
-   a implementação atual não depende deles.
+1. Automatizar a validação ponta a ponta do decoder Avro, leitura Parquet e
+   escrita S3A usando fixtures locais no serviço Spark de testes.
+2. Ampliar o teste isolado de migrações para reexecução e upgrade completo.
+3. Avaliar Iceberg ou ClickHouse somente se surgirem consultas e requisitos
+   locais que justifiquem essas ferramentas.
 
 Os itens acima são recomendações derivadas das lacunas verificadas; não
 representam componentes já aprovados ou implementados.

@@ -11,7 +11,7 @@
 | Frontend | Apresentação, ordenação, quadros, balões e mensagens de erro. |
 | Integração Kafka | Producer/consumer Avro com broker e Schema Registry reais, opt-in. |
 | Integração PostgreSQL | Script manual isolado para replay, outbox, rollback e DLQ. |
-| Spark | Scripts manuais de integridade do arquivo e paridade batch. |
+| Spark | Fixtures locais para agregados, paridade e classificação medalhão; validação de arquivo e decoder ainda exigem stack real. |
 
 Testes end-to-end automatizados em navegador:
 
@@ -27,7 +27,7 @@ Instale as dependências de desenvolvimento e execute:
 
 ```bash
 .venv/bin/ruff check src tests stream-processing/spark
-.venv/bin/mypy src tests
+.venv/bin/mypy src
 .venv/bin/pytest -q
 ```
 
@@ -94,6 +94,6 @@ dependem da stack, do arquivo no MinIO e dos schemas históricos no Registry.
 - Não há fixture compartilhada automatizada entre Spark e consumer; a paridade
   é executada sobre o arquivo real.
 - Não há teste automatizado dos Dockerfiles.
-- Não há pipeline de CI que execute os comandos.
+- Não há pipeline de CI no repositório compartilhado; `.github/workflows/ci.yml` é ignorado pelo Git.
 - Os números de testes registrados nos planos são evidências datadas e podem
   mudar conforme a suíte evolui.

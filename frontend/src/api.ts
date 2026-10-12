@@ -1,4 +1,4 @@
-import type { CarConfiguration, RaceSnapshot, RaceStartConfiguration } from "./types";
+import type { CarConfiguration, RaceMedallionResults, RaceSnapshot, RaceStartConfiguration } from "./types";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
@@ -40,6 +40,10 @@ export function getCars(): Promise<CarConfiguration[]> {
 
 export function getLatestRace(): Promise<RaceSnapshot | null> {
     return request<RaceSnapshot | null>("/api/races/latest");
+}
+
+export function getRaceMedallionResults(raceId: string): Promise<RaceMedallionResults> {
+    return request(`/api/races/${encodeURIComponent(raceId)}/medalhao`);
 }
 
 export function updateCar(

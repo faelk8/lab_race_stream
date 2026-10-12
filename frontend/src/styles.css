@@ -971,3 +971,37 @@ h1 span {
 .split-point:focus-visible circle:first-of-type { stroke: #fff; stroke-width: 2.5; }
 .split-tooltip rect { fill: #263348; stroke: #91a7c2; }
 .split-tooltip text { fill: #fff; font: 10px var(--mono); }
+
+.results-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 24px; background: rgba(14, 20, 18, .5); }
+.results-dialog { position: relative; width: min(1120px, 100%); max-height: min(86vh, 900px); overflow: auto; padding: 34px 30px 28px; border: 1px solid #d6ddd5; border-radius: 14px; background: #f8faf6; color: #202729; box-shadow: 0 24px 80px rgba(0, 0, 0, .24); }
+.results-close { position: absolute; top: 14px; left: 14px; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #ccd5cc; border-radius: 50%; background: #fff; color: #39463f; cursor: pointer; }
+.results-close:hover { background: #edf2ec; }
+.results-header { padding: 4px 34px 20px; border-bottom: 1px solid #dce3dc; }
+.results-header > span { color: #75837a; font: 11px var(--mono); letter-spacing: .12em; }
+.results-header h2 { margin: 8px 0 4px; color: #202729; font-size: clamp(25px, 4vw, 36px); letter-spacing: .03em; }
+.results-header p { margin: 0; color: #657169; font-size: 13px; }
+.results-loading { padding: 48px 12px; text-align: center; color: #39463f; font-size: 16px; }
+.results-table-wrap { overflow: auto; margin-top: 18px; }
+.results-table { width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; font-size: 13px; font-variant-numeric: tabular-nums; }
+.results-table th { padding: 12px 11px; color: #78847d; font: 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+.results-table td { padding: 13px 11px; border-top: 1px solid #e4e9e3; }
+.results-row-ouro { background: #edf7e9; }
+.results-row-prata { background: #f1f3f0; }
+.results-row-bronze { background: #fbf0e7; }
+.results-position { font: 700 18px var(--mono); }
+.results-position small, .results-driver small { display: block; margin-top: 3px; color: #828c85; font: 10px var(--mono); }
+.results-driver { display: flex; align-items: center; gap: 9px; }
+.results-driver strong { color: #202729; font-size: 14px; }
+.results-flag { width: 23px; font: 19px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+.results-medal { display: inline-flex; align-items: center; gap: 6px; font-size: 20px; }
+.results-medal small { font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.results-medal-ouro { color: #bd891b; }
+.results-medal-prata { color: #7b8587; }
+.results-medal-bronze { color: #a76542; }
+.results-no-medal { color: #aab2aa; }
+
+@media (max-width: 680px) {
+    .results-backdrop { padding: 10px; }
+    .results-dialog { padding: 30px 14px 18px; }
+    .results-header { padding: 8px 30px 16px; }
+}

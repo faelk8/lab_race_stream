@@ -242,10 +242,11 @@ Variáveis e limites estão em [docs/configuration.md](docs/configuration.md).
 | Simulação, Kafka, Avro, API, WebSocket e dashboard | Implementados. |
 | PostgreSQL, Spark e MinIO/Parquet | Implementados. |
 | Agregações Spark e comparação com consumer | Implementadas sob demanda. |
+| Camadas bronze/prata/ouro por corrida e resumo de chegada | Implementados; veja [docs/medalhao.md](docs/medalhao.md). |
 | Protobuf, ClickHouse, Iceberg e Debezium | Não implementados. |
 | Kubernetes e Helm | Não implementados. |
-| OpenTelemetry, Prometheus e Grafana | Não implementados. |
-| GitHub Actions/CI | Workflow de validação implementado; deploy automático não implementado. |
+| OpenTelemetry | Não implementado. Prometheus e Grafana locais são opcionais no perfil `observabilidade`. |
+| CI ou deploy | Não configurados no repositório compartilhado; o workflow local é ignorado pelo Git. |
 
 Limitações e próximos passos: [docs/limitations.md](docs/limitations.md).
 
@@ -256,7 +257,7 @@ Limitações e próximos passos: [docs/limitations.md](docs/limitations.md).
 - [Instalação e execução](docs/getting-started.md)
 - [Desenvolvimento](docs/development.md)
 - [Testes](docs/testing.md)
-- [Deploy e CI/CD](docs/deployment.md)
+- [Execução local em Docker Compose](docs/deployment.md)
 - [Logs e observabilidade](docs/observability.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Decisões arquiteturais](docs/decisions.md)

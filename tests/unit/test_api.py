@@ -77,6 +77,16 @@ class FakeTelemetryHub(KafkaTelemetryHub):
         """Implement hub shutdown without external resources."""
 
 
+class FakeRaceMedallion:
+    """Adaptador MinIO em memória para testar a rota ouro."""
+
+    def get_gold_results(self, race_id: str) -> dict[str, object] | None:
+        """Retorne uma classificação somente para a corrida prevista."""
+        if race_id != "race-fixture":
+            return None
+        return {"race_id": race_id, "classification": []}
+
+
 def route_endpoint(app, path: str):
     """Localize o endpoint para teste direto sem lifespan ou threadpool ASGI."""
     return next(
@@ -179,3 +189,25 @@ def test_websocket_queue_preserves_a_complete_grid_burst() -> None:
         hub._broadcast(event)
     assert [queue.get_nowait() for _ in range(20)] == events
     hub.unsubscribe(queue)
+
+
+def test_medallion_results_are_served_from_the_injected_store() -> None:
+    """A API disponibiliza o resumo ouro sem acessar o MinIO no teste."""
+    app = create_app(
+        FakeRaceRepository(), FakeTelemetryHub(), medallion=FakeRaceMedallion()
+    )
+    response = route_endpoint(app, "/api/races/{race_id}/medalhao")("race-fixture")
+    assert response == {"race_id": "race-fixture", "classification": []}
+
+
+def test_medallion_route_returns_not_found_until_spark_finishes() -> None:
+    """O dashboard pode repetir a consulta enquanto a camada ouro é gerada."""
+    from fastapi import HTTPException
+
+    app = create_app(
+        FakeRaceRepository(), FakeTelemetryHub(), medallion=FakeRaceMedallion()
+    )
+    route = route_endpoint(app, "/api/races/{race_id}/medalhao")
+    with pytest.raises(HTTPException) as error:
+        route("race-in-progress")
+    assert error.value.status_code == 404

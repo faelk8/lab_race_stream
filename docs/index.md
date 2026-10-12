@@ -33,8 +33,9 @@ medições oficiais de pista ou de veículos reais.
 | Painel de corrida | Implementado em React, TypeScript e SVG. |
 | Arquivo histórico | Implementado em Parquet no MinIO por Spark Structured Streaming. |
 | Agregados de volta e comparação de paridade | Implementados como job Spark batch sob demanda. |
+| Camadas medalhão por corrida e classificação de chegada | Implementadas no MinIO e exibidas no painel após a corrida. |
 | Protobuf, ClickHouse, Iceberg e Debezium | Não implementados. |
-| CI | Workflow GitHub Actions para testes e builds. |
+| CI e deploy | Não configurados no repositório compartilhado; foco exclusivo no laboratório local. |
 | Kubernetes, deploy contínuo e observabilidade completa | Não implementados. |
 
 ## Navegação
@@ -45,16 +46,17 @@ medições oficiais de pista ou de veículos reais.
 4. [Primeiros passos](getting-started.md) — instalação e execução.
 5. [Configuração](configuration.md) — variáveis, portas e parâmetros.
 6. [Persistência](persistence.md) — PostgreSQL, Kafka e MinIO.
-7. [Spark](spark.md) — arquivamento, agregações e validação.
-8. [Desenvolvimento](development.md) — organização, dependências e padrões.
-9. [Testes](testing.md) — camadas, comandos e cobertura funcional.
-10. [Deploy e CI/CD](deployment.md) — Compose local, pipeline de validação e preparação para produção.
-11. [Logs e observabilidade](observability.md) — logs, saúde e lacunas.
-12. [Troubleshooting](troubleshooting.md) — falhas frequentes e diagnóstico.
-13. [Decisões](decisions.md) — ADRs e decisões vigentes.
-14. [Limitações e próximos passos](limitations.md) — limites comprovados e evolução.
-15. [Dicionário de dados](dicionario-de-dados.md) — tópicos e contratos Avro.
-16. [Operação do laboratório local](operacao-local.md) — métricas, backup, restauração e retenção.
+7. [Spark](spark.md) — arquivamento, agregações, medalhão e validação.
+8. [Camadas medalhão](medalhao.md) — bronze, prata, ouro e classificação final.
+9. [Desenvolvimento](development.md) — organização, dependências e padrões.
+10. [Testes](testing.md) — camadas, comandos e cobertura funcional.
+11. [Execução com Docker Compose](deployment.md) — serviços e volumes locais.
+12. [Logs e observabilidade](observability.md) — logs, saúde e lacunas.
+13. [Troubleshooting](troubleshooting.md) — falhas frequentes e diagnóstico.
+14. [Decisões](decisions.md) — ADRs e decisões vigentes.
+15. [Limitações e próximos passos](limitations.md) — limites comprovados e evolução.
+16. [Dicionário de dados](dicionario-de-dados.md) — tópicos e contratos Avro.
+17. [Operação do laboratório local](operacao-local.md) — métricas, backup, restauração e retenção.
 
 Os planos de execução registram a evolução e as evidências históricas. Para
 entender o estado atual, use primeiro os documentos desta página e depois os

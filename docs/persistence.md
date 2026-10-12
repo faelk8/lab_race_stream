@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | PostgreSQL | Configuração, ciclo da corrida, resultados, projeções e outbox. | Persistente no volume `postgres-data`; sem expurgo automático. |
 | Kafka | Eventos fonte e derivados. | Sete dias por tópico no Compose. |
-| MinIO | Envelopes Kafka em Parquet, checkpoints e agregados Spark. | Persistente no volume `minio-data`; sem política de expiração configurada. |
+| MinIO | Envelopes Kafka, checkpoints, agregados e camadas medalhão bronze/prata/ouro por corrida. | Persistente no volume `minio-data`; sem política de expiração configurada. |
 | Volume Spark | Cache Ivy dos pacotes. | Persistente em `spark-work`. |
 
 ## PostgreSQL
@@ -76,12 +76,18 @@ racestream/
 ├── _checkpoints/
 │   └── spark_kafka_archive_v2/
 ├── lap_performance/
-└── consumer_parity/
+├── consumer_parity/
+└── corridas/{race_id}/
+    ├── bronze/eventos/
+    ├── prata/{voltas,pit_stops,telemetria_final}/
+    └── ouro/{classificacao,resumo.json}
 ```
 
 `telemetry_raw` preserva o envelope Avro Confluent sem decodificá-lo. Isso exige
 que os schemas writer referenciados pelos IDs continuem disponíveis no Schema
-Registry para análises posteriores.
+Registry para análises posteriores. Após o término, o Spark copia os envelopes
+da corrida para bronze, grava fatos normalizados em prata e publica a tabela ouro
+de classificação; veja [camadas medalhão](medalhao.md).
 
 Não há tabela Iceberg, catálogo lakehouse, compactação, vacuum ou lifecycle
 configurado.
@@ -91,7 +97,8 @@ configurado.
 ## Backup e recuperação
 
 O checkpoint Spark permite continuar a leitura de offsets. O consumer Python
-recupera projeções e deduplica replays. Não há scripts de backup, restauração,
-replicação ou disaster recovery dos volumes.
-
-> Não identificado no repositório.
+recupera projeções e deduplica replays. `scripts/backup_local.py` cria e verifica
+backups locais de PostgreSQL, MinIO, Kafka e schemas; também restaura em um
+projeto Compose isolado. A documentação está em
+[operação local](operacao-local.md). Os arquivos ficam no mesmo computador e
+não oferecem proteção contra perda do host; não há replicação externa.

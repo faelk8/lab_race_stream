@@ -1,8 +1,10 @@
 """Arquive envelopes Kafka da corrida em Parquet no MinIO."""
 
 import os
+import threading
 from urllib.request import urlopen
 
+from medalhao import acompanhar_corridas
 from operational_health import OperationalHealth, serve_health
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, to_date
@@ -81,6 +83,15 @@ def main() -> None:
     health = OperationalHealth()
     server = serve_health(health, int(os.environ.get("HEALTH_PORT", "9102")))
     monitor = QueryHealth(float(os.environ.get("SPARK_STALL_TIMEOUT_SECONDS", "300")))
+    parar_medalhao = threading.Event()
+    intervalo_medalhao = int(os.environ.get("SPARK_MEDALLION_INTERVAL_SECONDS", "30"))
+    worker_medalhao = threading.Thread(
+        target=acompanhar_corridas,
+        args=(spark, intervalo_medalhao, parar_medalhao),
+        name="spark-medalhao",
+        daemon=True,
+    )
+    worker_medalhao.start()
     try:
         while not consulta.awaitTermination(5):
             observed = monitor.observe(consulta)
@@ -99,6 +110,8 @@ def main() -> None:
             for name, value in observed.items():
                 health.set(name, value)
     finally:
+        parar_medalhao.set()
+        worker_medalhao.join(timeout=intervalo_medalhao + 5)
         health.stop()
         server.shutdown()
         server.server_close()

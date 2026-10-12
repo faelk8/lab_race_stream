@@ -32,6 +32,7 @@ O FastAPI expõe os endpoints abaixo. Os corpos e respostas são JSON.
 | `POST /api/races/start` | Solicita uma corrida com clima e incidentes. |
 | `POST /api/races/{race_id}/stop` | Solicita a parada e preserva o resultado parcial. |
 | `GET /api/races/latest` | Retorna o ciclo de vida da corrida mais recente. |
+| `GET /api/races/{race_id}/medalhao` | Retorna a classificação ouro salva no MinIO; responde `404` enquanto o Spark ainda processa o resultado. |
 | `GET /api/streaming` | Retorna catálogo de tópicos, frequência e escala. |
 | `GET /api/tracks/{track_id}` | Retorna a definição física configurada da pista. |
 | `GET /api/races/{race_id}/state` | Retorna snapshot, analytics e participantes. |

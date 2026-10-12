@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field, model_validator
 
 from racestream.application.event_contracts import TOPICS
-from racestream.application.ports import RaceControl, RaceRepository
+from racestream.application.ports import RaceControl, RaceMedallion, RaceRepository
 from racestream.domain.models import (
     CarConfiguration,
     RaceConfiguration,
@@ -23,6 +23,7 @@ from racestream.domain.models import (
 )
 from racestream.domain.simulator import RACE_DURATION_SECONDS, TARGET_LAPS
 from racestream.infrastructure.dependency_probe import DependencyProbe
+from racestream.infrastructure.minio_medallion import MinioRaceMedallion
 from racestream.infrastructure.operational_health import OperationalHealth
 from racestream.infrastructure.postgres_repository import PostgresRaceRepository
 from racestream.infrastructure.projection_store import ProjectionStore
@@ -104,6 +105,7 @@ def create_app(
     repository: RaceRepository | None = None,
     telemetry_hub: KafkaTelemetryHub | None = None,
     race_control: RaceControl | None = None,
+    medallion: RaceMedallion | None = None,
 ) -> FastAPI:
     """Compose REST and WebSocket routes with injected infrastructure ports.
 
@@ -121,6 +123,7 @@ def create_app(
     )
     control = race_control or cast(RaceControl, race_repository)
     hub = telemetry_hub or KafkaTelemetryHub()
+    race_medallion = medallion or MinioRaceMedallion()
 
     health_state = OperationalHealth()
     probe = DependencyProbe(health_state, lambda: hub.is_ready())
@@ -338,6 +341,14 @@ def create_app(
         """Return the latest persisted race lifecycle snapshot."""
         race = race_repository.get_latest_race()
         return asdict(race) if race is not None else None
+
+    @app.get("/api/races/{race_id}/medalhao")
+    def race_medallion_results(race_id: str) -> dict[str, object]:
+        """Retorne a tabela ouro ou informe que ela ainda está sendo gerada."""
+        results = race_medallion.get_gold_results(race_id)
+        if results is None:
+            raise HTTPException(404, "Classificação ouro ainda não disponível")
+        return results
 
     def read_projection(race_id: str) -> dict[str, Any] | None:
         """Recupere uma projeção com conexão curta e independente por requisição."""

@@ -1,13 +1,14 @@
 # Operação e recuperação do laboratório local
 
-Este documento acompanha o escopo confirmado pelo usuário: laboratório local de
-testes, sem deploy público. Prometheus e Grafana são optativos. Backups ficam em
-disco local e servem para testar restauração, não para recuperar perda da máquina.
+Este documento descreve apenas a operação do laboratório local de testes. Não
+existe implantação para produção neste escopo. Prometheus e Grafana são
+optativos. Backups ficam em disco local e servem para testar restauração, não
+para recuperar perda da máquina.
 
 ## 1. Estado entregue nesta etapa
 
-- O workflow `.github/workflows/ci.yml` executa Ruff, mypy, pytest, testes e build
-  do frontend, transformações Spark com fixtures e validação dos arquivos Compose.
+- Não há workflow CI ativo no repositório compartilhado; o arquivo local em
+  `.github/workflows/ci.yml` é ignorado pelo Git.
 - Os testes Spark validam agregação, deduplicação, seleção da análise online mais
   recente e paridade com `local[1]`, sem Kafka, PostgreSQL, MinIO ou corrida ativa.
 - As migrações SQL recebem versão numérica, checksum SHA-256 e instante de

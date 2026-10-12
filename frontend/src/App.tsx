@@ -18,12 +18,13 @@ import {
     Zap,
 } from "lucide-react";
 import { startTransition, useDeferredValue, useEffect, useRef, useState } from "react";
-import { getCars, getLatestRace, pauseRace, resumeRace, startRace, stopRace, telemetrySocketUrl, updateCar } from "./api";
+import { getCars, getLatestRace, getRaceMedallionResults, pauseRace, resumeRace, startRace, stopRace, telemetrySocketUrl, updateCar } from "./api";
 import { RaceInsights } from "./RaceInsights";
+import { RaceResultsDialog } from "./RaceResultsDialog";
 import { InterlagosTrack } from "./InterlagosTrack";
 import { availableCarsForIncidentLap, countryFlag, countryName, isDuplicateIncident, rankCars, teamName, visibleTrackCars } from "./racePresentation";
 import { DEFAULT_RACE_SETUP, loadRaceSetup, saveRaceSetup } from "./raceSetupStorage";
-import type { AnalyticsEvent, CarAnalytics, CarConfiguration, RaceIncident, RaceSnapshot, RaceStartConfiguration, RaceStateEvent, RaceTelemetry, TireCompound } from "./types";
+import type { AnalyticsEvent, CarAnalytics, CarConfiguration, RaceIncident, RaceMedallionResults, RaceSnapshot, RaceStartConfiguration, RaceStateEvent, RaceTelemetry, TireCompound } from "./types";
 
 type ConnectionState = "connecting" | "connected" | "reconnecting";
 
@@ -60,6 +61,10 @@ export function App() {
     const [now, setNow] = useState(Date.now());
     useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
     const [race, setRace] = useState<RaceSnapshot | null>(null);
+    const [raceResults, setRaceResults] = useState<RaceMedallionResults | null>(null);
+    const [resultsDialogOpen, setResultsDialogOpen] = useState(false);
+    const [resultsLoading, setResultsLoading] = useState(false);
+    const dismissedResultsRace = useRef<string | null>(null);
     const [telemetryByCar, setTelemetryByCar] = useState<Record<string, RaceTelemetry>>({});
     const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
     const [draft, setDraft] = useState<CarConfiguration | null>(null);
@@ -77,6 +82,43 @@ export function App() {
     const [error, setError] = useState<string | null>(null);
     const telemetry = useDeferredValue(telemetryByCar);
     useEffect(() => { saveRaceSetup(raceSetup); }, [raceSetup]);
+
+    useEffect(() => {
+        const raceId = race?.race_id;
+        if (!raceId || race.status !== "finished") {
+            if (raceId && dismissedResultsRace.current !== raceId) {
+                setRaceResults(null);
+                setResultsDialogOpen(false);
+            }
+            return;
+        }
+        if (dismissedResultsRace.current === raceId) return;
+        let active = true;
+        let retryTimer = 0;
+        setResultsDialogOpen(true);
+        setResultsLoading(true);
+        const loadResults = async () => {
+            try {
+                const results = await getRaceMedallionResults(raceId);
+                if (!active) return;
+                setRaceResults(results);
+                setResultsLoading(false);
+            } catch {
+                if (!active) return;
+                retryTimer = window.setTimeout(() => void loadResults(), 2_000);
+            }
+        };
+        void loadResults();
+        return () => {
+            active = false;
+            window.clearTimeout(retryTimer);
+        };
+    }, [race?.race_id, race?.status]);
+
+    function closeResultsDialog() {
+        if (race?.race_id) dismissedResultsRace.current = race.race_id;
+        setResultsDialogOpen(false);
+    }
     const eligibleIncidentCars = availableCarsForIncidentLap(cars, raceSetup.incidents, incidentLap);
     const selectedIncidentCar = eligibleIncidentCars.find((car) => car.car_id === incidentCar)?.car_id ?? eligibleIncidentCars[0]?.car_id ?? "";
     const eligibleSecondCars = eligibleIncidentCars.filter((car) => car.car_id !== selectedIncidentCar);
@@ -514,6 +556,7 @@ export function App() {
                 </footer>
                 <RaceInsights trackDefinition={sessionTrack} raceId={race?.race_id} selectedCarId={selectedCarId} selectedTeam={selectionMode === "team" ? selectedTeam : null} cars={participants} telemetry={telemetry} analytics={analytics} />
             </main>
+            {resultsDialogOpen && <RaceResultsDialog results={raceResults} loading={resultsLoading} onClose={closeResultsDialog} />}
         </div>
     );
 }

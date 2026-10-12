@@ -4,6 +4,18 @@ Atualizado em 07/10/2026. Este arquivo é o ponto de entrada após pausa por cr�
 fechamento do chat ou troca de modelo. O repositório e seus planos guardam o
 estado; não é necessário copiar toda a conversa.
 
+## Estado atual (12/10/2026)
+
+O escopo segue restrito ao laboratório local de estudo e teste. A CI do GitHub
+não será usada: `.github/workflows/ci.yml` permanece apenas na máquina local,
+ignorada pelo Git. O fluxo Spark já materializa bronze, prata e ouro por corrida
+no MinIO e a tela consulta a classificação final para abrir o modal de chegada.
+Ruff, mypy do código, 185 testes Python e build/testes do frontend passaram neste
+ambiente. As fixtures Spark passaram, e a corrida já encerrada
+`race-c93b4916a097` foi reprocessada: os arquivos bronze, prata e ouro foram
+verificados no MinIO e a API devolveu a classificação dos vinte carros. Nenhuma
+corrida nova foi iniciada nesta alteração.
+
 ## Auditoria da arquitetura e atualização do README (06/10/2026)
 
 O usuário solicitou usar apenas Spark, registrar com clareza o que está e o que

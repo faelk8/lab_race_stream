@@ -6,6 +6,7 @@ from analitica_voltas import (
     comparar_agregados,
     resumir_paridade,
 )
+from medalhao import agregar_pit_stops, gerar_classificacao
 from pyspark.sql import SparkSession
 from pyspark.sql.types import (
     BooleanType,
@@ -83,7 +84,100 @@ def main() -> None:
         }, resumo
         divergente = comparacao.filter("car_id = 'CAR-03'").first()
         assert divergente is not None and divergente["paridade"] is False
-        print("Testes Spark aprovados: agregados, revisão mais recente e paridade.")
+
+        telemetria_schema = StructType(
+            [
+                StructField("race_id", StringType(), False),
+                StructField("car_id", StringType(), False),
+                StructField("driver_id", StringType(), False),
+                StructField("driver_name", StringType(), False),
+                StructField("driver_country_code", StringType(), False),
+                StructField("team_id", StringType(), False),
+                StructField("race_position", IntegerType(), False),
+                StructField("best_lap_time_ms", IntegerType(), True),
+                StructField("worst_lap_time_ms", IntegerType(), True),
+                StructField("pit_stops", IntegerType(), False),
+            ]
+        )
+        telemetria = spark.createDataFrame(
+            [
+                (
+                    "race-fixture", "CAR-02", "DRV-02", "Bia", "BR", "T02",
+                    2, 94_000, 101_000, 1,
+                ),
+                (
+                    "race-fixture", "CAR-01", "DRV-01", "Ana", "BR", "T01",
+                    1, 89_000, 110_000, 2,
+                ),
+                (
+                    "race-fixture", "CAR-03", "DRV-03", "Caio", "PT", "T03",
+                    3, 96_000, 99_000, 0,
+                ),
+            ],
+            telemetria_schema,
+        )
+        voltas_ouro_schema = StructType(
+            [
+                StructField("event_id", StringType(), False),
+                StructField("race_id", StringType(), False),
+                StructField("car_id", StringType(), False),
+                StructField("lap_time_ms", IntegerType(), False),
+                StructField("valid", BooleanType(), False),
+            ]
+        )
+        voltas_ouro = spark.createDataFrame(
+            [
+                ("l1", "race-fixture", "CAR-01", 90_000, True),
+                ("l1", "race-fixture", "CAR-01", 90_000, True),
+                ("l2", "race-fixture", "CAR-01", 100_000, True),
+                ("li", "race-fixture", "CAR-01", 70_000, False),
+                ("l3", "race-fixture", "CAR-02", 95_000, True),
+            ],
+            voltas_ouro_schema,
+        )
+        paradas_schema = StructType(
+            [
+                StructField("event_id", StringType(), False),
+                StructField("race_id", StringType(), False),
+                StructField("car_id", StringType(), False),
+                StructField("stop_number", IntegerType(), False),
+                StructField("phase", StringType(), False),
+            ]
+        )
+        paradas = spark.createDataFrame(
+            [
+                ("p1-entry", "race-fixture", "CAR-01", 1, "entry"),
+                ("p1-service", "race-fixture", "CAR-01", 1, "service_finished"),
+                ("p1-exit", "race-fixture", "CAR-01", 1, "exit"),
+                ("p1-exit-replay", "race-fixture", "CAR-01", 1, "exit"),
+                ("p2-entry", "race-fixture", "CAR-01", 2, "entry"),
+            ],
+            paradas_schema,
+        )
+        contagem_paradas = {
+            row["car_id"]: row["pit_stop_count"]
+            for row in agregar_pit_stops(paradas).collect()
+        }
+        assert contagem_paradas == {"CAR-01": 1}
+        classificacao = gerar_classificacao(telemetria, voltas_ouro, paradas)
+        resultados_ouro = [row.asDict() for row in classificacao.collect()]
+        assert [row["car_id"] for row in resultados_ouro] == [
+            "CAR-01",
+            "CAR-02",
+            "CAR-03",
+        ]
+        assert resultados_ouro[0]["average_lap_time_ms"] == 95_000
+        assert resultados_ouro[0]["best_lap_time_ms"] == 90_000
+        assert resultados_ouro[0]["worst_lap_time_ms"] == 100_000
+        assert resultados_ouro[0]["pit_stop_count"] == 2
+        assert [row["podium_medal"] for row in resultados_ouro] == [
+            "ouro",
+            "prata",
+            "bronze",
+        ]
+        assert resultados_ouro[0]["country_flag"] == "🇧🇷"
+        assert [row["trophy"] for row in resultados_ouro] == ["🏆", "🏆", "🏆"]
+        print("Testes Spark aprovados: agregados, paridade e classificação medalhão.")
     finally:
         spark.stop()
 

@@ -34,6 +34,7 @@ de que precisa.
 | `SPARK_STARTING_OFFSETS` | `earliest` | Offset inicial quando não existe checkpoint. |
 | `SPARK_MAX_OFFSETS_PER_TRIGGER` | `1000` | Limite por microbatch. |
 | `SPARK_TRIGGER_INTERVAL` | `30 seconds` | Frequência do arquivamento. |
+| `SPARK_MEDALLION_INTERVAL_SECONDS` | `30` | Frequência da busca por corridas encerradas para gerar bronze/prata/ouro. |
 
 `RACE_DURATION_SECONDS` não encerra o `PhysicalRace` por tempo. O caminho ativo
 termina por total de voltas, comando de parada ou prazo de chegada após o líder.
@@ -47,7 +48,7 @@ termina por total de voltas, comando de parada ou prazo de chegada após o líde
 | `KAFKA_TOPIC` | `telemetry` | Mantida para adapters legados; `EventStream` usa o catálogo de tópicos. |
 | `DATABASE_URL` | URI montada com as variáveis PostgreSQL | Usada por API, producer e consumer. |
 | `KAFKA_DASHBOARD_GROUP` | `racestream-dashboard` | A API acrescenta `-derived`. |
-| `MINIO_ENDPOINT` | `http://minio:9000` | Endpoint S3 interno do Spark. |
+| `MINIO_ENDPOINT` | `http://minio:9000` | Endpoint S3 interno usado pelo Spark e pela API. |
 | `SPARK_LOG_LEVEL` | `WARN` | Nível do SparkContext. |
 
 O consumer online usa o grupo fixo `racestream-projections-v1`; alterar

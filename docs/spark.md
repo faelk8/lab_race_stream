@@ -6,7 +6,7 @@ Spark 4.0.1 é o único motor de processamento distribuído adotado. Ele tem dua
 responsabilidades implementadas:
 
 1. arquivar continuamente os dez tópicos Kafka em Parquet no MinIO;
-2. executar, sob demanda, agregações de voltas e comparação com o consumer.
+2. executar agregações de voltas, comparação com o consumer e medalhão de chegada.
 
 O consumer Python continua responsável pela validação e pelas projeções que
 alimentam o dashboard.
@@ -75,12 +75,25 @@ O registro histórico do repositório documenta 80 pares corrida/carro
 coincidentes em uma execução de 06/10/2026. Esse resultado não é uma garantia
 automática para dados produzidos depois daquela validação.
 
+## Camadas medalhão
+
+Depois de arquivar um controle `finished`, o mesmo processo Spark acompanha o
+MinIO e materializa os envelopes originais, os dados de voltas/paradas/estado
+final e a classificação ouro em `corridas/{race_id}/{bronze,prata,ouro}`. A
+classificação inclui posição, nome e país do piloto, equipe, melhores/piores e
+média de voltas válidas, total de paradas, voltas válidas e medalha. O endpoint
+da API lê o resumo ouro; detalhes e formato estão em [medalhao.md](medalhao.md).
+O processo usa um intervalo configurável por `SPARK_MEDALLION_INTERVAL_SECONDS`
+(30 segundos por padrão).
+
 ## Limitações
 
-- Não há teste pytest dos jobs Spark.
+- As transformações de volta, paradas e classificação possuem fixtures Spark
+  executadas pelo perfil Compose `test`; o decoder e a escrita S3A ainda não têm
+  teste ponta a ponta automatizado.
 - A análise depende do Schema Registry ainda conter os IDs históricos.
 - As saídas batch são sobrescritas a cada execução.
-- Não há Iceberg, catálogo, compactação nem camada curada.
+- Não há Iceberg ou catálogo; bronze/prata/ouro são diretórios Parquet no MinIO.
 - Não há publicação de agregados Spark no Kafka ou na API.
 - O checkpoint é único para o conjunto configurado de tópicos; mudanças de
   assinatura precisam de operação controlada.
