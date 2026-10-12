@@ -18,6 +18,12 @@ por WebSocket e arquiva o fluxo em Parquet no MinIO com Apache Spark.
   <img align="center" alt="Ubuntu" height="40" width="50" src="https://raw.githubusercontent.com/devicons/devicon/master/icons/ubuntu/ubuntu-original.svg">
 </div>
 
+<p align="center">
+  <img src="image/image.png" alt="Dashboard do RaceStream Lab durante uma corrida simulada" width="900">
+</p>
+
+<p align="center"><em>Dashboard do laboratório com mapa da pista, classificação e telemetria.</em></p>
+
 ## 🧭 Menu
 
 1. [Objetivo](#1-objetivo)
@@ -199,7 +205,15 @@ para listar `race_results`; o dashboard usa a corrida mais recente e as projeç�
 O serviço `spark-archive` arquiva os envelopes Kafka em
 `s3a://racestream/telemetry_raw`. O job batch gera `lap_performance` e
 `consumer_parity`, comparando contagem, melhor e pior volta com o consumer
-online.
+online. As camadas medalhão por corrida são materializadas depois que o Spark
+detecta o encerramento da prova.
+
+Uma evolução planejada é preparar os dados de forma incremental durante a
+corrida: manter os eventos brutos na Bronze e consolidar dados em janelas por
+volta para as camadas tratadas. No fim, a Ouro poderia calcular a classificação
+e o pódio a partir desses agregados já preparados, reduzindo o trabalho e a
+espera após a bandeirada. Esse processamento por volta ainda não está
+implementado.
 
 Comandos e limites operacionais estão em [docs/spark.md](docs/spark.md). A
 persistência está detalhada em [docs/persistence.md](docs/persistence.md).

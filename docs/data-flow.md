@@ -134,3 +134,11 @@ grava a comparação com a revisão online mais recente.
 
 O Spark não publica as projeções usadas pelo painel e não substitui o consumer
 Python no caminho online.
+
+### Medalhão da corrida
+
+O arquivamento bruto ocorre continuamente, mas a materialização por corrida é
+disparada pelo estado `finished` e aguarda o quadro final completo. O Spark grava
+Bronze com os envelopes originais, Prata com voltas, pit stops e telemetria final,
+e Ouro com a classificação e o resumo consumidos pela API. A geração incremental
+de agregados por volta é uma evolução planejada, não comportamento atual.

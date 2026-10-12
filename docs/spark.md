@@ -77,14 +77,19 @@ automática para dados produzidos depois daquela validação.
 
 ## Camadas medalhão
 
-Depois de arquivar um controle `finished`, o mesmo processo Spark acompanha o
-MinIO e materializa os envelopes originais, os dados de voltas/paradas/estado
-final e a classificação ouro em `corridas/{race_id}/{bronze,prata,ouro}`. A
-classificação inclui posição, nome e país do piloto, equipe, melhores/piores e
-média de voltas válidas, total de paradas, voltas válidas e medalha. O endpoint
-da API lê o resumo ouro; detalhes e formato estão em [medalhao.md](medalhao.md).
-O processo usa um intervalo configurável por `SPARK_MEDALLION_INTERVAL_SECONDS`
-(30 segundos por padrão).
+O fluxo bruto Kafka é arquivado continuamente, mas as camadas por corrida só são
+materializadas quando o processo identifica um controle `finished` e o quadro
+final completo. O mesmo processo Spark grava os envelopes originais, os dados
+de voltas/paradas/estado final e a classificação ouro em
+`corridas/{race_id}/{bronze,prata,ouro}`. A classificação inclui posição, nome e
+país do piloto, equipe, melhores/piores e média de voltas válidas, total de
+paradas, voltas válidas e medalha. O endpoint da API lê o resumo ouro; detalhes
+e formato estão em [medalhao.md](medalhao.md). A busca usa o intervalo
+configurável `SPARK_MEDALLION_INTERVAL_SECONDS` (30 segundos por padrão).
+
+Calcular agregados em janelas por volta durante a corrida é uma evolução
+planejada para reduzir o trabalho após a bandeirada. Hoje Bronze, Prata e Ouro
+não são atualizadas incrementalmente por volta.
 
 ## Limitações
 
